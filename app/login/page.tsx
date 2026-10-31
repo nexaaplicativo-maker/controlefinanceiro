@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, KeyRound } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, KeyRound, MailCheck } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { toast } from "../../components/Toast";
 
@@ -23,6 +23,31 @@ function mensagemDeCadastro(mensagem: string): string {
   return "Não consegui criar a conta: " + mensagem;
 }
 
+/**
+ * Erros de login, separados por causa.
+ *
+ * Antes TODO erro virava "E-mail ou senha incorretos", inclusive os que não
+ * tinham nada a ver com a senha. O pior deles é `Email not confirmed`: a
+ * senha está certa, falta clicar no link do e-mail — e a pessoa passa a
+ * tentar senhas diferentes, ou pede recuperação, sem nunca chegar perto do
+ * problema real.
+ *
+ * `null` significa que o caso tem tratamento próprio na tela, com aviso fixo
+ * em vez de toast.
+ *
+ * Credencial inválida continua genérica de propósito: dizer QUAL dos dois
+ * está errado confirmaria a estranhos que aquele e-mail tem conta.
+ */
+function mensagemDeLogin(mensagem: string): string | null {
+  const m = mensagem.toLowerCase();
+  if (m.includes("not confirmed") || m.includes("email_not_confirmed")) return null;
+  if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+  if (m.includes("disabled")) return "O login por e-mail e senha está desativado nesta instalação.";
+  if (m.includes("invalid login") || m.includes("invalid credentials")) return "E-mail ou senha incorretos.";
+  if (m.includes("failed to fetch") || m.includes("network")) return "Sem conexão com o servidor. Verifique sua internet.";
+  return "Não consegui entrar: " + mensagem;
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,13 +56,13 @@ export default function Login() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [emailJaUsado, setEmailJaUsado] = useState(false);
+  const [aviso, setAviso] = useState<null | "email-ja-usado" | "nao-confirmado">(null);
   const [isResetting, setIsResetting] = useState(false);
 
   const handleAuth = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    setEmailJaUsado(false);
+    setAviso(null);
 
     if (isRegistering) {
       const { data, error } = await supabase.auth.signUp({ email, password });
@@ -60,7 +85,7 @@ export default function Login() {
         (!error && data.user?.identities?.length === 0);
 
       if (jaExiste) {
-        setEmailJaUsado(true);
+        setAviso("email-ja-usado");
         setIsRegistering(false);
         setPassword("");
         return;
@@ -76,7 +101,12 @@ export default function Login() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        toast("E-mail ou senha incorretos.", "error");
+        const texto = mensagemDeLogin(error.message);
+        // `null` = e-mail não confirmado. Vai em aviso fixo com o botão de
+        // reenviar, porque é o único caso em que a pessoa precisa AGIR fora
+        // desta tela — toast sumiria antes de ela entender o que fazer.
+        if (texto === null) setAviso("nao-confirmado");
+        else toast(texto, "error");
         setLoading(false);
       } else {
         // Mostra a tela de splash e redireciona depois
@@ -93,10 +123,11 @@ export default function Login() {
       toast("Digite seu e-mail primeiro para recuperar a senha.", "warning");
       return;
     }
+
+    setIsResetting(true);
     // Sem o redirectTo, o link do e-mail caía no dashboard e a pessoa nunca
     // via onde trocar a senha — o fluxo existia mas não terminava em lugar
     // nenhum.
-    setIsResetting(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/recuperar-senha`,
     });
@@ -107,6 +138,26 @@ export default function Login() {
     // acompanha isso e não afirma que o e-mail foi mesmo encontrado.
     if (error) toast(mensagemDeCadastro(error.message), "error");
     else toast("Se existir conta com esse e-mail, o link de redefinição chegou nele. 📧", "success");
+  };
+
+  /**
+   * Reenvia o e-mail de confirmação de cadastro.
+   *
+   * Existe porque a confirmação é a causa mais silenciosa de "não consigo
+   * entrar": a senha está certa, o e-mail se perdeu no spam, e sem um jeito
+   * de pedir outro a conta fica inacessível para sempre.
+   */
+  const reenviarConfirmacao = async () => {
+    if (!email) {
+      toast("Digite seu e-mail primeiro.", "warning");
+      return;
+    }
+    setIsResetting(true);
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    setIsResetting(false);
+
+    if (error) toast(mensagemDeCadastro(error.message), "error");
+    else toast("Enviei de novo. Confira a caixa de entrada e o spam. 📧", "success");
   };
 
   /**
@@ -177,7 +228,7 @@ export default function Login() {
               junto do texto para não exigir que ela procure o "Esqueceu a
               senha?" logo depois de ler que já tem conta. */}
           <AnimatePresence>
-            {emailJaUsado && (
+            {aviso && (
               <motion.div
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: "auto", marginBottom: 20 }}
@@ -186,23 +237,47 @@ export default function Login() {
                 className="relative z-10 overflow-hidden"
               >
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                  <p className="text-sm font-semibold text-amber-200">Esse e-mail já tem conta no Nexa</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-200/70">
-                    Entre com a sua senha aqui embaixo. Se não lembrar, dá para receber um link
-                    de redefinição. E se você criou a conta pelo Google, use o botão
-                    &ldquo;Continuar com Google&rdquo;.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleResetPassword}
-                    disabled={isResetting}
-                    className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-amber-300 hover:text-amber-200 disabled:opacity-60 transition-colors"
-                  >
-                    {isResetting
-                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : <KeyRound className="w-3.5 h-3.5" />}
-                    Recuperar minha senha
-                  </button>
+                  {aviso === 'email-ja-usado' ? (
+                    <>
+                      <p className="text-sm font-semibold text-amber-200">Esse e-mail já tem conta no Nexa</p>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-200/70">
+                        Entre com a sua senha aqui embaixo. Se não lembrar, dá para receber um link
+                        de redefinição. E se você criou a conta pelo Google, use o botão
+                        &ldquo;Continuar com Google&rdquo;.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        disabled={isResetting}
+                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-amber-300 hover:text-amber-200 disabled:opacity-60 transition-colors cursor-pointer"
+                      >
+                        {isResetting
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <KeyRound className="w-3.5 h-3.5" />}
+                        Recuperar minha senha
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-amber-200">Falta confirmar seu e-mail</p>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-200/70">
+                        A senha está certa. O que falta é abrir o e-mail que enviamos quando você
+                        criou a conta e clicar no link de confirmação. Procure também no spam —
+                        é onde ele costuma cair.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={reenviarConfirmacao}
+                        disabled={isResetting}
+                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-amber-300 hover:text-amber-200 disabled:opacity-60 transition-colors cursor-pointer"
+                      >
+                        {isResetting
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <MailCheck className="w-3.5 h-3.5" />}
+                        Reenviar e-mail de confirmação
+                      </button>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -217,7 +292,7 @@ export default function Login() {
                   type="email" 
                   required 
                   value={email}
-                  onChange={e => { setEmail(e.target.value); setEmailJaUsado(false); }}
+                  onChange={e => { setEmail(e.target.value); setAviso(null); }}
                   className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-colors"
                   placeholder="exemplo@email.com"
                 />
@@ -288,7 +363,7 @@ export default function Login() {
           <div className="mt-8 text-center relative z-10">
             <p className="text-neutral-400 text-sm">
               {isRegistering ? 'Já tem uma conta?' : 'Não tem conta ainda?'}
-              <button onClick={() => { setIsRegistering(!isRegistering); setEmailJaUsado(false); }} className="text-indigo-400 hover:text-indigo-300 font-bold ml-2 transition-colors">
+              <button onClick={() => { setIsRegistering(!isRegistering); setAviso(null); }} className="text-indigo-400 hover:text-indigo-300 font-bold ml-2 transition-colors">
                 {isRegistering ? 'Faça Login' : 'Cadastre-se'}
               </button>
             </p>

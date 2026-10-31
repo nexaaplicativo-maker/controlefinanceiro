@@ -14,13 +14,44 @@ import { toast } from "../../components/Toast";
  * O que não for reconhecido cai no texto original: esconder um erro
  * desconhecido atrás de "algo deu errado" só dificulta o suporte depois.
  */
+/**
+ * Falhas que não dependem do fluxo: valem igual no cadastro, no login e no
+ * envio de e-mail. `null` quando não há tradução conhecida.
+ *
+ * `Failed to fetch` merece destaque: não é credencial nem validação, é o
+ * navegador não ter conseguido FALAR com o Supabase. Aconteceu de verdade
+ * quando o projeto do plano free pausou por inatividade e o app inteiro caiu
+ * — e, sem esta linha, a tela acusava o usuário de erro de digitação.
+ */
+function traduzErroComum(m: string): string | null {
+  if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas seguidas. Espere alguns minutos.";
+  if (m.includes("failed to fetch") || m.includes("network") || m.includes("fetch failed"))
+    return "Não consegui falar com o servidor. Confira sua conexão — se ela estiver boa, o serviço pode estar fora do ar.";
+  return null;
+}
+
 function mensagemDeCadastro(mensagem: string): string {
   const m = mensagem.toLowerCase();
+  const comum = traduzErroComum(m);
+  if (comum) return comum;
   if (m.includes("password") && /\d/.test(m)) return "A senha precisa ter pelo menos 6 caracteres.";
   if (m.includes("weak password")) return "Essa senha é fraca demais. Misture letras e números.";
   if (m.includes("valid email") || m.includes("invalid email")) return "Esse e-mail não parece válido.";
-  if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas seguidas. Espere alguns minutos.";
   return "Não consegui criar a conta: " + mensagem;
+}
+
+/**
+ * Erros ao disparar e-mail (recuperação de senha, reenvio de confirmação).
+ *
+ * Existe porque esses dois fluxos reusavam `mensagemDeCadastro` e respondiam
+ * "Não consegui criar a conta" a quem tinha clicado em "Esqueceu a senha?".
+ */
+function mensagemDeEmail(mensagem: string): string {
+  const m = mensagem.toLowerCase();
+  const comum = traduzErroComum(m);
+  if (comum) return comum;
+  if (m.includes("valid email") || m.includes("invalid email")) return "Esse e-mail não parece válido.";
+  return "Não consegui enviar o e-mail: " + mensagem;
 }
 
 /**
@@ -41,10 +72,10 @@ function mensagemDeCadastro(mensagem: string): string {
 function mensagemDeLogin(mensagem: string): string | null {
   const m = mensagem.toLowerCase();
   if (m.includes("not confirmed") || m.includes("email_not_confirmed")) return null;
-  if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+  const comum = traduzErroComum(m);
+  if (comum) return comum;
   if (m.includes("disabled")) return "O login por e-mail e senha está desativado nesta instalação.";
   if (m.includes("invalid login") || m.includes("invalid credentials")) return "E-mail ou senha incorretos.";
-  if (m.includes("failed to fetch") || m.includes("network")) return "Sem conexão com o servidor. Verifique sua internet.";
   return "Não consegui entrar: " + mensagem;
 }
 
@@ -136,7 +167,7 @@ export default function Login() {
     // O Supabase responde sucesso mesmo para e-mail inexistente, de propósito:
     // uma resposta diferente revelaria quem tem conta. A mensagem abaixo
     // acompanha isso e não afirma que o e-mail foi mesmo encontrado.
-    if (error) toast(mensagemDeCadastro(error.message), "error");
+    if (error) toast(mensagemDeEmail(error.message), "error");
     else toast("Se existir conta com esse e-mail, o link de redefinição chegou nele. 📧", "success");
   };
 
@@ -156,7 +187,7 @@ export default function Login() {
     const { error } = await supabase.auth.resend({ type: 'signup', email });
     setIsResetting(false);
 
-    if (error) toast(mensagemDeCadastro(error.message), "error");
+    if (error) toast(mensagemDeEmail(error.message), "error");
     else toast("Enviei de novo. Confira a caixa de entrada e o spam. 📧", "success");
   };
 

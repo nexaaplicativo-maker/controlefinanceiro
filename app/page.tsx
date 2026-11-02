@@ -1440,17 +1440,28 @@ function ResumoOndeFoi({ transactions, showValues, onImportar }: any) {
           Um lançamento manual vira <strong className="text-neutral-300">um item só</strong> —
           mesmo anexando a fatura em Comprovante, que apenas guarda o arquivo.
         </p>
-        <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
-          Para abrir a fatura compra por compra, envie o arquivo pela leitura por IA.
-        </p>
-        {AI_ENABLED && onImportar && (
-          <button
-            onClick={onImportar}
-            className="mt-4 inline-flex items-center gap-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            Ler fatura e separar as compras
-          </button>
+
+        {/* Sem a flag ligada não existe botão de IA em lugar nenhum da tela.
+            Mandar "use a leitura por IA" aqui apontaria para um recurso
+            invisível, que é pior que não sugerir nada. */}
+        {AI_ENABLED && onImportar ? (
+          <>
+            <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+              Para abrir a fatura compra por compra, envie o arquivo pela leitura por IA.
+            </p>
+            <button
+              onClick={onImportar}
+              className="mt-4 inline-flex items-center gap-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              Ler fatura e separar as compras
+            </button>
+          </>
+        ) : (
+          <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+            Você pode classificar cada gasto no lápis do lançamento, em{' '}
+            <strong className="text-neutral-300">Onde foi o gasto</strong>.
+          </p>
         )}
       </motion.div>
     );

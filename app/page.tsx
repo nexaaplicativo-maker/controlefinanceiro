@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
   PieChart as PieChartIcon, Search, Trash2, Heart, CheckCircle2, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
   PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
-  WifiOff, RefreshCw
+  WifiOff, RefreshCw, X
 } from "lucide-react";
 
 import { TransactionModal } from "../components/TransactionModal";
@@ -44,7 +44,7 @@ import { getProfileInsights, type FinancialProfile } from "../lib/profile";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
 import { getReceiptUrl } from "../lib/receipts";
-import { resumoPorSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
+import { resumoPorSubcategoria, normalizarSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
 import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
 import { BetaGate } from "../components/BetaGate";
@@ -157,10 +157,22 @@ export default function Dashboard() {
   const [goals, setGoals] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPending, setFilterPending] = useState(false);
+  /** Grupo de "Onde foi o dinheiro" aberto na lista. Null = sem filtro. */
+  const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<string | null>(null);
+  /** A lista mostra 8 por padrão. Uma fatura importada traz dezenas. */
+  const [mostrarTodos, setMostrarTodos] = useState(false);
   
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
 
+  // O grupo aberto é do mês que estava na tela. Carregá-lo para o mês seguinte
+  // mostraria uma lista vazia com um filtro que a pessoa não escolheu ali.
+  const limparRecorte = () => {
+    setSubcategoriaFiltro(null);
+    setMostrarTodos(false);
+  };
+
   const handlePrevMonth = () => {
+    limparRecorte();
     if (activeMonth === 0) {
       setActiveMonth(11);
       setActiveYear(prev => prev - 1);
@@ -169,6 +181,7 @@ export default function Dashboard() {
     }
   };
   const handleNextMonth = () => {
+    limparRecorte();
     if (activeMonth === 11) {
       setActiveMonth(0);
       setActiveYear(prev => prev + 1);
@@ -558,11 +571,30 @@ export default function Dashboard() {
   //
   // Busca e "A Vencer" continuam varrendo tudo de propósito: procurar um gasto
   // só dentro do mês aberto não acha nada. Quando isso acontece, a tela avisa.
-  const recentTransactions = (searchQuery || filterPending)
-    ? filteredTransactions
-    : currentMonthTransactions.slice(0, 8);
-
   const buscaForaDoMes = Boolean(searchQuery || filterPending);
+  const baseDaLista = buscaForaDoMes ? filteredTransactions : currentMonthTransactions;
+
+  // Clicar num grupo do "Onde foi o dinheiro" abre as compras daquele grupo.
+  // Sem isto, um grupo como "Outros" mostrava um total e nada mais — dava para
+  // ver que havia 5 compras sem nome, e não dava para chegar até elas.
+  const listaFiltrada = subcategoriaFiltro
+    ? baseDaLista.filter(t =>
+        t.type === 'expense' &&
+        (normalizarSubcategoria(t.subcategoria) ?? NAO_CLASSIFICADO) === subcategoriaFiltro)
+    : baseDaLista;
+
+  // Uma fatura importada traz dezenas de linhas. Com o corte fixo em 8 e sem
+  // "ver mais", o resto ficava inalcançável: só pela busca, e só sabendo o nome.
+  const LIMITE_LISTA = 8;
+  const recentTransactions = mostrarTodos ? listaFiltrada : listaFiltrada.slice(0, LIMITE_LISTA);
+  const ocultos = listaFiltrada.length - recentTransactions.length;
+
+  function abrirGrupo(rotulo: string) {
+    const mesmo = subcategoriaFiltro === rotulo;
+    setSubcategoriaFiltro(mesmo ? null : rotulo);
+    // Abrir um grupo e ainda esconder parte dele seria o mesmo problema de novo.
+    setMostrarTodos(!mesmo);
+  }
 
   const variaveisPercent = rendaLiquida > 0 ? (sumCategory(variaveis) / rendaLiquida) * 100 : 0;
 
@@ -950,7 +982,7 @@ export default function Dashboard() {
             melhor, comparando cada categoria com a própria mediana. */}
         <div className="flex flex-col gap-8">
 
-          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} />}
+          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
 
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm h-full">
@@ -963,6 +995,22 @@ export default function Dashboard() {
                     <span className="text-[11px] text-neutral-500 shrink-0">de todos os meses</span>
                   )}
                 </div>
+
+                {subcategoriaFiltro && (
+                  <div className="flex items-center gap-2 -mt-1">
+                    <span className="text-xs text-neutral-500">Mostrando apenas</span>
+                    <button
+                      onClick={() => { setSubcategoriaFiltro(null); setMostrarTodos(false); }}
+                      className="inline-flex items-center gap-1.5 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-indigo-500/25 transition-colors cursor-pointer"
+                    >
+                      {subcategoriaFiltro}
+                      <X className="w-3 h-3" />
+                    </button>
+                    <span className="text-xs text-neutral-500">
+                      {listaFiltrada.length} {listaFiltrada.length === 1 ? 'compra' : 'compras'}
+                    </span>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
@@ -979,14 +1027,34 @@ export default function Dashboard() {
               <div className="flex flex-col gap-3">
                 {recentTransactions.length === 0 ? (
                   <p className="text-neutral-500 text-sm text-center py-4">
-                    {buscaForaDoMes
-                      ? 'Nada encontrado com esse filtro.'
-                      : `Nenhum lançamento em ${MONTHS[activeMonth]} de ${activeYear}.`}
+                    {subcategoriaFiltro
+                      ? `Nenhuma compra em ${subcategoriaFiltro} aqui.`
+                      : buscaForaDoMes
+                        ? 'Nada encontrado com esse filtro.'
+                        : `Nenhum lançamento em ${MONTHS[activeMonth]} de ${activeYear}.`}
                   </p>
                 ) : (
                   recentTransactions.map((tx) => (
                     <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} />
                   ))
+                )}
+
+                {ocultos > 0 && (
+                  <button
+                    onClick={() => setMostrarTodos(true)}
+                    className="w-full py-3 rounded-2xl border border-white/10 bg-black/20 text-sm font-semibold text-neutral-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Ver mais {ocultos} {ocultos === 1 ? 'lançamento' : 'lançamentos'}
+                  </button>
+                )}
+
+                {mostrarTodos && listaFiltrada.length > LIMITE_LISTA && (
+                  <button
+                    onClick={() => setMostrarTodos(false)}
+                    className="w-full py-2.5 text-xs font-medium text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer"
+                  >
+                    Mostrar menos
+                  </button>
                 )}
               </div>
             </motion.div>
@@ -1412,7 +1480,7 @@ function ReceiptButton({ stored }: { stored: string }) {
  * o total fica toda minúscula e não se compara nada. O percentual sobre o
  * total vai em texto, ao lado.
  */
-function ResumoOndeFoi({ transactions, showValues, onImportar }: any) {
+function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, filtroAtivo }: any) {
   const resumo = resumoPorSubcategoria(transactions);
 
   // Mês sem despesa, ou base toda anterior à coluna existir: não vale ocupar
@@ -1481,13 +1549,19 @@ function ResumoOndeFoi({ transactions, showValues, onImportar }: any) {
         Despesas deste mês por onde você gastou. O orçamento continua por categoria.
       </p>
 
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-1">
         {resumo.map((item) => {
           const semNome = item.rotulo === NAO_CLASSIFICADO;
+          const ativo = filtroAtivo === item.rotulo;
           return (
-            <div key={item.rotulo}>
+            <button
+              key={item.rotulo}
+              onClick={() => onSelecionar?.(item.rotulo)}
+              aria-pressed={ativo}
+              className={`text-left rounded-xl px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-indigo-500/10' : 'hover:bg-white/5'}`}
+            >
               <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className={`text-sm font-medium truncate ${semNome ? 'text-neutral-500 italic' : 'text-neutral-200'}`}>
+                <span className={`text-sm font-medium truncate ${semNome ? 'text-neutral-500 italic' : ativo ? 'text-indigo-300' : 'text-neutral-200'}`}>
                   {item.rotulo}
                 </span>
                 <span className="text-sm font-bold text-white whitespace-nowrap">
@@ -1505,10 +1579,14 @@ function ResumoOndeFoi({ transactions, showValues, onImportar }: any) {
                   {item.percentual.toFixed(0)}% · {item.itens}x
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
+
+      <p className="text-[11px] text-neutral-600 mt-4">
+        Toque num grupo para ver as compras dele na lista abaixo.
+      </p>
     </motion.div>
   );
 }

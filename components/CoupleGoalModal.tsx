@@ -20,7 +20,12 @@ export function CoupleGoalModal({ isOpen, onClose, selectedGoal, onSave }: any) 
   const handleSave = async () => {
     setLoading(true);
     const userId = await getUserId();
-    if (!userId) return;let error;
+    if (!userId) {
+      setLoading(false);
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    let error;
     if (selectedGoal) {
       const newTotal = Number(selectedGoal.current_amount) + Number(addAmount);
       const res = await supabase.from('couple_goals').update({ current_amount: newTotal }).eq('id', selectedGoal.id);

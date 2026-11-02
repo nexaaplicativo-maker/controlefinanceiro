@@ -27,7 +27,12 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
   async function fetchCategories() {
     setIsLoading(true);
     const userId = await getUserId();
-    if (!userId) return;const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name', { ascending: true });
+    if (!userId) {
+      setIsLoading(false);
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name', { ascending: true });
     if (data) setCategories(data);
     setIsLoading(false);
   }

@@ -54,7 +54,11 @@ export function EditTransactionModal({
 
   async function fetchCategories() {
     const userId = await getUserId();
-    if (!userId) return;const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name');
+    if (!userId) {
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name');
     if (data) setCustomCategories(data);
   }
 

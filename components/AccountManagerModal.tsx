@@ -34,7 +34,12 @@ export function AccountManagerModal({ isOpen, onClose }: { isOpen: boolean, onCl
   const loadWallets = async () => {
     setLoading(true);
     const userId = await getUserId();
-    if (!userId) return;setUserId(userId);
+    if (!userId) {
+      setLoading(false);
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    setUserId(userId);
     const { data, error } = await supabase
       .from('wallets')
       .select('*')

@@ -31,7 +31,12 @@ export function GoalsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =
   async function fetchGoals() {
     setIsLoading(true);
     const userId = await getUserId();
-    if (!userId) return;const { data } = await supabase.from('goals').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (!userId) {
+      setIsLoading(false);
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const { data } = await supabase.from('goals').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (data) setGoals(data);
     setIsLoading(false);
   }

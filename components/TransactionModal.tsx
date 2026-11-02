@@ -40,7 +40,11 @@ export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean,
 
   async function fetchData() {
     const userId = await getUserId();
-    if (!userId) return;const [catRes, walRes] = await Promise.all([
+    if (!userId) {
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const [catRes, walRes] = await Promise.all([
       supabase.from('categories').select('*').eq('user_id', userId).order('name'),
       supabase.from('wallets').select('*').eq('user_id', userId).order('name')
     ]);

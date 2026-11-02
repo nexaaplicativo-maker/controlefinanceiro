@@ -28,7 +28,12 @@ export function CoupleWealthModal({ isOpen, onClose, currentData, onSave }: any)
   const handleSave = async () => {
     setLoading(true);
     const userId = await getUserId();
-    if (!userId) return;const payload = {
+    if (!userId) {
+      setLoading(false);
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const payload = {
       user_id: userId,
       joint_wealth: parseFloat(wealth) || 0,
       emergency_fund: parseFloat(emergency) || 0,

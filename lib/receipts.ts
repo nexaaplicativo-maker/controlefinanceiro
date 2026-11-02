@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { BUCKET, caminhoDoComprovante, ehUrlCompleta } from './receipts-caminho';
 
 /**
  * Comprovantes — acesso por URL assinada.
@@ -11,18 +12,16 @@ import { supabase } from './supabase';
  * Agora o banco guarda apenas o CAMINHO do arquivo, e a URL é assinada no
  * momento de abrir, com validade curta.
  *
- * Compatibilidade: registros antigos guardam a URL pública inteira. Como não dá
- * para reescrevê-los sem migração de dados, eles são detectados e usados como
- * estão — continuam funcionando, mas nenhum registro novo nasce assim.
+ * Registros antigos guardam a URL pública inteira. Em vez de reescrevê-los no
+ * banco, o caminho é extraído da própria URL e assinado como qualquer outro
+ * (`caminhoDoComprovante`, em receipts-caminho.ts). Assim o bucket pode virar
+ * privado sem migração de dados, e sem um instante em que o comprovante antigo
+ * fique inacessível.
  */
 
-const BUCKET = 'receipts';
 const EXPIRES_IN_SECONDS = 60 * 5;
 
-/** Registro antigo guardava URL completa; o novo guarda caminho relativo. */
-function isLegacyPublicUrl(value: string): boolean {
-  return value.startsWith('http://') || value.startsWith('https://');
-}
+export { caminhoDoComprovante } from './receipts-caminho';
 
 /**
  * Resolve o valor de `receipt_url` para um link abrível.
@@ -30,13 +29,25 @@ function isLegacyPublicUrl(value: string): boolean {
  */
 export async function getReceiptUrl(stored: string | null | undefined): Promise<string | null> {
   if (!stored) return null;
-  if (isLegacyPublicUrl(stored)) return stored;
+
+  const caminho = caminhoDoComprovante(stored);
+
+  // URL antiga em formato que não reconhecemos: tentar como está é o que o app
+  // já fazia, e enquanto o bucket for público continua abrindo.
+  if (!caminho) return ehUrlCompleta(stored) ? stored : null;
 
   const { data, error } = await supabase
     .storage
     .from(BUCKET)
-    .createSignedUrl(stored, EXPIRES_IN_SECONDS);
+    .createSignedUrl(caminho, EXPIRES_IN_SECONDS);
 
-  if (error || !data?.signedUrl) return null;
+  if (error || !data?.signedUrl) {
+    // Assinar falha se as políticas do Storage ainda não estiverem de pé.
+    // Para registro antigo, cair na URL pública mantém o comportamento atual:
+    // esta função nunca fica pior do que era. Depois que o bucket virar
+    // privado esse link morre, e aí o erro é legítimo.
+    return ehUrlCompleta(stored) ? stored : null;
+  }
+
   return data.signedUrl;
 }

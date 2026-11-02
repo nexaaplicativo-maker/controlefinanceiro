@@ -103,38 +103,32 @@ create policy "receipts_delete_own" on storage.objects for delete
 
 
 -- -----------------------------------------------------------------------------
--- PASSO 3 — MIGRAR OS REGISTROS ANTIGOS
+-- PASSO 3 — MIGRAR OS REGISTROS ANTIGOS  →  NÃO É MAIS NECESSÁRIO
 --
--- lib/receipts.ts:23 detecta valor começando com http:// ou https:// e devolve
--- como está, sem assinar. Isso funciona enquanto o bucket é público e PARA DE
--- FUNCIONAR no instante em que ele virar privado.
+-- Resolvido no código, em 2026-11-01. Não rode nada deste passo.
 --
--- A URL pública tem a forma:
---   https://<projeto>.supabase.co/storage/v1/object/public/receipts/<caminho>
+-- A versão original mandava reescrever `transactions.receipt_url`, trocando a
+-- URL pública pelo caminho. Era o passo mais arriscado do arquivo: um regex
+-- errado gravaria vazio e apagaria o vínculo com o arquivo, de forma
+-- irreversível, para ganhar quase nada — havia 1 registro legado.
 --
--- Basta guardar o <caminho>, que é o que createSignedUrl espera.
+-- Agora `caminhoDoComprovante` (lib/receipts-caminho.ts) extrai o caminho da
+-- própria URL no momento de abrir, e assina como qualquer outro. O banco pode
+-- continuar guardando a URL inteira para sempre.
+--
+--   - os dois formatos funcionam, antes e depois do bucket virar privado
+--   - nenhuma linha do banco é alterada, então não há o que desfazer
+--   - coberto por 10 testes em lib/receipts.test.ts, incluindo query string,
+--     fragmento, percent-encoding e URL de formato desconhecido
+--
+-- A consulta abaixo continua útil só como diagnóstico. Ela não altera nada.
 -- -----------------------------------------------------------------------------
 
--- 3a. PRÉVIA — confira o resultado antes de gravar. Nada é alterado aqui.
-select id,
-       receipt_url as antes,
-       split_part(substring(receipt_url from '/object/public/receipts/(.*)$'), '?', 1) as depois
-from public.transactions
-where receipt_url like 'http%/object/public/receipts/%'
-limit 20;
-
--- A coluna `depois` precisa sair como `<uuid>/<numero>.<ext>`. Se vier vazia ou
--- com a URL inteira, PARE: o formato é outro e o update abaixo apagaria o
--- vínculo com o arquivo. Me mostre o resultado.
-
--- 3b. GRAVAÇÃO — descomente só depois de validar a prévia.
---
--- update public.transactions
--- set receipt_url = split_part(substring(receipt_url from '/object/public/receipts/(.*)$'), '?', 1)
--- where receipt_url like 'http%/object/public/receipts/%';
-
--- 3c. Confirme que não sobrou nenhum. Deve retornar 0.
--- select count(*) from public.transactions where receipt_url like 'http%';
+select count(*) filter (where receipt_url like 'http%')  as url_antiga,
+       count(*) filter (where receipt_url is not null
+                          and receipt_url not like 'http%') as caminho,
+       count(*) filter (where receipt_url is not null)   as total
+from public.transactions;
 
 
 -- -----------------------------------------------------------------------------
@@ -162,8 +156,9 @@ limit 20;
 --   4. copie o link assinado que abriu, espere 5 minutos e cole de novo:
 --      tem que FALHAR. Se continuar abrindo, o bucket ainda está público.
 --
--- O item 1 é o que valida o Passo 3. Se o antigo não abrir, a migração não
--- pegou e dá para voltar: Storage → receipts → Make public, enquanto investiga.
+-- O item 1 valida a leitura de registro legado (lib/receipts.ts). Se o antigo
+-- não abrir, dá para voltar na hora: Storage → receipts → Make public,
+-- enquanto investiga. Nenhum dado foi alterado, então não há rollback de SQL.
 -- =============================================================================
 
 

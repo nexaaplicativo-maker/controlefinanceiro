@@ -58,14 +58,23 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
           title: item.description || "Despesa lida por IA",
           amount: parseFloat(item.amount || 0),
           category: item.category || "Variáveis",
+          // Segundo eixo: onde o dinheiro foi gasto. A rota já normaliza para
+          // o vocabulário fechado, então aqui só persiste.
+          subcategoria: item.subcategoria || "Outros",
           type: item.type === "income" ? "income" : "expense",
           date: selectedDate
         })).filter((t: any) => t.amount > 0);
 
-        if (transactionsToInsert.length > 0) {
-          const { error } = await supabase.from('transactions').insert(transactionsToInsert);
-          if (error) throw new Error("Erro ao salvar no banco: " + error.message);
+        // Antes isto anunciava "0 lançamento(s) importados" como sucesso
+        // quando todos os itens vinham sem valor — e a pessoa fechava o modal
+        // achando que tinha funcionado.
+        if (transactionsToInsert.length === 0) {
+          throw new Error("Li o arquivo, mas não encontrei nenhum valor. Tente uma foto mais nítida ou com a fatura inteira visível.");
         }
+
+        const { error } = await supabase.from('transactions').insert(transactionsToInsert);
+        if (error) throw new Error("Erro ao salvar no banco: " + error.message);
+
         toast(`✨ ${transactionsToInsert.length} lançamento(s) importados pela IA!`, "success");
       } else {
         throw new Error("A IA não conseguiu extrair os dados da imagem.");
@@ -145,8 +154,12 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
                 <label className="flex flex-col items-center justify-center p-6 bg-white/5 hover:bg-purple-500/20 rounded-2xl cursor-pointer">
                   <UploadCloud className="w-6 h-6 text-purple-400 mb-2" />
-                  <span className="font-bold text-white text-sm">Enviar Galeria</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  <span className="font-bold text-white text-sm">Enviar Arquivo</span>
+                  <span className="text-[11px] text-neutral-500 mt-0.5">Foto ou PDF</span>
+                  {/* A rota sempre aceitou application/pdf, mas este input era
+                      `image/*` — então não havia como nem selecionar uma fatura
+                      em PDF. */}
+                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileSelect} />
                 </label>
               </div>
             </div>

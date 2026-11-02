@@ -8,6 +8,7 @@ import { toast } from "./Toast";
 import { validateText, validateMoney, validateDate, validateInteger, firstError } from "../lib/validation";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
+import { SUBCATEGORIAS, subcategoriaSugerida } from "../lib/subcategorias";
 
 export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: () => void, onSave?: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
@@ -21,6 +22,9 @@ export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean,
   const [isInstallment, setIsInstallment] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [customCategories, setCustomCategories] = useState<any[]>([]);
+  // Vazio = deduzir pela descrição no momento de salvar. Deixar explícito na
+  // tela é melhor que classificar por trás: a pessoa vê o que vai acontecer.
+  const [subcategoria, setSubcategoria] = useState<string>("");
   const [installments, setInstallments] = useState(1);
   const [isSplit, setIsSplit] = useState(false);
   const [isPaid, setIsPaid] = useState(true);
@@ -130,6 +134,11 @@ export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean,
           amount: amountPerInstallment,
           type: type,
           category: category,
+          // Receita não tem "onde foi gasto". Despesa sem escolha explícita
+          // cai no palpite local pela descrição, que é de graça.
+          subcategoria: type === 'expense'
+            ? (subcategoria || subcategoriaSugerida(finalTitle))
+            : null,
           date: currentInstallmentDate.toISOString().split('T')[0],
           installment_group: installmentGroup,
           installment_info: isInstallment ? `${i+1}/${installments}` : null,
@@ -152,6 +161,7 @@ export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean,
       setIsInstallment(false);
       setIsRecurring(false);
       setInstallments(1);
+      setSubcategoria("");
       setIsSplit(false);
       setIsPaid(true);
       setReceiptFile(null);
@@ -276,6 +286,24 @@ export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean,
                   </div>
                 )}
               </div>
+
+              {type === 'expense' && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-400 mb-1.5">
+                    Onde foi o gasto <span className="text-neutral-600 font-normal">(opcional)</span>
+                  </label>
+                  <div className="relative">
+                    <select value={subcategoria} onChange={(e) => setSubcategoria(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-4 pr-10 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer">
+                      <option value="">Deduzir pela descrição</option>
+                      {SUBCATEGORIAS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-1.5">
+                    Serve para ver quanto foi em cada coisa no mês. Não altera o orçamento, que segue por categoria.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-neutral-400 mb-1.5">Comprovante (Opcional)</label>

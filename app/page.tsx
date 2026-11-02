@@ -44,6 +44,7 @@ import { getProfileInsights, type FinancialProfile } from "../lib/profile";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
 import { getReceiptUrl } from "../lib/receipts";
+import { resumoPorSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
 import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
 import { BetaGate } from "../components/BetaGate";
@@ -936,6 +937,8 @@ export default function Dashboard() {
             melhor, comparando cada categoria com a própria mediana. */}
         <div className="flex flex-col gap-8">
 
+          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} />}
+
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm h-full">
               <div className="flex flex-col gap-4 mb-6">
@@ -960,7 +963,7 @@ export default function Dashboard() {
                   <p className="text-neutral-500 text-sm text-center py-4">Nenhuma transação lançada ainda.</p>
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} />
                   ))
                 )}
               </div>
@@ -1375,7 +1378,72 @@ function ReceiptButton({ stored }: { stored: string }) {
   );
 }
 
-function TransactionRow({ title, category, date, amount, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl }: any) {
+/**
+ * "Onde foi o dinheiro" — despesa do mês agrupada pelo segundo eixo.
+ *
+ * Existe porque `category` responde a natureza do gasto (fixo, variável,
+ * cartão) e não responde onde ele aconteceu. Numa fatura de cartão importada,
+ * tudo cai em "Cartões" — útil para o orçamento, inútil para saber que metade
+ * foi em delivery.
+ *
+ * A barra é relativa ao maior grupo, não ao total: com 12 grupos, barra sobre
+ * o total fica toda minúscula e não se compara nada. O percentual sobre o
+ * total vai em texto, ao lado.
+ */
+function ResumoOndeFoi({ transactions, showValues }: any) {
+  const resumo = resumoPorSubcategoria(transactions);
+
+  // Mês sem despesa, ou base toda anterior à coluna existir: não vale ocupar
+  // tela com um card vazio.
+  if (resumo.length === 0) return null;
+
+  const maior = resumo[0].total;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.55 }}
+      className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm"
+    >
+      <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
+      <p className="text-xs text-neutral-500 mt-1 mb-5">
+        Despesas deste mês por onde você gastou. O orçamento continua por categoria.
+      </p>
+
+      <div className="flex flex-col gap-3.5">
+        {resumo.map((item) => {
+          const semNome = item.rotulo === NAO_CLASSIFICADO;
+          return (
+            <div key={item.rotulo}>
+              <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                <span className={`text-sm font-medium truncate ${semNome ? 'text-neutral-500 italic' : 'text-neutral-200'}`}>
+                  {item.rotulo}
+                </span>
+                <span className="text-sm font-bold text-white whitespace-nowrap">
+                  {formatMoney(item.total, showValues)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${semNome ? 'bg-neutral-600' : 'bg-indigo-500'}`}
+                    style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
+                  />
+                </div>
+                <span className="text-[11px] text-neutral-500 w-[4.5rem] text-right shrink-0 tabular-nums">
+                  {item.percentual.toFixed(0)}% · {item.itens}x
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+function TransactionRow({ title, category, date, amount, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria }: any) {
   const isIncome = type === 'income';
   return (
     <div className={`flex flex-wrap items-center justify-between p-3.5 rounded-2xl border transition-colors gap-y-3 gap-x-2 overflow-hidden ${isPaid === false ? 'bg-amber-500/5 border-amber-500/10' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
@@ -1395,6 +1463,12 @@ function TransactionRow({ title, category, date, amount, type, isPaid, onToggleP
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-neutral-500 uppercase tracking-wide font-medium mt-1">
             <span className="line-clamp-1">{category || "Sem Categoria"}</span>
+            {subcategoria && (
+              <>
+                <span className="w-1 h-1 bg-neutral-700 rounded-full shrink-0"></span>
+                <span className="shrink-0 text-indigo-400/80">{subcategoria}</span>
+              </>
+            )}
             <span className="w-1 h-1 bg-neutral-700 rounded-full shrink-0"></span>
             <span className="shrink-0">{date || "Sem data"}</span>
           </div>

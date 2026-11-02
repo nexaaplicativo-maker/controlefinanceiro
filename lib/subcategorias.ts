@@ -250,3 +250,51 @@ export function subcategoriaSugerida(titulo: string | null | undefined): Subcate
 export function vocabularioParaPrompt(): string {
   return SUBCATEGORIAS.map((s) => `"${s}"`).join(', ');
 }
+
+/** Rótulo de quem ficou sem classificação. Não é uma subcategoria. */
+export const NAO_CLASSIFICADO = 'Não classificado';
+
+export interface GastoPorSubcategoria {
+  rotulo: Subcategoria | typeof NAO_CLASSIFICADO;
+  total: number;
+  /** Fatia do gasto do período, 0 a 100. */
+  percentual: number;
+  /** Quantos lançamentos entraram. Serve para a pessoa saber se o número é
+   *  uma compra grande ou muitas pequenas. */
+  itens: number;
+}
+
+/**
+ * Soma o gasto por subcategoria, do maior para o menor.
+ *
+ * Só despesa: receita não tem "onde foi gasto", e misturar as duas faria o
+ * percentual mentir. Lançamento sem subcategoria vira um grupo próprio em vez
+ * de desaparecer — gasto escondido é pior que gasto sem nome.
+ */
+export function resumoPorSubcategoria(
+  transacoes: Array<{ type?: string; amount?: number; subcategoria?: string | null }>,
+): GastoPorSubcategoria[] {
+  const soma = new Map<string, { total: number; itens: number }>();
+  let totalGeral = 0;
+
+  for (const t of transacoes) {
+    if (t?.type !== 'expense') continue;
+
+    const valor = Number(t.amount);
+    if (!Number.isFinite(valor) || valor <= 0) continue;
+
+    const rotulo = normalizarSubcategoria(t.subcategoria) ?? NAO_CLASSIFICADO;
+    const atual = soma.get(rotulo) ?? { total: 0, itens: 0 };
+    soma.set(rotulo, { total: atual.total + valor, itens: atual.itens + 1 });
+    totalGeral += valor;
+  }
+
+  return [...soma.entries()]
+    .map(([rotulo, { total, itens }]) => ({
+      rotulo: rotulo as GastoPorSubcategoria['rotulo'],
+      total,
+      percentual: totalGeral > 0 ? (total / totalGeral) * 100 : 0,
+      itens,
+    }))
+    .sort((a, b) => b.total - a.total);
+}

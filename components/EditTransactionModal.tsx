@@ -9,12 +9,16 @@ import { validateText, validateMoney, validateDate, firstError } from "../lib/va
 import { getUserId } from "../lib/session";
 import { recordCorrection } from "../lib/corrections-db";
 import { useModalA11y } from "../hooks/use-modal-a11y";
+import { SUBCATEGORIAS } from "../lib/subcategorias";
 
 interface Transaction {
   id: string;
   title: string;
   amount: number;
   category: string;
+  /** Segundo eixo: onde o gasto aconteceu. Nulo em receita e em lançamento
+   *  anterior à coluna existir. */
+  subcategoria?: string | null;
   type: string;
   date: string;
 }
@@ -38,6 +42,7 @@ export function EditTransactionModal({
   const [date, setDate] = useState("");
   
   const [customCategories, setCustomCategories] = useState<any[]>([]);
+  const [subcategoria, setSubcategoria] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -45,6 +50,7 @@ export function EditTransactionModal({
       setTitle(transaction.title);
       setAmount(transaction.amount.toString());
       setCategory(transaction.category);
+      setSubcategoria(transaction.subcategoria || "");
       setType(transaction.type as 'expense' | 'income');
       // Format date correctly
       setDate(transaction.date.split('T')[0]);
@@ -92,6 +98,9 @@ export function EditTransactionModal({
         amount: baseAmount,
         type,
         category,
+        // Receita não tem "onde foi gasto": se virou receita na edição, o
+        // valor antigo não pode ficar para trás sujando o resumo do mês.
+        subcategoria: type === 'expense' ? (subcategoria || null) : null,
         date
       }).eq('id', transaction.id);
 
@@ -214,6 +223,21 @@ export function EditTransactionModal({
                   </div>
                 </div>
               </div>
+
+              {type === 'expense' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-neutral-400 mb-1.5">
+                    Onde foi o gasto <span className="text-neutral-600 font-normal">(opcional)</span>
+                  </label>
+                  <div className="relative">
+                    <select value={subcategoria} onChange={(e) => setSubcategoria(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-4 pr-10 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer">
+                      <option value="">Não classificado</option>
+                      {SUBCATEGORIAS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4 pt-4 border-t border-white/10">
                 <button type="submit" disabled={isLoading} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2">

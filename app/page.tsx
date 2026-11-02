@@ -777,13 +777,15 @@ export default function Dashboard() {
 
       <main className="max-w-md md:max-w-7xl mx-auto px-6 pt-safe py-8 md:py-12">
         
-        <header className="flex md:hidden justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 overflow-hidden bg-black/20">
+        <header className="flex md:hidden justify-between items-center gap-3 mb-8">
+          {/* `min-w-0` + `truncate`: e-mail comprido antes empurrava o sino
+              para fora da tela, porque texto não encolhe sozinho em flex. */}
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 overflow-hidden bg-black/20">
               <img src="/icon-192.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <div>
-              <p className="text-xs text-neutral-400 font-medium tracking-wide uppercase">Olá, {userEmail ? userEmail.split('@')[0] : 'Usuário'}</p>
+            <div className="min-w-0">
+              <p className="truncate text-xs text-neutral-400 font-medium tracking-wide uppercase">Olá, {userEmail ? userEmail.split('@')[0] : 'Usuário'}</p>
               <h1 className="text-2xl font-bold text-white tracking-tight">Seu Nexa</h1>
             </div>
           </div>
@@ -798,15 +800,18 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 relative z-10">
-          <div className="shrink-0 flex items-center gap-4">
-            <div>
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 relative z-10 min-w-0">
+          {/* No celular isto era uma linha só, sem poder encolher: título +
+              olho + seletor de mês passavam da largura da tela e empurravam a
+              página inteira para o lado. Agora o seletor desce sozinho. */}
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-3 xl:w-auto xl:shrink-0 xl:flex-nowrap">
+            <div className="min-w-0 flex-1 xl:flex-none">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">Visão Geral</h1>
               <p className="text-neutral-400 text-sm md:text-base">Acompanhe e gerencie seu patrimônio</p>
             </div>
             <button
               onClick={() => setShowValues(!showValues)}
-              className="p-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="shrink-0 p-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
               title={showValues ? "Ocultar valores" : "Mostrar valores"}
             >
@@ -818,29 +823,33 @@ export default function Dashboard() {
                 da página — o usuário trocava os quatro cards do topo sem
                 perceber de onde vinha a mudança. Aqui ele fica junto do título,
                 deixando claro que escopa tudo. */}
-            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 w-fit">
-              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="p-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-              <div className="w-32 text-center font-medium text-xs text-white tracking-wider uppercase">{MONTHS[activeMonth]} <span className="text-neutral-500">{activeYear}</span></div>
-              <button onClick={handleNextMonth} aria-label="Próximo mês" className="p-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+            <div className="flex w-full items-center justify-between gap-1 bg-white/5 p-1 rounded-full border border-white/10 sm:w-fit sm:justify-start">
+              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="shrink-0 p-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
+              <div className="flex-1 text-center font-medium text-xs text-white tracking-wider uppercase sm:w-32 sm:flex-none">{MONTHS[activeMonth]} <span className="text-neutral-500">{activeYear}</span></div>
+              <button onClick={handleNextMonth} aria-label="Próximo mês" className="shrink-0 p-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
             </div>
           </div>
           
           {/* Atalhos: 3 ações primárias + menu. Antes eram 11 chips coloridos
               em linha, que no desktop quebravam em três fileiras. */}
-          <div className="flex items-center gap-2.5 w-full xl:w-auto">
-            <motion.button onClick={() => setIsPayYourselfOpen(true)} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 sm:px-5 py-2.5 rounded-full font-medium transition-all active:scale-95 cursor-pointer border border-emerald-500/20 whitespace-nowrap">
+          {/* `flex-1` sozinho não encolhe abaixo do conteúdo: os três rótulos
+              mais o menu não cabiam em 312px de tela e o "Lançar" saía pela
+              direita. Com base fixa e quebra de linha, eles se organizam em
+              duas fileiras no celular e seguem numa só a partir do tablet. */}
+          <div className="flex flex-wrap items-center gap-2.5 w-full min-w-0 xl:w-auto xl:flex-nowrap">
+            <motion.button onClick={() => setIsPayYourselfOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 sm:px-5 py-2.5 rounded-full font-medium transition-all active:scale-95 cursor-pointer border border-emerald-500/20 whitespace-nowrap">
               <PiggyBank className="w-4 h-4 shrink-0" /> <span className="text-sm">Poupar</span>
             </motion.button>
 
             {AI_ENABLED && (
-              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 sm:px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer border border-white/10 whitespace-nowrap">
+              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-3 sm:px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer border border-white/10 whitespace-nowrap">
                 {/* "Ler Foto" escondia o caso mais útil: ler uma fatura em PDF
                     e abrir compra por compra. */}
                 <Sparkles className="w-4 h-4 shrink-0" /> <span className="text-sm">Ler Fatura</span>
               </motion.button>
             )}
 
-            <motion.button onClick={handleOpenModal} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-white text-black px-4 sm:px-5 py-2.5 rounded-full font-bold transition-all hover:bg-neutral-200 active:scale-95 cursor-pointer whitespace-nowrap">
+            <motion.button onClick={handleOpenModal} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white text-black px-3 sm:px-5 py-2.5 rounded-full font-bold transition-all hover:bg-neutral-200 active:scale-95 cursor-pointer whitespace-nowrap">
               <Plus className="w-4 h-4 shrink-0" /> <span className="text-sm">Lançar</span>
             </motion.button>
 

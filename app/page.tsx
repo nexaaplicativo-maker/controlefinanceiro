@@ -7,7 +7,8 @@ import {
   Bell, User, Plus, Home as HomeIcon, CreditCard, 
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
   PieChart as PieChartIcon, Search, Trash2, Heart, CheckCircle2, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
-  PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock
+  PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
+  WifiOff, RefreshCw
 } from "lucide-react";
 
 import { TransactionModal } from "../components/TransactionModal";
@@ -137,6 +138,18 @@ export default function Dashboard() {
 
   const [hasUnread, setHasUnread] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  /**
+   * Por que a falha de carregamento tem estado próprio.
+   *
+   * Antes, toda resposta era lida como `if (resposta.data) setX(...)`. Quando
+   * a consulta falhava, `data` vinha null, o carregamento terminava igual, e o
+   * painel desenhava R$ 0,00 em tudo.
+   *
+   * Num app de dinheiro, "você não tem nada" e "não consegui carregar" são
+   * frases opostas, e a primeira assusta de graça. Pior: ela é indistinguível
+   * de perda de dados para quem está olhando.
+   */
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("client");
@@ -165,11 +178,11 @@ export default function Dashboard() {
   };
   const handleOpenModal = () => setIsModalOpen(true);
 
-  useEffect(() => {
-    // O service worker é registrado pelo InstallPrompt, que vive no layout e
-    // portanto roda em todas as páginas.
+  async function carregarPainel() {
+    setErroCarregamento(null);
+    setIsLoading(true);
 
-    async function checkUserAndFetch() {
+    try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { window.location.href = '/login'; return; }
       setUserEmail(session.user.email || "");
@@ -183,18 +196,56 @@ export default function Dashboard() {
         supabase.from('investments').select('*').eq('user_id', session.user.id),
         supabase.from('debts').select('*').eq('user_id', session.user.id)
       ]);
+
+      // As transações sustentam todo número desta tela. Sem elas não existe
+      // painel para desenhar — existe um aviso honesto e um botão.
+      //
+      // O perfil de propósito NÃO entra nesta checagem: `.single()` devolve
+      // erro para quem ainda não tem linha, e isso é o estado normal de uma
+      // conta recém-criada. Tratá-lo como falha trancaria o usuário novo
+      // para fora do app no primeiro acesso.
+      if (txResponse.error) {
+        setErroCarregamento(txResponse.error.message);
+        return;
+      }
+
+      setAllTransactions(txResponse.data ?? []);
+
       if (positionsResponse.data) setPositions(positionsResponse.data);
       if (debtsResponse.data) setDebts(debtsResponse.data);
       if (profileResponse.data) {
         setUserRole(profileResponse.data.role);
         setProfile(profileResponse.data as FinancialProfile);
       }
-      if (txResponse.data) setAllTransactions(txResponse.data);
       if (walletsResponse.data) setWallets(walletsResponse.data);
       if (goalsResponse.data) setGoals(goalsResponse.data);
+
+      // Os secundários não derrubam a tela, mas também não somem calados: o
+      // painel abriria com carteira ou meta faltando e nada explicaria o
+      // buraco.
+      const secundariosComFalha = [
+        walletsResponse.error && 'carteiras',
+        goalsResponse.error && 'metas',
+        positionsResponse.error && 'investimentos',
+        debtsResponse.error && 'dívidas',
+      ].filter(Boolean);
+
+      if (secundariosComFalha.length > 0) {
+        toast(`Não consegui carregar: ${secundariosComFalha.join(', ')}. O resto do painel está correto.`, "warning");
+      }
+    } catch (erro: any) {
+      // Sem este catch, uma exceção deixava a tela no esqueleto para sempre,
+      // porque o `setIsLoading(false)` ficava depois do ponto da falha.
+      setErroCarregamento(erro?.message ?? 'Erro inesperado ao carregar seus dados.');
+    } finally {
       setIsLoading(false);
     }
-    checkUserAndFetch();
+  }
+
+  useEffect(() => {
+    // O service worker é registrado pelo InstallPrompt, que vive no layout e
+    // portanto roda em todas as páginas.
+    carregarPainel();
   }, []);
 
   // Recarrega apenas as transações e carteiras sem reload de página
@@ -206,7 +257,17 @@ export default function Dashboard() {
       supabase.from('wallets').select('*').eq('user_id', session.user.id),
       supabase.from('goals').select('*').eq('user_id', session.user.id)
     ]);
-    if (txResponse.data) setAllTransactions(txResponse.data);
+
+    // Esta função roda logo depois de salvar. Falhar calada aqui é pior que
+    // na carga inicial: o lançamento FOI gravado, mas a lista não se atualiza
+    // e a pessoa conclui que o salvamento não funcionou — então lança de novo
+    // e fica com a despesa duplicada.
+    if (txResponse.error) {
+      toast("Salvei, mas não consegui atualizar a lista. Puxe a tela para baixo ou recarregue — não lance de novo.", "warning");
+      return;
+    }
+
+    setAllTransactions(txResponse.data ?? []);
     if (walletsResponse.data) setWallets(walletsResponse.data);
     if (goalsResponse.data) setGoals(goalsResponse.data);
   }
@@ -513,6 +574,15 @@ export default function Dashboard() {
     return null;
   })();
 
+  /**
+   * Só desenha os números quando eles são confiáveis.
+   *
+   * Sem isto, o caminho de erro mostraria o checklist de boas-vindas pedindo
+   * "lance sua primeira receita" para alguém que tem anos de lançamentos e
+   * só perdeu a conexão.
+   */
+  const pronto = !isLoading && !erroCarregamento;
+
   const todayStr = new Date().toISOString().split('T')[0];
   const threeDaysFromNow = new Date();
   threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
@@ -687,7 +757,7 @@ export default function Dashboard() {
 
         </div>
 
-        {!isLoading && (
+        {pronto && (
           <OnboardingChecklist
             transactions={allTransactions}
             hasDebtsRegistered={hasRegisteredDebts}
@@ -698,7 +768,7 @@ export default function Dashboard() {
         )}
 
         {/* Estágio financeiro: define o que o app prioriza para ESTE usuário */}
-        {!isLoading && (
+        {pronto && (
           <motion.button
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -734,7 +804,7 @@ export default function Dashboard() {
               Ela e a faixa de estágio respondiam a mesma pergunta — "o que
               fazer agora" — em dois lugares distantes. Virou uma linha sob o
               estágio, e só aparece quando tem algo concreto a dizer. */}
-          {!isLoading && !insights.needsOnboarding && dicaDoMes && (
+          {pronto && !insights.needsOnboarding && dicaDoMes && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -751,6 +821,33 @@ export default function Dashboard() {
             {[1,2,3,4].map(i => (
               <div key={i} className="min-w-[80%] md:min-w-0 h-40 bg-white/5 border border-white/10 rounded-3xl animate-pulse"></div>
             ))}
+          </div>
+        ) : erroCarregamento ? (
+          <div className="pb-6 md:pb-8">
+            <div className="bg-amber-500/5 border border-amber-500/25 rounded-3xl p-6 md:p-8 text-center">
+              <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <WifiOff className="w-6 h-6 text-amber-400" />
+              </div>
+
+              <h2 className="text-lg font-bold text-white mb-2">Não consegui carregar seus lançamentos</h2>
+              <p className="text-sm text-neutral-400 leading-relaxed max-w-md mx-auto">
+                Seus dados estão salvos e intactos — o que falhou foi a leitura
+                agora. Nenhum número apareceria correto nesta tela, então
+                preferi não mostrar nenhum.
+              </p>
+
+              <button
+                onClick={carregarPainel}
+                className="mt-6 bg-white text-black font-bold py-3 px-6 rounded-xl hover:bg-neutral-200 transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Tentar de novo
+              </button>
+
+              <p className="text-[11px] text-neutral-600 mt-5 break-words max-w-md mx-auto">
+                Detalhe técnico: {erroCarregamento}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
@@ -818,7 +915,7 @@ export default function Dashboard() {
 
         {/* Termômetro removido: o anel repetia o % que o card de Cartões &
             Variáveis já mostra no badge, ocupando uma faixa inteira. */}
-        {!isLoading && (
+        {pronto && (
           <div className="mb-8">
           <ReserveWidget
             goal={reservaGoal}
@@ -988,7 +1085,7 @@ export default function Dashboard() {
         insights={insights}
       />
       <WelcomeModal
-        isOpen={!isLoading && insights.needsOnboarding && !!userId}
+        isOpen={pronto && insights.needsOnboarding && !!userId}
         userId={userId}
         suggestedIncome={insights.referenceIncome}
         onComplete={refreshProfile}

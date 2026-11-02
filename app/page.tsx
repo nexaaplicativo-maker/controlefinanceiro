@@ -161,6 +161,10 @@ export default function Dashboard() {
   const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<string | null>(null);
   /** A lista mostra 8 por padrão. Uma fatura importada traz dezenas. */
   const [mostrarTodos, setMostrarTodos] = useState(false);
+  /** Seleção múltipla: uma importação traz dezenas de linhas, e apagar uma a
+   *  uma é inviável. Vale para qualquer lançamento, não só os importados. */
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
   
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
 
@@ -169,6 +173,10 @@ export default function Dashboard() {
   const limparRecorte = () => {
     setSubcategoriaFiltro(null);
     setMostrarTodos(false);
+    // A seleção também sai. Sem isto dava para marcar 3 num grupo, trocar de
+    // grupo, marcar mais 2, e apagar 5 — três deles fora da tela.
+    setModoSelecao(false);
+    setSelecionados([]);
   };
 
   const handlePrevMonth = () => {
@@ -431,6 +439,52 @@ export default function Dashboard() {
     });
   }
 
+  function sairDaSelecao() {
+    setModoSelecao(false);
+    setSelecionados([]);
+  }
+
+  function alternarSelecionado(id: string) {
+    setSelecionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  /**
+   * Apaga vários de uma vez, com desfazer.
+   *
+   * Mesma mecânica da exclusão de série de parcelas: guarda as linhas antes,
+   * apaga, e o desfazer reinsere. Sem o desfazer, um toque errado aqui apaga
+   * dezenas de lançamentos de uma vez e não há volta.
+   */
+  async function handleDeleteSelecionados() {
+    const removidas = allTransactions.filter(t => selecionados.includes(t.id));
+    if (removidas.length === 0) return;
+
+    const total = removidas.reduce((acc, t) => acc + (t.type === 'expense' ? t.amount : 0), 0);
+
+    const confirmado = await confirmDialog({
+      title: `Apagar ${removidas.length} ${removidas.length === 1 ? 'lançamento' : 'lançamentos'}?`,
+      message: `Somam ${formatMoney(total)} em despesas. Dá para desfazer logo depois.`,
+      confirmLabel: 'Apagar',
+      cancelLabel: 'Cancelar',
+      danger: true,
+    });
+    if (!confirmado) return;
+
+    const ids = removidas.map(t => t.id);
+    const { error } = await supabase.from('transactions').delete().in('id', ids);
+    if (error) { toast("Erro ao excluir os lançamentos.", "error"); return; }
+
+    setAllTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+    sairDaSelecao();
+
+    toastWithUndo(`${removidas.length} ${removidas.length === 1 ? 'lançamento excluído' : 'lançamentos excluídos'}.`, async () => {
+      const { error: undoError } = await supabase.from('transactions').insert(removidas);
+      if (undoError) { toast("Não consegui desfazer.", "error"); return; }
+      setAllTransactions(prev => [...prev, ...removidas].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')));
+      toast("Lançamentos restaurados.", "success");
+    });
+  }
+
   async function handleTogglePaid(id: string, currentStatus: boolean) {
     const newStatus = !currentStatus;
     const { error } = await supabase.from('transactions').update({ is_paid: newStatus }).eq('id', id);
@@ -594,6 +648,9 @@ export default function Dashboard() {
     setSubcategoriaFiltro(mesmo ? null : rotulo);
     // Abrir um grupo e ainda esconder parte dele seria o mesmo problema de novo.
     setMostrarTodos(!mesmo);
+    // Seleção feita no grupo anterior não pode sobreviver à troca: os itens
+    // saem da tela e continuariam contando na exclusão.
+    setSelecionados([]);
   }
 
   const variaveisPercent = rendaLiquida > 0 ? (sumCategory(variaveis) / rendaLiquida) * 100 : 0;
@@ -991,10 +1048,42 @@ export default function Dashboard() {
                   <h2 className="text-lg font-semibold tracking-tight">
                     {buscaForaDoMes ? 'Resultados' : `Lançamentos de ${MONTHS[activeMonth]}`}
                   </h2>
-                  {buscaForaDoMes && (
-                    <span className="text-[11px] text-neutral-500 shrink-0">de todos os meses</span>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {buscaForaDoMes && !modoSelecao && (
+                      <span className="text-[11px] text-neutral-500">de todos os meses</span>
+                    )}
+                    {recentTransactions.length > 0 && (
+                      <button
+                        onClick={() => modoSelecao ? sairDaSelecao() : setModoSelecao(true)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-black/20 text-neutral-400 border-white/10 hover:text-white'}`}
+                      >
+                        {modoSelecao ? 'Cancelar' : 'Selecionar'}
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {modoSelecao && (
+                  <div className="flex flex-wrap items-center gap-2 -mt-1">
+                    <button
+                      onClick={() => setSelecionados(recentTransactions.map(t => t.id))}
+                      className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                    >
+                      Marcar os {recentTransactions.length} visíveis
+                    </button>
+                    {selecionados.length > 0 && (
+                      <>
+                        <span className="text-neutral-700">·</span>
+                        <button
+                          onClick={() => setSelecionados([])}
+                          className="text-xs font-semibold text-neutral-400 hover:text-white cursor-pointer"
+                        >
+                          Limpar seleção
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {subcategoriaFiltro && (
                   <div className="flex items-center gap-2 -mt-1">
@@ -1035,8 +1124,33 @@ export default function Dashboard() {
                   </p>
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
                   ))
+                )}
+
+                {modoSelecao && selecionados.length > 0 && (
+                  <div className="sticky bottom-2 z-10 flex items-center justify-between gap-3 bg-neutral-900/95 backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-3 shadow-xl">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-white">
+                        {selecionados.length} {selecionados.length === 1 ? 'selecionado' : 'selecionados'}
+                      </p>
+                      <p className="text-[11px] text-neutral-400 truncate">
+                        {formatMoney(
+                          allTransactions
+                            .filter(t => selecionados.includes(t.id) && t.type === 'expense')
+                            .reduce((acc, t) => acc + t.amount, 0),
+                          showValues,
+                        )} em despesas
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDeleteSelecionados}
+                      className="shrink-0 inline-flex items-center gap-2 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Apagar
+                    </button>
+                  </div>
                 )}
 
                 {ocultos > 0 && (
@@ -1591,13 +1705,30 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
   );
 }
 
-function TransactionRow({ title, category, date, amount, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria }: any) {
+function TransactionRow({ title, category, date, amount, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao }: any) {
   const isIncome = type === 'income';
   return (
-    <div className={`flex flex-wrap items-center justify-between p-3.5 rounded-2xl border transition-colors gap-y-3 gap-x-2 overflow-hidden ${isPaid === false ? 'bg-amber-500/5 border-amber-500/10' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
-      
+    <div
+      onClick={modoSelecao ? onToggleSelecao : undefined}
+      className={`flex flex-wrap items-center justify-between p-3.5 rounded-2xl border transition-colors gap-y-3 gap-x-2 overflow-hidden ${modoSelecao ? 'cursor-pointer' : ''} ${
+        selecionado
+          ? 'bg-indigo-500/10 border-indigo-500/40'
+          : isPaid === false ? 'bg-amber-500/5 border-amber-500/10' : 'bg-black/20 border-white/5 hover:bg-white/5'
+      }`}
+    >
+
       {/* Esquerda: Icone e Textos */}
       <div className="flex items-center gap-3 flex-[1_1_180px] min-w-0">
+        {modoSelecao && (
+          <input
+            type="checkbox"
+            checked={!!selecionado}
+            onChange={onToggleSelecao}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Selecionar ${title || 'lançamento'}`}
+            className="w-5 h-5 shrink-0 rounded border-white/20 bg-black/20 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-neutral-900 cursor-pointer"
+          />
+        )}
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 ${isIncome ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400' : 'bg-rose-400/10 border-rose-400/20 text-rose-400'}`}>
           {isIncome ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
         </div>
@@ -1628,14 +1759,21 @@ function TransactionRow({ title, category, date, amount, type, isPaid, onToggleP
         <div className={`font-bold text-sm tracking-tight whitespace-nowrap mr-auto sm:mr-1 ${isIncome ? 'text-emerald-400' : (isPaid === false ? 'text-amber-400' : 'text-white')}`}>
           {amount}
         </div>
-        {isPaid !== undefined && (
-          <button onClick={onTogglePaid} className={`p-2 rounded-xl transition-colors cursor-pointer shrink-0 ${isPaid ? 'text-emerald-500/50 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-500/80 hover:text-amber-400 hover:bg-amber-500/10'}`}>
-            {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-          </button>
+        {/* Em seleção a linha inteira é o alvo do toque. Manter lápis e lixeira
+            aqui só cria acidente: um deles apaga um item enquanto a pessoa
+            acha que está marcando. */}
+        {!modoSelecao && (
+          <>
+            {isPaid !== undefined && (
+              <button onClick={onTogglePaid} className={`p-2 rounded-xl transition-colors cursor-pointer shrink-0 ${isPaid ? 'text-emerald-500/50 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-500/80 hover:text-amber-400 hover:bg-amber-500/10'}`}>
+                {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+              </button>
+            )}
+            {receiptUrl && <ReceiptButton stored={receiptUrl} />}
+            <button onClick={onEdit} className="p-2 text-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors cursor-pointer shrink-0"><Edit2 className="w-4 h-4" /></button>
+            <button onClick={onDelete} className="p-2 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer shrink-0"><Trash2 className="w-4 h-4" /></button>
+          </>
         )}
-        {receiptUrl && <ReceiptButton stored={receiptUrl} />}
-        <button onClick={onEdit} className="p-2 text-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors cursor-pointer shrink-0"><Edit2 className="w-4 h-4" /></button>
-        <button onClick={onDelete} className="p-2 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer shrink-0"><Trash2 className="w-4 h-4" /></button>
       </div>
       
     </div>

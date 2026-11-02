@@ -100,6 +100,8 @@ O JSON deve ter esta estrutura exata de lista:
     "category": "Variáveis",
     "subcategoria": "Mercado",
     "origem": "avulso",
+    "parcela_atual": null,
+    "parcela_total": null,
     "type": "expense"
   },
   {
@@ -115,6 +117,9 @@ Se houver apenas um gasto ou for um comprovante PIX único, retorne uma lista co
 REGRA CRUCIAL DE CATEGORIA: Para despesas ("expense"), o campo "category" DEVE OBRIGATORIAMENTE ser um destes quatro: "Contas Fixas", "Variáveis", "Cartões" ou "Investimentos". Para receitas ("income"), use "Salário" ou "Renda Extra". É terminantemente proibido usar outras categorias.
 
 SE "origem" FOR "fatura": não avalie se a compra é fixa ou variável. Toda compra que veio numa fatura de cartão é "category": "Cartões", sem exceção — inclusive assinatura, mercado e conta que normalmente seria fixa. O que a compra É entra em "subcategoria", não em "category".
+
+REGRA DE PARCELAMENTO: a fatura marca compra parcelada como "03/10", "PARC 3/10" ou "3 de 10" — é a terceira de dez cobranças. Quando a linha tiver essa marca, preencha "parcela_atual": 3 e "parcela_total": 10, e MANTENHA a marca dentro da "description". Compra à vista leva os dois campos como null.
+Atenção: só use esses campos quando for mesmo parcelamento. Data de compra ("03/10" numa coluna de data) NÃO é parcela.
 
 REGRA DE SUBCATEGORIA: "category" diz a NATUREZA do gasto; "subcategoria" diz ONDE o dinheiro foi gasto. São perguntas independentes — um Uber no cartão é category "Cartões" e subcategoria "Transporte".
 O campo "subcategoria" DEVE ser exatamente um destes: ${vocabularioParaPrompt()}.

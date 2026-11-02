@@ -97,3 +97,40 @@ describe('normalizarItensExtraidos — entradas estranhas', () => {
     expect(r[0].origem).toBeUndefined();
   });
 });
+
+describe('parcelamento', () => {
+  it('usa os campos do modelo quando vêm preenchidos', () => {
+    const r = normalizarItensExtraidos([
+      { description: 'AMERICANAS', amount: 50, origem: 'fatura', parcela_atual: 3, parcela_total: 10 },
+    ]);
+    expect(r[0].parcela).toEqual({ numero: 3, total: 10 });
+  });
+
+  it('cai na leitura da descrição quando o modelo omite', () => {
+    const r = normalizarItensExtraidos([
+      { description: 'MAGALU 02/06', amount: 50, origem: 'fatura' },
+    ]);
+    expect(r[0].parcela).toEqual({ numero: 2, total: 6 });
+  });
+
+  it('devolve null em compra à vista', () => {
+    const r = normalizarItensExtraidos([
+      { description: 'IFOOD', amount: 30, origem: 'fatura' },
+    ]);
+    expect(r[0].parcela).toBeNull();
+  });
+
+  it('descarta parcela impossível que o modelo inventou', () => {
+    const r = normalizarItensExtraidos([
+      { description: 'LOJA', amount: 50, origem: 'fatura', parcela_atual: 9, parcela_total: 3 },
+    ]);
+    expect(r[0].parcela).toBeNull();
+  });
+
+  it('nunca parcela receita', () => {
+    const r = normalizarItensExtraidos([
+      { description: 'PIX Recebido 2/3', amount: 100, type: 'income' },
+    ]);
+    expect(r[0].parcela).toBeNull();
+  });
+});

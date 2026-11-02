@@ -11,6 +11,7 @@
  */
 
 import { normalizarSubcategoria, subcategoriaSugerida } from './subcategorias';
+import { detectarParcela, parcelaValida, type Parcela } from './parcelas';
 
 /** Categorias macro aceitas em despesa. É o eixo de que o app inteiro depende. */
 const CATEGORIAS_DESPESA = ['Contas Fixas', 'Variáveis', 'Cartões', 'Investimentos'];
@@ -22,6 +23,8 @@ export interface ItemExtraido {
   subcategoria?: string | null;
   type?: string;
   origem?: string;
+  parcela_atual?: unknown;
+  parcela_total?: unknown;
 }
 
 export interface ItemNormalizado {
@@ -30,6 +33,8 @@ export interface ItemNormalizado {
   category: string;
   subcategoria: string;
   type?: string;
+  /** `null` quando a compra é à vista. */
+  parcela: Parcela | null;
 }
 
 /**
@@ -67,8 +72,25 @@ export function normalizarItensExtraidos(bruto: unknown): ItemNormalizado[] {
       subcategoria: ehReceita
         ? 'Outros'
         : (normalizarSubcategoria(item?.subcategoria) ?? subcategoriaSugerida(item?.description)),
+      parcela: ehReceita ? null : parcelaDe(item),
     };
   });
+}
+
+/**
+ * Parcelamento da compra, pelo caminho mais confiável disponível.
+ *
+ * O modelo enxerga a fatura inteira e acerta mais do que uma regex: quando ele
+ * devolve os campos, são eles que valem. A leitura da descrição fica como
+ * reserva para quando ele omite — o que acontece bastante.
+ */
+function parcelaDe(item: ItemExtraido): Parcela | null {
+  const numero = Number(item?.parcela_atual);
+  const total = Number(item?.parcela_total);
+
+  if (parcelaValida(numero, total)) return { numero, total };
+
+  return detectarParcela(item?.description);
 }
 
 function categoriaDe(item: ItemExtraido, ehFatura: boolean, ehReceita: boolean): string {

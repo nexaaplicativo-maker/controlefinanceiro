@@ -8,6 +8,49 @@ import { toast } from "./Toast";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 import { reduzirImagem } from "../lib/imagem";
+import { expandirParcelamento, tituloBase, chaveParcela } from "../lib/parcelas";
+
+interface Candidato {
+  /** Chave da cobrança parcelada, para não lançar a mesma parcela duas vezes.
+   *  `null` em compra à vista, que nunca é descartada por repetição. */
+  chave: string | null;
+  row: Record<string, any>;
+}
+
+/**
+ * Tira da lista as parcelas que já existem no banco.
+ *
+ * É o que torna seguro projetar parcela futura. Ao importar a fatura de
+ * dezembro, a parcela "4/10" já foi criada pela projeção de novembro — sem
+ * esta conferência, toda compra parcelada seria contada duas vezes, todo mês.
+ *
+ * Só olha linhas parceladas. Compra à vista repetida é compra repetida mesmo:
+ * dá para almoçar duas vezes no mesmo lugar.
+ */
+async function semParcelasRepetidas(userId: string, candidatos: Candidato[]): Promise<Candidato[]> {
+  const parceladas = candidatos.filter(c => c.chave !== null);
+  if (parceladas.length === 0) return candidatos;
+
+  const datas = parceladas.map(c => c.row.date as string).sort();
+
+  const { data: existentes, error } = await supabase
+    .from('transactions')
+    .select('title, date, installment_info')
+    .eq('user_id', userId)
+    .not('installment_info', 'is', null)
+    .gte('date', datas[0])
+    .lte('date', datas[datas.length - 1]);
+
+  // Falhou a consulta: importa tudo. Lançamento duplicado o usuário apaga;
+  // lançamento que nunca entrou ele não descobre que faltou.
+  if (error || !existentes) return candidatos;
+
+  const jaExiste = new Set(
+    existentes.map((t: any) => chaveParcela(tituloBase(t.title), t.installment_info, t.date)),
+  );
+
+  return candidatos.filter(c => c.chave === null || !jaExiste.has(c.chave));
+}
 
 export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
@@ -57,30 +100,83 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         // apagar a fatura inteira depois, sem confirmar compra por compra.
         const importGroup = crypto.randomUUID();
 
-        const transactionsToInsert = data.map((item: any) => ({
-          user_id: userId,
-          title: item.description || "Despesa lida por IA",
-          amount: parseFloat(item.amount || 0),
-          category: item.category || "Variáveis",
-          // Segundo eixo: onde o dinheiro foi gasto. A rota já normaliza para
-          // o vocabulário fechado, então aqui só persiste.
-          subcategoria: item.subcategoria || "Outros",
-          type: item.type === "income" ? "income" : "expense",
-          date: selectedDate,
-          import_group: importGroup
-        })).filter((t: any) => t.amount > 0);
+        const candidatos: Candidato[] = [];
+
+        for (const item of data) {
+          const amount = parseFloat(item.amount || 0);
+          if (!(amount > 0)) continue;
+
+          const comum = {
+            user_id: userId,
+            amount,
+            category: item.category || "Variáveis",
+            // Segundo eixo: onde o dinheiro foi gasto. A rota já normaliza para
+            // o vocabulário fechado, então aqui só persiste.
+            subcategoria: item.subcategoria || "Outros",
+            type: item.type === "income" ? "income" : "expense",
+            import_group: importGroup,
+          };
+
+          const parcelas = expandirParcelamento(item.description, selectedDate, item.parcela ?? null);
+
+          // Compra à vista: uma linha, como sempre foi.
+          if (parcelas.length === 0) {
+            candidatos.push({
+              chave: null,
+              row: { ...comum, title: item.description || "Despesa lida por IA", date: selectedDate },
+            });
+            continue;
+          }
+
+          // Parcelada: a cobrança deste mês mais as que já estão contratadas.
+          // Todas no mesmo installment_group, para a tela de cartões e a
+          // exclusão de série enxergarem a compra inteira.
+          const installmentGroup = crypto.randomUUID();
+          const base = tituloBase(item.description);
+
+          for (const parcela of parcelas) {
+            candidatos.push({
+              chave: chaveParcela(base, parcela.installment_info, parcela.data),
+              row: {
+                ...comum,
+                title: parcela.titulo,
+                date: parcela.data,
+                installment_group: installmentGroup,
+                installment_info: parcela.installment_info,
+                // Parcela futura nasce em aberto: é ela que precisa aparecer
+                // nas contas a vencer e na previsão de caixa.
+                ...(parcela.futura ? { is_paid: false } : {}),
+              },
+            });
+          }
+        }
 
         // Antes isto anunciava "0 lançamento(s) importados" como sucesso
         // quando todos os itens vinham sem valor — e a pessoa fechava o modal
         // achando que tinha funcionado.
-        if (transactionsToInsert.length === 0) {
+        if (candidatos.length === 0) {
           throw new Error("Li o arquivo, mas não encontrei nenhum valor. Tente uma foto mais nítida ou com a fatura inteira visível.");
         }
 
+        const aproveitados = await semParcelasRepetidas(userId, candidatos);
+
+        if (aproveitados.length === 0) {
+          throw new Error("Todas as parcelas desta fatura já estavam lançadas. Nada foi duplicado.");
+        }
+
+        const transactionsToInsert = aproveitados.map(c => c.row);
         const { error } = await supabase.from('transactions').insert(transactionsToInsert);
         if (error) throw new Error("Erro ao salvar no banco: " + error.message);
 
-        toast(`✨ ${transactionsToInsert.length} lançamento(s) importados pela IA!`, "success");
+        const futuras = transactionsToInsert.filter((t: any) => t.is_paid === false).length;
+        const agora = transactionsToInsert.length - futuras;
+
+        toast(
+          futuras > 0
+            ? `✨ ${agora} lançamento(s) importados e ${futuras} parcela(s) futura(s) já projetada(s)!`
+            : `✨ ${transactionsToInsert.length} lançamento(s) importados pela IA!`,
+          "success",
+        );
       } else {
         throw new Error("A IA não conseguiu extrair os dados da imagem.");
       }

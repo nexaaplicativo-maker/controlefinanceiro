@@ -551,7 +551,18 @@ export default function Dashboard() {
     return matchesSearch && matchesPending;
   });
 
-  const recentTransactions = (searchQuery || filterPending) ? filteredTransactions : visibleTransactions.slice(0, 8); 
+  // A lista precisa seguir o mês que está na tela. Antes ela mostrava os 8
+  // últimos de TODA a janela (−18/+24 meses), enquanto cada card acima mostrava
+  // só o mês selecionado — então "Custos Fixos R$ 0,00" aparecia logo acima de
+  // uma conta de luz de outro mês, e o painel se contradizia sozinho.
+  //
+  // Busca e "A Vencer" continuam varrendo tudo de propósito: procurar um gasto
+  // só dentro do mês aberto não acha nada. Quando isso acontece, a tela avisa.
+  const recentTransactions = (searchQuery || filterPending)
+    ? filteredTransactions
+    : currentMonthTransactions.slice(0, 8);
+
+  const buscaForaDoMes = Boolean(searchQuery || filterPending);
 
   const variaveisPercent = rendaLiquida > 0 ? (sumCategory(variaveis) / rendaLiquida) * 100 : 0;
 
@@ -696,7 +707,9 @@ export default function Dashboard() {
 
             {AI_ENABLED && (
               <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 sm:px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer border border-white/10 whitespace-nowrap">
-                <Sparkles className="w-4 h-4 shrink-0" /> <span className="text-sm">Ler Foto</span>
+                {/* "Ler Foto" escondia o caso mais útil: ler uma fatura em PDF
+                    e abrir compra por compra. */}
+                <Sparkles className="w-4 h-4 shrink-0" /> <span className="text-sm">Ler Fatura</span>
               </motion.button>
             )}
 
@@ -937,13 +950,18 @@ export default function Dashboard() {
             melhor, comparando cada categoria com a própria mediana. */}
         <div className="flex flex-col gap-8">
 
-          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} />}
+          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} />}
 
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm h-full">
               <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold tracking-tight">Recentes</h2>
+                <div className="flex justify-between items-center gap-3">
+                  <h2 className="text-lg font-semibold tracking-tight">
+                    {buscaForaDoMes ? 'Resultados' : `Lançamentos de ${MONTHS[activeMonth]}`}
+                  </h2>
+                  {buscaForaDoMes && (
+                    <span className="text-[11px] text-neutral-500 shrink-0">de todos os meses</span>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -960,7 +978,11 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-col gap-3">
                 {recentTransactions.length === 0 ? (
-                  <p className="text-neutral-500 text-sm text-center py-4">Nenhuma transação lançada ainda.</p>
+                  <p className="text-neutral-500 text-sm text-center py-4">
+                    {buscaForaDoMes
+                      ? 'Nada encontrado com esse filtro.'
+                      : `Nenhum lançamento em ${MONTHS[activeMonth]} de ${activeYear}.`}
+                  </p>
                 ) : (
                   recentTransactions.map((tx) => (
                     <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} />
@@ -973,7 +995,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={refreshTransactions} />
+      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={refreshTransactions} onImportarFatura={() => { setIsModalOpen(false); setIsAiModalOpen(true); }} />
       <EditTransactionModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} transaction={editingTransaction} onSave={refreshTransactions} />
       <IncomeListModal isOpen={isIncomeModalOpen} onClose={() => setIsIncomeModalOpen(false)} incomes={receitasList} onEdit={handleEditTransaction} onDelete={handleDeleteTransaction} onTogglePaid={handleTogglePaid} formatMoney={formatMoney} />
       {pilarAtivo && (
@@ -1390,12 +1412,49 @@ function ReceiptButton({ stored }: { stored: string }) {
  * o total fica toda minúscula e não se compara nada. O percentual sobre o
  * total vai em texto, ao lado.
  */
-function ResumoOndeFoi({ transactions, showValues }: any) {
+function ResumoOndeFoi({ transactions, showValues, onImportar }: any) {
   const resumo = resumoPorSubcategoria(transactions);
 
   // Mês sem despesa, ou base toda anterior à coluna existir: não vale ocupar
   // tela com um card vazio.
   if (resumo.length === 0) return null;
+
+  // Uma barra só, e sem nome, não informa nada — era o caso de quem lançou a
+  // fatura inteira como um item. Mostrar "Outros 100%" ocupa tela e não
+  // responde a pergunta do card, então aqui ele explica como obter a resposta.
+  const semSinal = resumo.every(
+    (i) => i.rotulo === 'Outros' || i.rotulo === NAO_CLASSIFICADO,
+  );
+
+  if (semSinal) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.55 }}
+        className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm"
+      >
+        <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
+        <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+          As despesas deste mês ainda não estão separadas por onde aconteceram.
+          Um lançamento manual vira <strong className="text-neutral-300">um item só</strong> —
+          mesmo anexando a fatura em Comprovante, que apenas guarda o arquivo.
+        </p>
+        <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+          Para abrir a fatura compra por compra, envie o arquivo pela leitura por IA.
+        </p>
+        {AI_ENABLED && onImportar && (
+          <button
+            onClick={onImportar}
+            className="mt-4 inline-flex items-center gap-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            Ler fatura e separar as compras
+          </button>
+        )}
+      </motion.div>
+    );
+  }
 
   const maior = resumo[0].total;
 

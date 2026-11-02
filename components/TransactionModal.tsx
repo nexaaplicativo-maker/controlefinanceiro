@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, TrendingUp, TrendingDown, Calendar, Wallet, ChevronDown, AlertTriangle } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Calendar, Wallet, ChevronDown, AlertTriangle, Sparkles } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { toast } from "./Toast";
 import { validateText, validateMoney, validateDate, validateInteger, firstError } from "../lib/validation";
@@ -10,7 +10,7 @@ import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 import { SUBCATEGORIAS, subcategoriaSugerida } from "../lib/subcategorias";
 
-export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: () => void, onSave?: () => void }) {
+export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: { isOpen: boolean, onClose: () => void, onSave?: () => void, onImportarFatura?: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
   const [type, setType] = useState<'expense' | 'income'>('expense');
   
@@ -308,6 +308,28 @@ export function TransactionModal({ isOpen, onClose, onSave }: { isOpen: boolean,
               <div>
                 <label className="block text-sm font-medium text-neutral-400 mb-1.5">Comprovante (Opcional)</label>
                 <input type="file" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full bg-black/20 border border-white/10 rounded-xl py-2 px-3 text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 transition-colors cursor-pointer" />
+
+                {/* Anexar a fatura aqui só guarda o arquivo: nada dentro dele é
+                    lido, e o gasto vira um item único. Quem fez isso achou que
+                    tinha importado a fatura. O campo precisa dizer. */}
+                {receiptFile?.type === 'application/pdf' && onImportarFatura && (
+                  <div className="mt-2.5 flex items-start gap-2.5 bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-3">
+                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <div className="text-xs leading-relaxed">
+                      <p className="text-indigo-200 font-semibold mb-1">Isso é uma fatura?</p>
+                      <p className="text-neutral-400">
+                        Aqui o PDF fica só guardado como comprovante, e o lançamento vira <strong className="text-neutral-300">um item único</strong>. Para separar compra por compra, use a leitura por IA.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={onImportarFatura}
+                        className="mt-2 text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
+                      >
+                        Ler a fatura e separar as compras
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {type === 'expense' && (

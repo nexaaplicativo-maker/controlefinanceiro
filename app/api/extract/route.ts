@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../lib/api-auth';
 import { checkRateLimit, rateLimitResponse } from '../../../lib/rate-limit';
-import {
-  normalizarSubcategoria,
-  subcategoriaSugerida,
-  vocabularioParaPrompt,
-} from '../../../lib/subcategorias';
+import { vocabularioParaPrompt } from '../../../lib/subcategorias';
+import { normalizarItensExtraidos } from '../../../lib/extracao';
 
 /**
  * Teto do arquivo aceito.
@@ -92,7 +89,8 @@ Extraia TODOS os itens ou despesas individuais e retorne EXATAMENTE E APENAS uma
 REGRA ESPECIAL PARA PIX: Se a imagem for um comprovante de transferência (PIX, TED, DOC), crie um ÚNICO item. Use como "description" o nome de quem recebeu/enviou ou a descrição do PIX (ex: "PIX - Nome da Pessoa"). Se for um PIX RECEBIDO, defina o "type" como "income". Se for PIX ENVIADO ou PAGAMENTO, defina "type" como "expense".
 Para recibos normais e cupons de compras, o "type" é sempre "expense".
 
-FATURA DE CARTÃO: se o documento for uma fatura ou extrato com várias compras, extraia CADA LINHA como um item separado. Não agrupe, não some, não devolva só o total. O total da fatura não é um item.
+FATURA DE CARTÃO: se o documento for uma fatura ou extrato de cartão com várias compras, extraia CADA LINHA como um item separado. Não agrupe, não some, não devolva só o total. O total da fatura, o pagamento mínimo e o saldo anterior NÃO são itens.
+Nesse caso marque cada item com "origem": "fatura". Em qualquer outro documento (cupom, recibo, comprovante de PIX), use "origem": "avulso".
 
 O JSON deve ter esta estrutura exata de lista:
 [
@@ -101,6 +99,7 @@ O JSON deve ter esta estrutura exata de lista:
     "amount": 10.50,
     "category": "Variáveis",
     "subcategoria": "Mercado",
+    "origem": "avulso",
     "type": "expense"
   },
   {
@@ -108,11 +107,14 @@ O JSON deve ter esta estrutura exata de lista:
     "amount": 150.00,
     "category": "Salário",
     "subcategoria": "Outros",
+    "origem": "avulso",
     "type": "income"
   }
 ]
 Se houver apenas um gasto ou for um comprovante PIX único, retorne uma lista com 1 objeto. O "amount" deve ser sempre um número float.
 REGRA CRUCIAL DE CATEGORIA: Para despesas ("expense"), o campo "category" DEVE OBRIGATORIAMENTE ser um destes quatro: "Contas Fixas", "Variáveis", "Cartões" ou "Investimentos". Para receitas ("income"), use "Salário" ou "Renda Extra". É terminantemente proibido usar outras categorias.
+
+SE "origem" FOR "fatura": não avalie se a compra é fixa ou variável. Toda compra que veio numa fatura de cartão é "category": "Cartões", sem exceção — inclusive assinatura, mercado e conta que normalmente seria fixa. O que a compra É entra em "subcategoria", não em "category".
 
 REGRA DE SUBCATEGORIA: "category" diz a NATUREZA do gasto; "subcategoria" diz ONDE o dinheiro foi gasto. São perguntas independentes — um Uber no cartão é category "Cartões" e subcategoria "Transporte".
 O campo "subcategoria" DEVE ser exatamente um destes: ${vocabularioParaPrompt()}.
@@ -151,23 +153,11 @@ ${learnedBlock}
 
     const parsedJson = JSON.parse(textResponse);
 
-    // Um item só costuma vir como objeto, não como lista de um. Antes isso
-    // caía no "a IA não conseguiu extrair os dados" do cliente, que exige
-    // array — um comprovante de PIX único falhava sem motivo.
-    const itens = Array.isArray(parsedJson) ? parsedJson : [parsedJson];
-
-    // A lista fechada está no prompt, mas modelo de linguagem desobedece:
-    // devolve o nome do estabelecimento, o termo em inglês, ou duas juntas.
-    // Normalizar no servidor é o que faz o filtro da tela agrupar de verdade —
-    // e quando não há correspondência, o palpite pela descrição acerta mais
-    // que jogar tudo em "Outros".
-    const normalizados = itens.map((item: any) => ({
-      ...item,
-      subcategoria:
-        normalizarSubcategoria(item?.subcategoria) ?? subcategoriaSugerida(item?.description),
-    }));
-
-    return NextResponse.json(normalizados);
+    // Tudo que precisa ser verdade sobre o resultado e garantido aqui, nao no
+    // prompt: o modelo desobedece. Objeto unico vira lista, categoria
+    // inventada vira Variaveis, compra de fatura vira Cartoes, subcategoria
+    // fora do vocabulario e normalizada. Coberto por lib/extracao.test.ts.
+    return NextResponse.json(normalizarItensExtraidos(parsedJson));
 
   } catch (error: any) {
     // Detalhe fica no log do servidor; o cliente recebe mensagem genérica.

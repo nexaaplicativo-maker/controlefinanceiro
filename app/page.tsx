@@ -118,7 +118,6 @@ export default function Dashboard() {
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
-  const [transactionToEdit, setTransactionToEdit] = useState<any>(null);
 
   // Escutar eventos do BottomNav
   useEffect(() => {

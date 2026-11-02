@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '../../../lib/api-auth';
 import { checkRateLimit, rateLimitResponse } from '../../../lib/rate-limit';
 
+/**
+ * Teto do arquivo aceito.
+ *
+ * Menor de propósito que o corte da Vercel (~4,5 MB no corpo da requisição):
+ * assim a mensagem é nossa e diz o que fazer, em vez de um erro cru da
+ * plataforma chegando na tela como "Erro da IA".
+ *
+ * O cliente já reduz a imagem antes de enviar (lib/imagem.ts), então na
+ * prática isto só pega arquivo que escapou daquele caminho.
+ */
+const MAX_BYTES = 4 * 1024 * 1024;
+
+/** O que a leitura sabe processar. Qualquer outra coisa é recusada antes de
+ *  virar base64 na memória da função. */
+const TIPOS_ACEITOS = [
+  'image/jpeg', 'image/png', 'image/webp',
+  'image/heic', 'image/heif',
+  'application/pdf',
+];
+
 export async function POST(request: Request) {
   try {
     const auth = await requireUser(request);
@@ -12,9 +32,27 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    
+
     if (!file) {
       return NextResponse.json({ error: "Nenhum arquivo recebido" }, { status: 400 });
+    }
+
+    // Sem estas duas checagens, qualquer arquivo ia direto para arrayBuffer()
+    // e base64 — inflando um terço no caminho — na memória de uma função
+    // serverless, 40 vezes por hora por usuário.
+    if (!TIPOS_ACEITOS.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Esse tipo de arquivo não dá para ler. Envie uma foto (JPG, PNG) ou um PDF." },
+        { status: 415 },
+      );
+    }
+
+    if (file.size > MAX_BYTES) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      return NextResponse.json(
+        { error: `A imagem tem ${mb} MB e o limite é 4 MB. Tire a foto de novo ou envie uma versão menor.` },
+        { status: 413 },
+      );
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -81,8 +119,15 @@ ${learnedBlock}
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: "O Google recusou a imagem: " + err }, { status: 500 });
+      // O detalhe fica no log do servidor. A resposta do Google pode trazer
+      // eco da requisição e nome de modelo, e devolver isso cru ao cliente
+      // contradizia a política do catch logo abaixo, que é genérico de
+      // propósito.
+      console.error("Gemini recusou o arquivo:", response.status, await response.text());
+      return NextResponse.json(
+        { error: "Não consegui ler esse arquivo agora. Tente de novo em instantes ou envie outra foto." },
+        { status: 502 },
+      );
     }
 
     const data = await response.json();

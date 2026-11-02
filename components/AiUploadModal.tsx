@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, UploadCloud, Camera, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { toast } from "./Toast";
-import { getUserId, getAccessToken } from "../lib/session";
+import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
+import { reduzirImagem } from "../lib/imagem";
 
 export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
@@ -23,10 +24,14 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
     setIsUploading(true);
     setErrorMessage("");
-    
+
     try {
+      // Reduz antes de enviar: a foto crua do celular costuma passar do corte
+      // de corpo da Vercel e nem chegava na rota.
+      const arquivo = await reduzirImagem(file);
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", arquivo);
 
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const token = currentSession?.access_token || '';
@@ -38,8 +43,10 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error("Erro da IA: " + errorText);
+        // A rota responde JSON com `error`. Jogar o corpo cru na tela mostrava
+        // chaves e aspas para o usuário.
+        const detalhe = await response.json().catch(() => null);
+        throw new Error(detalhe?.error || "Não consegui ler esse arquivo. Tente outra foto.");
       }
 
       const data = await response.json();

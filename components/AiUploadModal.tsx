@@ -53,6 +53,10 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       const userId = await getUserId();
       
       if (userId && Array.isArray(data) && data.length > 0) {
+        // Marca tudo que saiu desta leitura com o mesmo grupo. É o que permite
+        // apagar a fatura inteira depois, sem confirmar compra por compra.
+        const importGroup = crypto.randomUUID();
+
         const transactionsToInsert = data.map((item: any) => ({
           user_id: userId,
           title: item.description || "Despesa lida por IA",
@@ -62,7 +66,8 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
           // o vocabulário fechado, então aqui só persiste.
           subcategoria: item.subcategoria || "Outros",
           type: item.type === "income" ? "income" : "expense",
-          date: selectedDate
+          date: selectedDate,
+          import_group: importGroup
         })).filter((t: any) => t.amount > 0);
 
         // Antes isto anunciava "0 lançamento(s) importados" como sucesso

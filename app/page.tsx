@@ -427,6 +427,44 @@ export default function Dashboard() {
       }
     }
 
+    /**
+     * Veio de uma leitura por IA: oferece apagar a importação inteira.
+     *
+     * Uma fatura vira dezenas de linhas de uma vez. Sem isto, desfazer uma
+     * leitura errada custa uma confirmação por compra. Fica depois da série
+     * de parcelas porque importação não gera parcela — se um dia gerar, a
+     * série é o recorte mais específico e deve ganhar.
+     */
+    if (tx.import_group) {
+      const removidas = allTransactions.filter(t => t.import_group === tx.import_group);
+
+      if (removidas.length > 1) {
+        const apagarImportacao = await confirmDialog({
+          title: 'Este veio de uma fatura lida',
+          message: `A mesma leitura criou ${removidas.length} lançamentos. Quer apagar todos ou só este?`,
+          confirmLabel: 'Apagar os ' + removidas.length,
+          cancelLabel: 'Apenas este',
+          danger: true,
+        });
+
+        if (apagarImportacao) {
+          const { error } = await supabase.from('transactions').delete()
+            .eq('import_group', tx.import_group);
+
+          if (error) { toast("Erro ao excluir a importação.", "error"); return; }
+
+          setAllTransactions(prev => prev.filter(t => t.import_group !== tx.import_group));
+          toastWithUndo(`${removidas.length} lançamentos excluídos.`, async () => {
+            const { error: undoError } = await supabase.from('transactions').insert(removidas);
+            if (undoError) { toast("Não consegui desfazer.", "error"); return; }
+            setAllTransactions(prev => [...prev, ...removidas].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')));
+            toast("Importação restaurada.", "success");
+          });
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) { toast("Erro ao excluir.", "error"); return; }
 

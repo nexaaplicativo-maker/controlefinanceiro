@@ -104,8 +104,8 @@ export function WelcomeModal({
           className="relative w-full max-w-sm sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
         >
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-            <div className="absolute -top-20 -right-20 w-48 h-48 bg-brand/20 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-brand/20 rounded-full blur-3xl"></div>
+            <div className="absolute -top-20 -right-20 w-48 h-48 bg-brand/[0.06] rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-brand/[0.06] rounded-full blur-3xl"></div>
           </div>
 
           <div className="relative z-10 w-full">

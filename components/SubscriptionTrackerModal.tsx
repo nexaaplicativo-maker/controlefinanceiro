@@ -76,8 +76,8 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
         >
           {/* Fundo brilhante estilo Raio-X */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-             <div className="absolute -top-24 -right-24 w-64 h-64 bg-neg/10 rounded-full blur-3xl"></div>
-             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+             <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand/[0.06] rounded-full blur-3xl"></div>
+             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-brand/[0.06] rounded-full blur-3xl"></div>
           </div>
 
           <div className="relative z-10">
@@ -96,7 +96,7 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
             </p>
 
             <div className="mb-6 bg-black/30 rounded-inner p-4 border border-white/10 relative z-10 overflow-hidden">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-brand/5 rounded-full blur-2xl"></div>
+              <div className="absolute right-0 top-0 w-32 h-32 bg-brand/[0.06] rounded-full blur-2xl"></div>
 
               <div className="flex justify-between items-center mb-2">
                 <span className="text-ink-2 font-medium text-sm">Compromisso mensal</span>

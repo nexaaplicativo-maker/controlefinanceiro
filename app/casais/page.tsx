@@ -123,7 +123,7 @@ export default function CasaisDashboard() {
 function CardCasal({ title, amount, icon, delay }: any) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }} className="bg-white/10 border border-white/10 p-6 rounded-card backdrop-blur-sm hover:bg-white/20 hover:border-white/20 transition-all relative overflow-hidden group">
-      <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors"></div>
+      <div className="absolute -right-6 -top-6 w-24 h-24 bg-brand/[0.06] rounded-full blur-2xl group-hover:bg-brand/[0.06] transition-colors"></div>
       <div className="flex justify-between items-start mb-4">
         <div className="p-3 bg-white/5 rounded-inner">{icon}</div>
       </div>

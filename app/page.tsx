@@ -868,19 +868,15 @@ export default function Dashboard() {
               direita. Com base fixa e quebra de linha, eles se organizam em
               duas fileiras no celular e seguem numa só a partir do tablet. */}
           <div className="flex flex-wrap items-center gap-2.5 w-full min-w-0 xl:w-auto xl:flex-nowrap">
-            <motion.button onClick={() => setIsPayYourselfOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink px-3 sm:px-5 py-2.5 rounded-full font-medium transition-colors active:scale-[0.97] cursor-pointer border border-line whitespace-nowrap">
-              <PiggyBank className="w-4 h-4 shrink-0" /> <span className="text-sm">Poupar</span>
-            </motion.button>
-
             {AI_ENABLED && (
-              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-strong text-canvas px-3 sm:px-5 py-2.5 rounded-full font-semibold transition-colors shadow-[0_8px_28px_rgba(143,189,211,0.28)] active:scale-[0.97] cursor-pointer whitespace-nowrap">
+              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 basis-28 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-strong text-canvas px-3 sm:px-5 py-2.5 rounded-full font-semibold transition-colors shadow-[0_8px_28px_rgba(143,189,211,0.28)] active:scale-[0.97] cursor-pointer whitespace-nowrap">
                 {/* "Ler Foto" escondia o caso mais útil: ler uma fatura em PDF
                     e abrir compra por compra. */}
                 <Sparkles className="w-4 h-4 shrink-0" /> <span className="text-sm">Ler Fatura</span>
               </motion.button>
             )}
 
-            <motion.button onClick={handleOpenModal} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink px-3 sm:px-5 py-2.5 rounded-full font-medium transition-colors active:scale-[0.97] cursor-pointer border border-line whitespace-nowrap">
+            <motion.button onClick={handleOpenModal} className="flex-1 basis-28 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink px-3 sm:px-5 py-2.5 rounded-full font-medium transition-colors active:scale-[0.97] cursor-pointer border border-line whitespace-nowrap">
               <Plus className="w-4 h-4 shrink-0" /> <span className="text-sm">Lançar</span>
             </motion.button>
 
@@ -905,6 +901,7 @@ export default function Dashboard() {
                       className="absolute right-0 top-full mt-2 w-60 bg-surface border border-white/10 rounded-inner shadow-2xl p-2 z-50 origin-top-right"
                     >
                       {[
+                        { label: 'Poupar',      icon: <PiggyBank className="w-4 h-4" />,     color: 'text-brand',  action: () => setIsPayYourselfOpen(true) },
                         { label: 'Cartões',     icon: <CreditCard className="w-4 h-4" />,    color: 'text-brand',  action: () => setIsCardsOpen(true) },
                         { label: 'Relatórios',  icon: <PieChartIcon className="w-4 h-4" />,  color: 'text-brand',  action: () => setIsReportsOpen(true) },
                         { label: 'Orçamentos',  icon: <Wallet className="w-4 h-4" />,        color: 'text-ink-2',  action: () => setIsBudgetOpen(true) },
@@ -947,9 +944,9 @@ export default function Dashboard() {
           />
         )}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
             {[1,2,3,4].map(i => (
-              <Skeleton key={i} className="min-w-[80%] md:min-w-0 h-40 rounded-card" />
+              <Skeleton key={i} className={`h-36 rounded-card ${i === 1 ? "col-span-2 md:col-span-3 h-44" : ""}`} />
             ))}
           </div>
         ) : erroCarregamento ? (
@@ -980,8 +977,8 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            <div className="md:col-span-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
+            <div className="col-span-2 md:col-span-3">
               <PillarCard
                 title="Capacidade de Poupança"
                 value={capacidadePoupanca}
@@ -1024,7 +1021,7 @@ export default function Dashboard() {
                 onClick={() => setPilarAberto('fixos')}
               />
             </div>
-            <div>
+            <div className="col-span-2 md:col-span-1">
               <PillarCard
                 title="Cartões & Variáveis"
                 value={gargalo}
@@ -1132,6 +1129,17 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 shrink-0">
                     {buscaForaDoMes && !modoSelecao && (
                       <span className="text-xs text-ink-3">de todos os meses</span>
+                    )}
+                    {/* "Ver tudo" no cabeçalho, como na referência. Antes o
+                        único caminho para o resto da lista era um botão no
+                        fim dela — ou seja, depois de rolar os oito. */}
+                    {ocultos > 0 && !modoSelecao && (
+                      <button
+                        onClick={() => setMostrarTodos(true)}
+                        className="shrink-0 cursor-pointer rounded-full px-2 py-1 text-xs font-medium text-ink-2 transition-colors hover:text-ink"
+                      >
+                        Ver tudo
+                      </button>
                     )}
                     {recentTransactions.length > 0 && (
                       <button
@@ -1434,7 +1442,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
   if (!goal) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-pos/5 border border-pos/20 rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center gap-4 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 bg-pos"></div>
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 bg-brand/[0.06]"></div>
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 bg-pos/10 border border-pos/20 rounded-inner">
@@ -1459,7 +1467,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-pos/5 border-pos/20' : 'bg-white/5 border-white/10'}`}>
-      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-pos' : atingiuMinimo ? 'bg-brand' : 'bg-warn'}`}></div>
+      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-brand/[0.06]' : atingiuMinimo ? 'bg-brand/[0.06]' : 'bg-brand/[0.06]'}`}></div>
 
       <div className="flex items-start justify-between gap-3 mb-5 relative z-10">
         <div className="flex items-center gap-3 min-w-0">

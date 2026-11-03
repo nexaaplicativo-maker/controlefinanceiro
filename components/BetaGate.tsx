@@ -128,7 +128,7 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md sheet-panel rounded-card p-7 shadow-[0_24px_60px_rgba(0,0,0,0.65)] relative overflow-hidden"
       >
-        <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
 
         {estado === 'precisa-convite' ? (
           <div className="relative z-10">

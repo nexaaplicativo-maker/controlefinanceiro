@@ -69,7 +69,7 @@ export default function RecuperarSenhaPage() {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-surface border border-white/10 rounded-card p-7 shadow-2xl relative overflow-hidden"
       >
-        <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
 
         {estado === 'verificando' && (
           <div className="py-10 flex justify-center">

@@ -40,7 +40,7 @@ export function OnboardingChecklist({
       aria-label="Primeiros passos"
       className="mb-6 bg-gradient-to-br from-brand/10 to-brand/5 border border-brand/20 rounded-card p-5 md:p-6 relative overflow-hidden"
     >
-      <div className="absolute -right-10 -top-10 w-40 h-40 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -right-10 -top-10 w-40 h-40 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-4 mb-4">

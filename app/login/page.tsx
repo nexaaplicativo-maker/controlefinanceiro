@@ -252,7 +252,7 @@ export default function Login() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/5 border border-white/10 rounded-card p-8 backdrop-blur-sm shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
           
           {/* Aviso fixo, não toast: o toast some sozinho e aqui a pessoa
               precisa ler e decidir o que fazer. O botão de recuperar fica

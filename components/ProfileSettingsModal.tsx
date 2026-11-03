@@ -90,7 +90,7 @@ export function ProfileSettingsModal({
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="relative w-full max-w-lg max-h-[88vh] sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
         >
-          <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="flex justify-between items-center mb-5 shrink-0 relative z-10">
             <div className="flex items-center gap-3">

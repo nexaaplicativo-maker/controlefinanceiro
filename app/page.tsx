@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import dynamic from "next/dynamic";
 import { 
   Wallet, TrendingUp, TrendingDown,
   Bell, User, Plus, Home as HomeIcon, CreditCard, 
@@ -14,32 +15,44 @@ import {
 import { Money } from "../components/ui/Money";
 import { IconeSubcategoria } from "../components/ui/IconeSubcategoria";
 import { EmptyState, Skeleton } from "../components/ui/Surface";
-import { TransactionModal } from "../components/TransactionModal";
-import { EditTransactionModal } from "../components/EditTransactionModal";
-import { IncomeListModal } from "../components/IncomeListModal";
-import { AiUploadModal } from "../components/AiUploadModal";
-import { AdvisorModal } from "../components/AdvisorModal";
-import { SubscriptionTrackerModal } from "../components/SubscriptionTrackerModal";
-import { ReportsModal } from "../components/ReportsModal";
-import { ActivityModal } from "../components/ActivityModal";
-import { ProfileModal } from "../components/ProfileModal";
-import { CoupleModal } from "../components/CoupleModal";
-import { FinancialCalendarModal } from "../components/FinancialCalendarModal";
-import { WalletsModal } from "../components/WalletsModal";
 
-import { BudgetModal } from "../components/BudgetModal";
-import { WelcomeModal } from "../components/WelcomeModal";
-import { GoalsModal } from "../components/GoalsModal";
-import { CategoryManagerModal } from "../components/CategoryManagerModal";
-import { PayYourselfFirstModal } from "../components/PayYourselfFirstModal";
-import { CreditCardManagerModal } from "../components/CreditCardManagerModal";
-import { StageRoadmapModal } from "../components/StageRoadmapModal";
-import { PillarDetailModal } from "../components/PillarDetailModal";
-import { DebtsModal } from "../components/DebtsModal";
-import { SpendingInsightsModal } from "../components/SpendingInsightsModal";
-import { ForecastModal } from "../components/ForecastModal";
-import { ProfileSettingsModal } from "../components/ProfileSettingsModal";
-import { InvestmentsModal } from "../components/InvestmentsModal";
+
+/**
+ * Modais sob demanda.
+ *
+ * Todos os 25 viviam no pacote da primeira tela: o painel pesava 211 KB, o
+ * dobro de qualquer outra rota, para carregar coisa que só existe depois de
+ * um toque. Cada um agora é um pedaço separado, buscado na hora de abrir.
+ *
+ * `ssr: false` porque nenhum deles renderiza no servidor — são sobreposições
+ * que só existem depois que a pessoa interage.
+ */
+const TransactionModal = dynamic(() => import("../components/TransactionModal").then(m => m.TransactionModal), { ssr: false });
+const EditTransactionModal = dynamic(() => import("../components/EditTransactionModal").then(m => m.EditTransactionModal), { ssr: false });
+const IncomeListModal = dynamic(() => import("../components/IncomeListModal").then(m => m.IncomeListModal), { ssr: false });
+const AiUploadModal = dynamic(() => import("../components/AiUploadModal").then(m => m.AiUploadModal), { ssr: false });
+const AdvisorModal = dynamic(() => import("../components/AdvisorModal").then(m => m.AdvisorModal), { ssr: false });
+const SubscriptionTrackerModal = dynamic(() => import("../components/SubscriptionTrackerModal").then(m => m.SubscriptionTrackerModal), { ssr: false });
+const ReportsModal = dynamic(() => import("../components/ReportsModal").then(m => m.ReportsModal), { ssr: false });
+const ActivityModal = dynamic(() => import("../components/ActivityModal").then(m => m.ActivityModal), { ssr: false });
+const ProfileModal = dynamic(() => import("../components/ProfileModal").then(m => m.ProfileModal), { ssr: false });
+const CoupleModal = dynamic(() => import("../components/CoupleModal").then(m => m.CoupleModal), { ssr: false });
+const FinancialCalendarModal = dynamic(() => import("../components/FinancialCalendarModal").then(m => m.FinancialCalendarModal), { ssr: false });
+const WalletsModal = dynamic(() => import("../components/WalletsModal").then(m => m.WalletsModal), { ssr: false });
+const BudgetModal = dynamic(() => import("../components/BudgetModal").then(m => m.BudgetModal), { ssr: false });
+const WelcomeModal = dynamic(() => import("../components/WelcomeModal").then(m => m.WelcomeModal), { ssr: false });
+const GoalsModal = dynamic(() => import("../components/GoalsModal").then(m => m.GoalsModal), { ssr: false });
+const CategoryManagerModal = dynamic(() => import("../components/CategoryManagerModal").then(m => m.CategoryManagerModal), { ssr: false });
+const PayYourselfFirstModal = dynamic(() => import("../components/PayYourselfFirstModal").then(m => m.PayYourselfFirstModal), { ssr: false });
+const CreditCardManagerModal = dynamic(() => import("../components/CreditCardManagerModal").then(m => m.CreditCardManagerModal), { ssr: false });
+const StageRoadmapModal = dynamic(() => import("../components/StageRoadmapModal").then(m => m.StageRoadmapModal), { ssr: false });
+const PillarDetailModal = dynamic(() => import("../components/PillarDetailModal").then(m => m.PillarDetailModal), { ssr: false });
+const DebtsModal = dynamic(() => import("../components/DebtsModal").then(m => m.DebtsModal), { ssr: false });
+const SpendingInsightsModal = dynamic(() => import("../components/SpendingInsightsModal").then(m => m.SpendingInsightsModal), { ssr: false });
+const ForecastModal = dynamic(() => import("../components/ForecastModal").then(m => m.ForecastModal), { ssr: false });
+const ProfileSettingsModal = dynamic(() => import("../components/ProfileSettingsModal").then(m => m.ProfileSettingsModal), { ssr: false });
+const InvestmentsModal = dynamic(() => import("../components/InvestmentsModal").then(m => m.InvestmentsModal), { ssr: false });
+
 import { supabase } from "../lib/supabase";
 import { toast, toastWithUndo } from "../components/Toast";
 import { confirmDialog } from "../components/ConfirmDialog";
@@ -91,6 +104,16 @@ const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Jul
  * longo, aquela tela terá que buscar o próprio período em vez de reaproveitar
  * o que o dashboard carregou.
  */
+/**
+ * Colunas de `transactions` que o app lê.
+ *
+ * Substitui o `select('*')`, que arrastava tudo que a tabela viesse a ter.
+ * `is_split` entra mesmo sem ser lido na tela: o desfazer de exclusão
+ * reinsere a linha que estava em memória, e coluna ausente aqui some na
+ * restauração.
+ */
+const COLUNAS_TX = 'id, user_id, title, amount, category, subcategoria, type, date, is_paid, is_split, installment_group, installment_info, import_group, receipt_url, wallet_id';
+
 const TX_WINDOW = (() => {
   const from = new Date();
   from.setMonth(from.getMonth() - 18);
@@ -100,6 +123,8 @@ const TX_WINDOW = (() => {
 })();
 
 export default function Dashboard() {
+  // Meses ja buscados fora da janela, para nao repetir consulta ao voltar.
+  const mesesExtras = useRef(new Set<string>());
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth());
   const [activeYear, setActiveYear] = useState(new Date().getFullYear());
   const [showValues, setShowValues] = useState(true);
@@ -196,23 +221,64 @@ export default function Dashboard() {
     setSelecionados([]);
   };
 
+  /**
+   * Busca um mês que está fora da janela carregada.
+   *
+   * A janela vai de -18 a +24 meses, e as setas de mês não param nela. Quem
+   * passasse do limite via R$ 0,00 em tudo — sem erro, sem aviso, como se não
+   * houvesse nada lançado. Agora o mês é buscado na hora e entra na lista.
+   *
+   * O custo é uma consulta por mês visitado, só na primeira visita, e só fora
+   * da janela. Quem fica no período normal não paga nada.
+   */
+  async function garantirMesCarregado(ano: number, mes: number) {
+    const chave = `${ano}-${String(mes + 1).padStart(2, '0')}`;
+    if (chave >= TX_WINDOW.from.slice(0, 7) && chave <= TX_WINDOW.to.slice(0, 7)) return;
+    if (mesesExtras.current.has(chave)) return;
+    mesesExtras.current.add(chave);
+
+    const uid = await getUserId();
+    if (!uid) return;
+
+    const primeiro = `${chave}-01`;
+    const ultimo = new Date(Date.UTC(ano, mes + 1, 0)).toISOString().slice(0, 10);
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(COLUNAS_TX)
+      .eq('user_id', uid)
+      .gte('date', primeiro)
+      .lte('date', ultimo);
+
+    // Falhou: tira da lista de carregados para tentar de novo na próxima
+    // visita, em vez de fingir que o mês está vazio para sempre.
+    if (error) { mesesExtras.current.delete(chave); return; }
+    if (!data?.length) return;
+
+    setAllTransactions(prev => {
+      const vistos = new Set(prev.map(t => t.id));
+      const novas = (data as any[]).filter(t => !vistos.has(t.id));
+      return novas.length
+        ? [...prev, ...novas].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+        : prev;
+    });
+  }
+
   const handlePrevMonth = () => {
     limparRecorte();
-    if (activeMonth === 0) {
-      setActiveMonth(11);
-      setActiveYear(prev => prev - 1);
-    } else {
-      setActiveMonth(prev => prev - 1);
-    }
+    const ano = activeMonth === 0 ? activeYear - 1 : activeYear;
+    const mes = activeMonth === 0 ? 11 : activeMonth - 1;
+    setActiveMonth(mes);
+    setActiveYear(ano);
+    void garantirMesCarregado(ano, mes);
   };
   const handleNextMonth = () => {
     limparRecorte();
-    if (activeMonth === 11) {
-      setActiveMonth(0);
-      setActiveYear(prev => prev + 1);
-    } else {
-      setActiveMonth(prev => prev + 1);
-    }
+    const ano = activeMonth === 11 ? activeYear + 1 : activeYear;
+    const mes = activeMonth === 11 ? 0 : activeMonth + 1;
+    setActiveMonth(mes);
+    setActiveYear(ano);
+    void garantirMesCarregado(ano, mes);
   };
   const handleOpenModal = () => setIsModalOpen(true);
 
@@ -228,7 +294,7 @@ export default function Dashboard() {
 
       const [profileResponse, txResponse, walletsResponse, goalsResponse, positionsResponse, debtsResponse] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.from('transactions').select('*').eq('user_id', session.user.id).gte('date', TX_WINDOW.from).lte('date', TX_WINDOW.to).order('date', { ascending: false }),
+        supabase.from('transactions').select(COLUNAS_TX).eq('user_id', session.user.id).gte('date', TX_WINDOW.from).lte('date', TX_WINDOW.to).order('date', { ascending: false }),
         supabase.from('wallets').select('*').eq('user_id', session.user.id),
         supabase.from('goals').select('*').eq('user_id', session.user.id),
         supabase.from('investments').select('*').eq('user_id', session.user.id),
@@ -291,7 +357,7 @@ export default function Dashboard() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const [txResponse, walletsResponse, goalsResponse] = await Promise.all([
-      supabase.from('transactions').select('*').eq('user_id', session.user.id).gte('date', TX_WINDOW.from).lte('date', TX_WINDOW.to).order('date', { ascending: false }),
+      supabase.from('transactions').select(COLUNAS_TX).eq('user_id', session.user.id).gte('date', TX_WINDOW.from).lte('date', TX_WINDOW.to).order('date', { ascending: false }),
       supabase.from('wallets').select('*').eq('user_id', session.user.id),
       supabase.from('goals').select('*').eq('user_id', session.user.id)
     ]);

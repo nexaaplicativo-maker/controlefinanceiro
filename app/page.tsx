@@ -1456,7 +1456,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
           </p>
           <button
             onClick={() => onCreate(ideal)}
-            className="w-full bg-pos hover:bg-pos text-ink font-bold py-3 rounded-field flex items-center justify-center gap-2 transition-all shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
+            className="w-full bg-pos hover:bg-pos/85 text-canvas font-bold py-3 rounded-field flex items-center justify-center gap-2 transition-all shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4" /> Criar minha reserva
           </button>
@@ -1511,7 +1511,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
               <button
                 onClick={handleAdd}
                 disabled={isBusy || !value}
-                className="px-4 bg-pos hover:bg-pos text-ink font-bold rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm"
+                className="px-4 bg-pos hover:bg-pos/85 text-canvas font-bold rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm"
               >
                 {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Somar'}
               </button>

@@ -197,7 +197,7 @@ export function PayYourselfFirstModal({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-pos hover:bg-pos text-ink font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
+                  className="w-full bg-pos hover:bg-pos/85 text-canvas font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                     <><PiggyBank className="w-5 h-5" /> Guardar este valor</>

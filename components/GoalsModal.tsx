@@ -107,7 +107,7 @@ export function GoalsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =
               </button>
             </div>
 
-            <div className="overflow-y-auto pr-2 pb-4 flex flex-col gap-4">
+            <div className="overflow-y-auto [&>*]:shrink-0 pr-2 pb-4 flex flex-col gap-4">
               
               {!isCreating && !activeGoal && (
                 <button onClick={() => setIsCreating(true)} className="w-full flex items-center justify-center gap-2 bg-pos/10 hover:bg-pos/20 text-pos border border-pos/20 py-3 rounded-field font-medium transition-all cursor-pointer">
@@ -125,7 +125,7 @@ export function GoalsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                   </div>
                   <div className="flex gap-2 mt-2">
                     <button type="button" onClick={() => setIsCreating(false)} className="flex-1 py-3 text-ink-2 bg-white/5 hover:bg-white/5 rounded-field transition-colors">Cancelar</button>
-                    <button type="submit" className="flex-1 py-3 bg-pos hover:bg-pos text-ink font-medium rounded-field transition-colors">Criar</button>
+                    <button type="submit" className="flex-1 py-3 bg-pos hover:bg-pos/85 text-canvas font-medium rounded-field transition-colors">Criar</button>
                   </div>
                 </form>
               )}
@@ -147,7 +147,7 @@ export function GoalsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =
                     <input type="number" step="0.01" placeholder="Valor" value={transactionAmount} onChange={(e) => setTransactionAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field py-3 pl-12 pr-4 text-ink focus:border-brand outline-none" required autoFocus />
                   </div>
                   
-                  <button type="submit" className={`w-full py-3 text-ink font-medium rounded-field transition-colors ${transactionType === 'add' ? 'bg-pos hover:bg-pos' : 'bg-neg hover:bg-neg'}`}>
+                  <button type="submit" className={`w-full py-3 text-canvas font-medium rounded-field transition-colors ${transactionType === 'add' ? 'bg-pos hover:bg-pos/85' : 'bg-neg hover:bg-neg/85'}`}>
                     Confirmar Transação
                   </button>
                 </form>

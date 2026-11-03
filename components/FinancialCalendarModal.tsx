@@ -135,7 +135,7 @@ export function FinancialCalendarModal({ isOpen, onClose, transactions }: { isOp
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-y-auto lg:overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-y-auto [&>*]:shrink-0 lg:overflow-hidden">
               
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 shrink-0">
@@ -154,7 +154,7 @@ export function FinancialCalendarModal({ isOpen, onClose, transactions }: { isOp
                     <span>Lançamentos do dia {selectedDay}</span>
                     <button onClick={() => setSelectedDay(null)} className="p-1 rounded-md text-ink-3 hover:bg-white/10 hover:text-ink transition-colors lg:hidden"><X className="w-4 h-4"/></button>
                   </h3>
-                  <div className="flex-1 overflow-y-auto flex flex-col gap-3 pr-1">
+                  <div className="flex-1 overflow-y-auto [&>*]:shrink-0 flex flex-col gap-3 pr-1">
                     {transactionsByDay[selectedDay].items.map((t: any, idx: number) => (
                       <div key={idx} className="bg-black/30 border border-white/5 p-3 rounded-field flex items-center justify-between">
                         <div className="flex items-center gap-3 min-w-0 flex-1">

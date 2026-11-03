@@ -193,7 +193,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto [&>*]:shrink-0 pr-2 pb-4">
               
               <div className="flex gap-2 p-1 bg-white/5 rounded-inner border border-white/10 shrink-0">
                 <button type="button" onClick={() => handleTypeChange('expense')} className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-field text-sm font-medium transition-colors ${type === 'expense' ? 'bg-neg/20 text-neg border border-neg/30' : 'text-ink-2 hover:text-ink'}`}>
@@ -390,7 +390,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
                 </div>
               )}
 
-              <button type="submit" disabled={isLoading} className="w-full mt-2 bg-brand hover:bg-brand disabled:bg-brand/50 text-ink font-medium py-3.5 rounded-field transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex justify-center items-center shrink-0">
+              <button type="submit" disabled={isLoading} className="w-full mt-2 bg-brand hover:bg-brand-strong disabled:bg-brand/50 text-canvas font-medium py-3.5 rounded-field transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex justify-center items-center shrink-0">
                 {isLoading ? "Salvando..." : "Salvar Lançamento"}
               </button>
             </form>

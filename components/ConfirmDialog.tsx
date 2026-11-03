@@ -99,7 +99,7 @@ export function ConfirmDialogContainer() {
               </button>
               <button
                 onClick={() => answer(true)}
-                className={`flex-1 font-bold py-3 rounded-field transition-colors cursor-pointer text-sm text-ink ${pending.danger ? 'bg-neg hover:bg-neg' : 'bg-brand hover:bg-brand'}`}
+                className={`flex-1 font-bold py-3 rounded-field transition-colors cursor-pointer text-sm text-canvas ${pending.danger ? 'bg-neg hover:bg-neg/85' : 'bg-brand hover:bg-brand-strong'}`}
               >
                 {pending.confirmLabel ?? 'Confirmar'}
               </button>

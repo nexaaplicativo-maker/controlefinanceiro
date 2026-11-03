@@ -81,7 +81,7 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
               </button>
             </div>
 
-            <div className="overflow-y-auto pr-2 pb-4 flex flex-col gap-4">
+            <div className="overflow-y-auto [&>*]:shrink-0 pr-2 pb-4 flex flex-col gap-4">
               
               {!isCreating && (
                 <button onClick={() => setIsCreating(true)} className="w-full flex items-center justify-center gap-2 bg-brand/10 hover:bg-brand/20 text-brand border border-brand/20 py-3 rounded-field font-medium transition-all cursor-pointer">
@@ -102,7 +102,7 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
                   
                   <div className="flex gap-2 mt-2">
                     <button type="button" onClick={() => setIsCreating(false)} className="flex-1 py-3 text-ink-2 bg-white/5 hover:bg-white/5 rounded-field transition-colors">Cancelar</button>
-                    <button type="submit" className="flex-1 py-3 bg-brand hover:bg-brand text-ink font-medium rounded-field transition-colors">Salvar</button>
+                    <button type="submit" className="flex-1 py-3 bg-brand hover:bg-brand-strong text-canvas font-medium rounded-field transition-colors">Salvar</button>
                   </div>
                 </form>
               )}

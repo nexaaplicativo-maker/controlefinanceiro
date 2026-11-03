@@ -108,7 +108,7 @@ export function OnboardingChecklist({
                         <div className="flex flex-wrap items-center gap-2 mt-3">
                           <button
                             onClick={() => onAction(step.id)}
-                            className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand text-ink text-xs font-bold px-4 py-2.5 rounded-field transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-strong text-canvas text-xs font-bold px-4 py-2.5 rounded-field transition-colors cursor-pointer"
                           >
                             {step.actionLabel} <ArrowRight className="w-3.5 h-3.5" />
                           </button>

@@ -140,7 +140,7 @@ export function EditTransactionModal({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto pr-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto [&>*]:shrink-0 pr-2">
               
               <div className="flex gap-2 p-1 bg-white/5 rounded-inner border border-white/10 shrink-0">
                 <button type="button" onClick={() => handleTypeChange('expense')} className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-field text-sm font-medium transition-colors ${type === 'expense' ? 'bg-neg/20 text-neg border border-neg/30' : 'text-ink-2 hover:text-ink'}`}>
@@ -240,7 +240,7 @@ export function EditTransactionModal({
               )}
 
               <div className="mt-4 pt-4 border-t border-white/10">
-                <button type="submit" disabled={isLoading} className="w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 px-4 rounded-field transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex items-center justify-center gap-2">
+                <button type="submit" disabled={isLoading} className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 px-4 rounded-field transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex items-center justify-center gap-2">
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                   {isLoading ? "Salvando..." : "Salvar Alterações"}
                 </button>

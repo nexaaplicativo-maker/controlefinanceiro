@@ -352,7 +352,7 @@ export default function Login() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all mt-4 disabled:opacity-50 shadow-lg shadow-brand/25 active:scale-95">
+            <button type="submit" disabled={loading} className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all mt-4 disabled:opacity-50 shadow-lg shadow-brand/25 active:scale-95">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                 <>
                   {isRegistering ? 'Criar minha conta' : 'Entrar no Sistema'}

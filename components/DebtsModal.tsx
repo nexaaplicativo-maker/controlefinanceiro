@@ -292,7 +292,7 @@ export function DebtsModal({
 
                           <div className="flex gap-2 pt-1">
                             <button onClick={resetForm} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink rounded-field text-sm font-semibold transition-colors cursor-pointer">Cancelar</button>
-                            <button onClick={handleSubmit} disabled={isSaving} className="flex-1 bg-neg hover:bg-neg text-ink font-bold py-2.5 rounded-field text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer">
+                            <button onClick={handleSubmit} disabled={isSaving} className="flex-1 bg-neg hover:bg-neg/85 text-canvas font-bold py-2.5 rounded-field text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer">
                               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> {editingId ? 'Atualizar' : 'Cadastrar'}</>}
                             </button>
                           </div>

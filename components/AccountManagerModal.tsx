@@ -134,7 +134,7 @@ export function AccountManagerModal({ isOpen, onClose }: { isOpen: boolean, onCl
               <button
                 type="submit"
                 disabled={isSaving || !newWalletName.trim()}
-                className="bg-brand hover:bg-brand disabled:bg-brand/40 text-ink px-3 rounded-field flex items-center justify-center transition-colors shrink-0"
+                className="bg-brand hover:bg-brand-strong disabled:bg-brand/40 text-canvas px-3 rounded-field flex items-center justify-center transition-colors shrink-0"
               >
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               </button>

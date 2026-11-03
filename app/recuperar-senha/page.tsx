@@ -101,7 +101,7 @@ export default function RecuperarSenhaPage() {
             <p className="text-sm text-ink-2 leading-relaxed mb-6">
               Já pode entrar com a nova senha.
             </p>
-            <a href="/" className="block w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field transition-colors">
+            <a href="/" className="block w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-colors">
               Ir para o app
             </a>
           </div>
@@ -160,7 +160,7 @@ export default function RecuperarSenhaPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full mt-5 bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full mt-5 bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
             >
               {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar nova senha'}
             </button>

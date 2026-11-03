@@ -107,7 +107,7 @@ export function ProfileSettingsModal({
             </button>
           </div>
 
-          <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-6 relative z-10">
+          <div className="overflow-y-auto [&>*]:shrink-0 pr-1 flex-1 flex flex-col gap-6 relative z-10">
 
             <Field icon={<TrendingUp className="w-4 h-4 text-pos" />} label="Renda mensal" hint="Usada como referência enquanto não houver receitas lançadas.">
               <div className="relative">
@@ -173,7 +173,7 @@ export function ProfileSettingsModal({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-brand/25 active:scale-95 cursor-pointer"
+              className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-brand/25 active:scale-95 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check className="w-4 h-4" /> Salvar perfil</>}
             </button>

@@ -174,7 +174,7 @@ export default function AdminPage() {
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Feedback</span>
               {novosFeedbacks > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-neg text-ink text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-neg text-canvas text-xs font-bold rounded-full flex items-center justify-center">
                   {novosFeedbacks}
                 </span>
               )}

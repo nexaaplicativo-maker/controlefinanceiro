@@ -153,10 +153,13 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 pb-4 flex flex-col gap-5">
+            <div className="flex-1 overflow-y-auto [&>*]:shrink-0 pr-2 pb-4 flex flex-col gap-5">
               
               {AI_ENABLED && (
-                <div className="bg-white/5 border border-white/10 rounded-inner p-5 relative overflow-hidden group">
+                /* `shrink-0`: sem isto o card encolhia dentro da coluna
+                   rolável e, como ele mesmo tem `overflow-hidden`, engolia o
+                   próprio texto e o botão — sobrava só o título. */
+                <div className="shrink-0 bg-white/5 border border-white/10 rounded-inner p-5 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-brand/[0.06] rounded-full blur-2xl group-hover:bg-brand/[0.06] transition-all"></div>
                   <h3 className="text-ink font-bold mb-2 flex items-center gap-2 relative z-10"><Sparkles className="w-4 h-4 text-brand" /> Auto-Orçamento IA</h3>
                   <p className="text-sm text-ink-2 mb-4 relative z-10">Deixe o Gemini analisar sua renda de <strong className="text-ink">{formatMoney(currentIncome)}</strong> e sugerir tetos saudáveis usando a regra 50/30/20.</p>
@@ -206,7 +209,7 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
             </div>
 
             <div className="mt-4 shrink-0">
-              <button onClick={handleSave} disabled={isSaving} className="w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field transition-all shadow-lg shadow-brand/25 flex justify-center items-center gap-2">
+              <button onClick={handleSave} disabled={isSaving} className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-all shadow-lg shadow-brand/25 flex justify-center items-center gap-2">
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Salvar Orçamentos
               </button>

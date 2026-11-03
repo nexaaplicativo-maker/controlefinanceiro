@@ -121,7 +121,7 @@ export function ForecastModal({
               </button>
             </div>
 
-            <div className="overflow-y-auto pr-1 flex-1 relative z-10 flex flex-col gap-5">
+            <div className="overflow-y-auto [&>*]:shrink-0 pr-1 flex-1 relative z-10 flex flex-col gap-5">
 
               {semDados ? (
                 <div className="text-center py-10 px-4">

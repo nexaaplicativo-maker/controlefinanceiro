@@ -153,7 +153,7 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
               <button
                 type="submit"
                 disabled={isBusy}
-                className="w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
                 {isBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Entrar com o convite'}
               </button>
@@ -198,7 +198,7 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
             <button
               onClick={aceitarTermos}
               disabled={!aceitou || isBusy}
-              className="w-full bg-pos hover:bg-pos text-ink font-bold py-3.5 rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-pos hover:bg-pos/85 text-canvas font-bold py-3.5 rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
             >
               {isBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continuar'}
             </button>

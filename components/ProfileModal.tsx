@@ -148,7 +148,7 @@ export function ProfileModal({ isOpen, onClose, userEmail, userRole }: { isOpen:
                     className="w-full bg-white/5 border border-white/10 rounded-field py-2 pl-9 pr-3 text-sm text-ink focus:outline-none focus:border-brand transition-colors"
                   />
                 </div>
-                <button onClick={handleUpdatePassword} disabled={isUpdating || !newPassword} className="bg-brand hover:bg-brand disabled:bg-brand/50 text-ink px-3 rounded-field flex items-center justify-center transition-colors">
+                <button onClick={handleUpdatePassword} disabled={isUpdating || !newPassword} className="bg-brand hover:bg-brand-strong disabled:bg-brand/50 text-canvas px-3 rounded-field flex items-center justify-center transition-colors">
                   <Check className="w-4 h-4" />
                 </button>
               </div>
@@ -196,7 +196,7 @@ export function ProfileModal({ isOpen, onClose, userEmail, userRole }: { isOpen:
                 </div>
               </div>
 
-              <button onClick={handleLGPDDelete} className="w-full text-xs font-bold text-neg hover:text-ink bg-neg/5 hover:bg-neg py-3 rounded-field transition-colors border border-neg/10 hover:border-neg cursor-pointer">
+              <button onClick={handleLGPDDelete} className="w-full text-xs font-bold text-neg hover:text-canvas bg-neg/5 hover:bg-neg py-3 rounded-field transition-colors border border-neg/10 hover:border-neg cursor-pointer">
                 Excluir Minha Conta Permanentemente
               </button>
               <button onClick={handleLogout} className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink w-full py-4 rounded-inner font-bold transition-all">

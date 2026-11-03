@@ -95,7 +95,7 @@ export function WalletsModal({ isOpen, onClose, userId }: { isOpen: boolean, onC
                 required
               />
             </div>
-            <button type="submit" disabled={isSaving || !newWalletName.trim()} className="bg-brand hover:bg-brand disabled:bg-brand/50 text-ink p-3 rounded-field flex items-center justify-center transition-colors">
+            <button type="submit" disabled={isSaving || !newWalletName.trim()} className="bg-brand hover:bg-brand-strong disabled:bg-brand/50 text-canvas p-3 rounded-field flex items-center justify-center transition-colors">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             </button>
           </form>

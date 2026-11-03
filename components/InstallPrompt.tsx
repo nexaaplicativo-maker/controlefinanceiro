@@ -151,7 +151,7 @@ export function InstallPrompt() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleInstallClick}
-              className="bg-brand hover:bg-brand text-ink text-xs font-bold py-2 px-4 rounded-field transition-colors cursor-pointer"
+              className="bg-brand hover:bg-brand-strong text-canvas text-xs font-bold py-2 px-4 rounded-field transition-colors cursor-pointer"
             >
               Instalar
             </button>

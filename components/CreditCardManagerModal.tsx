@@ -178,7 +178,7 @@ export function CreditCardManagerModal({
             )}
 
             {/* Listas */}
-            <div className="flex-1 overflow-y-auto relative z-10 pr-1 flex flex-col gap-6">
+            <div className="flex-1 overflow-y-auto [&>*]:shrink-0 relative z-10 pr-1 flex flex-col gap-6">
 
               <section>
                 <div className="flex items-center justify-between mb-3 sticky top-0 bg-surface py-1">

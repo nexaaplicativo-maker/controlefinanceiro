@@ -219,19 +219,19 @@ export default function Login() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[100dvh] bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-[100dvh] bg-canvas flex flex-col items-center justify-center p-4 relative overflow-hidden">
         {/* Glow Effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand/20 rounded-full blur-[100px] pointer-events-none"></div>
         
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="flex flex-col items-center relative z-10">
-          <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-[0_0_60px_rgba(99,102,241,0.4)] mb-8 overflow-hidden bg-black/20 border border-white/10">
+          <div className="w-24 h-24 rounded-card flex items-center justify-center shadow-[0_0_60px_rgba(99,102,241,0.4)] mb-8 overflow-hidden bg-white/5 border border-white/10">
             <img src="/icon-192.png" alt="Logo Nexa" className="w-full h-full object-cover" />
           </div>
           
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-center flex flex-col items-center">
-            <h2 className="text-3xl font-extrabold text-white mb-3 tracking-tight">Bem-vindo de volta</h2>
-            <div className="flex items-center gap-3 text-neutral-400 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-400" /> 
+            <h2 className="text-3xl font-semibold text-ink mb-3 tracking-tight">Bem-vindo de volta</h2>
+            <div className="flex items-center gap-3 text-ink-2 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+              <Loader2 className="w-4 h-4 animate-spin text-brand" /> 
               <span className="text-sm font-medium">Preparando seu espaço financeiro...</span>
             </div>
           </motion.div>
@@ -241,18 +241,18 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-950 flex flex-col items-center justify-center p-4 selection:bg-indigo-500/30">
+    <div className="min-h-[100dvh] bg-canvas flex flex-col items-center justify-center p-4 selection:bg-brand/30">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6 overflow-hidden bg-black/20 border border-white/10">
+          <div className="w-16 h-16 rounded-inner flex items-center justify-center shadow-lg shadow-brand/20 mb-6 overflow-hidden bg-white/5 border border-white/10">
             <img src="/icon-192.png" alt="Logo Nexa" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Nexa</h1>
-          <p className="text-neutral-400 text-center text-sm">Inteligência Financeira ao seu dispor.</p>
+          <h1 className="text-3xl font-bold text-ink mb-2 tracking-tight">Nexa</h1>
+          <p className="text-ink-2 text-center text-sm">Inteligência Financeira ao seu dispor.</p>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/5 border border-white/10 rounded-card p-8 backdrop-blur-sm shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
           
           {/* Aviso fixo, não toast: o toast some sozinho e aqui a pessoa
               precisa ler e decidir o que fazer. O botão de recuperar fica
@@ -267,11 +267,11 @@ export default function Login() {
                 role="alert"
                 className="relative z-10 overflow-hidden"
               >
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <div className="rounded-field border border-warn/30 bg-warn/10 p-4">
                   {aviso === 'email-ja-usado' ? (
                     <>
-                      <p className="text-sm font-semibold text-amber-200">Esse e-mail já tem conta no Nexa</p>
-                      <p className="mt-1 text-xs leading-relaxed text-amber-200/70">
+                      <p className="text-sm font-semibold text-warn">Esse e-mail já tem conta no Nexa</p>
+                      <p className="mt-1 text-xs leading-relaxed text-warn/70">
                         Entre com a sua senha aqui embaixo. Se não lembrar, dá para receber um link
                         de redefinição. E se você criou a conta pelo Google, use o botão
                         &ldquo;Continuar com Google&rdquo;.
@@ -280,7 +280,7 @@ export default function Login() {
                         type="button"
                         onClick={handleResetPassword}
                         disabled={isResetting}
-                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-amber-300 hover:text-amber-200 disabled:opacity-60 transition-colors cursor-pointer"
+                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-warn hover:text-warn disabled:opacity-60 transition-colors cursor-pointer"
                       >
                         {isResetting
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -290,8 +290,8 @@ export default function Login() {
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold text-amber-200">Falta confirmar seu e-mail</p>
-                      <p className="mt-1 text-xs leading-relaxed text-amber-200/70">
+                      <p className="text-sm font-semibold text-warn">Falta confirmar seu e-mail</p>
+                      <p className="mt-1 text-xs leading-relaxed text-warn/70">
                         A senha está certa. O que falta é abrir o e-mail que enviamos quando você
                         criou a conta e clicar no link de confirmação. Procure também no spam —
                         é onde ele costuma cair.
@@ -300,7 +300,7 @@ export default function Login() {
                         type="button"
                         onClick={reenviarConfirmacao}
                         disabled={isResetting}
-                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-amber-300 hover:text-amber-200 disabled:opacity-60 transition-colors cursor-pointer"
+                        className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-warn hover:text-warn disabled:opacity-60 transition-colors cursor-pointer"
                       >
                         {isResetting
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -316,43 +316,43 @@ export default function Login() {
 
           <form onSubmit={handleAuth} className="flex flex-col gap-5 relative z-10">
             <div>
-              <label className="text-sm font-medium text-neutral-400 mb-2 block">Seu E-mail</label>
+              <label className="text-sm font-medium text-ink-2 mb-2 block">Seu E-mail</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" />
                 <input 
                   type="email" 
                   required 
                   value={email}
                   onChange={e => { setEmail(e.target.value); setAviso(null); }}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-black/50 border border-white/10 rounded-field py-3 pl-12 pr-4 text-ink focus:outline-none focus:border-brand transition-colors"
                   placeholder="exemplo@email.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-400 mb-2 flex justify-between">
+              <label className="text-sm font-medium text-ink-2 mb-2 flex justify-between">
                 Sua Senha
                 {!isRegistering && (
-                  <button type="button" onClick={handleResetPassword} className="text-indigo-400 hover:text-indigo-300 text-xs transition-colors">Esqueceu a senha?</button>
+                  <button type="button" onClick={handleResetPassword} className="text-brand hover:text-brand text-xs transition-colors">Esqueceu a senha?</button>
                 )}
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-3" />
                 <input 
                   type={showPassword ? "text" : "password"} 
                   required 
                   value={password} onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-12 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-black/50 border border-white/10 rounded-field py-3 pl-12 pr-12 text-ink focus:outline-none focus:border-brand transition-colors"
                   placeholder="••••••••"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all mt-4 disabled:opacity-50 shadow-lg shadow-indigo-500/25 active:scale-95">
+            <button type="submit" disabled={loading} className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all mt-4 disabled:opacity-50 shadow-lg shadow-brand/25 active:scale-95">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                 <>
                   {isRegistering ? 'Criar minha conta' : 'Entrar no Sistema'}
@@ -364,7 +364,7 @@ export default function Login() {
 
           <div className="flex items-center gap-3 my-5 relative z-10">
             <div className="flex-1 h-px bg-white/10"></div>
-            <span className="text-[11px] text-neutral-600 uppercase tracking-wider">ou</span>
+            <span className="text-xs text-ink-3">ou</span>
             <div className="flex-1 h-px bg-white/10"></div>
           </div>
 
@@ -372,7 +372,7 @@ export default function Login() {
             type="button"
             onClick={handleGoogle}
             disabled={isGoogleLoading}
-            className="w-full relative z-10 bg-white hover:bg-neutral-100 text-neutral-900 font-bold py-3.5 rounded-xl flex items-center justify-center gap-3 transition-colors disabled:opacity-60 cursor-pointer"
+            className="w-full relative z-10 bg-white hover:bg-neutral-100 text-neutral-900 font-bold py-3.5 rounded-field flex items-center justify-center gap-3 transition-colors disabled:opacity-60 cursor-pointer"
           >
             {isGoogleLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -392,9 +392,9 @@ export default function Login() {
           </button>
 
           <div className="mt-8 text-center relative z-10">
-            <p className="text-neutral-400 text-sm">
+            <p className="text-ink-2 text-sm">
               {isRegistering ? 'Já tem uma conta?' : 'Não tem conta ainda?'}
-              <button onClick={() => { setIsRegistering(!isRegistering); setAviso(null); }} className="text-indigo-400 hover:text-indigo-300 font-bold ml-2 transition-colors">
+              <button onClick={() => { setIsRegistering(!isRegistering); setAviso(null); }} className="text-brand hover:text-brand font-bold ml-2 transition-colors">
                 {isRegistering ? 'Faça Login' : 'Cadastre-se'}
               </button>
             </p>

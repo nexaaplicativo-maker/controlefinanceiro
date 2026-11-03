@@ -59,7 +59,7 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -72,47 +72,47 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden"
+          className="relative w-full max-w-lg sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden"
         >
           {/* Fundo brilhante estilo Raio-X */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-             <div className="absolute -top-24 -right-24 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl"></div>
-             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl"></div>
+             <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand/[0.06] rounded-full blur-3xl"></div>
+             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-brand/[0.06] rounded-full blur-3xl"></div>
           </div>
 
           <div className="relative z-10">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Search className="w-5 h-5 text-rose-400" />
+              <h2 className="text-xl font-bold text-ink flex items-center gap-2">
+                <Search className="w-5 h-5 text-neg" />
                 Caçador de Assinaturas
               </h2>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors">
+              <button onClick={onClose} aria-label="Fechar" className="p-2 text-ink-2 hover:text-ink bg-white/5 hover:bg-white/10 rounded-full transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-sm text-neutral-400 mb-6">
+            <p className="text-sm text-ink-2 mb-6">
               Gastos que se repetem todo mês. Nem todos são ruins — contas fixas aparecem aqui porque são recorrentes, não porque você deveria cancelá-las.
             </p>
 
-            <div className="mb-6 bg-black/30 rounded-2xl p-4 border border-white/10 relative z-10 overflow-hidden">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl"></div>
+            <div className="mb-6 bg-black/30 rounded-inner p-4 border border-white/10 relative z-10 overflow-hidden">
+              <div className="absolute right-0 top-0 w-32 h-32 bg-brand/[0.06] rounded-full blur-2xl"></div>
 
               <div className="flex justify-between items-center mb-2">
-                <span className="text-neutral-400 font-medium text-sm">Compromisso mensal</span>
-                <span className="text-white font-bold">{formatMoney(totalMonthly)}</span>
+                <span className="text-ink-2 font-medium text-sm">Compromisso mensal</span>
+                <span className="text-ink font-bold">{formatMoney(totalMonthly)}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                <span className="text-neutral-400 font-medium text-sm">Ao longo de um ano</span>
-                <span className="text-white font-bold text-xl">{formatMoney(totalYearly)}</span>
+                <span className="text-ink-2 font-medium text-sm">Ao longo de um ano</span>
+                <span className="text-ink font-bold text-xl">{formatMoney(totalYearly)}</span>
               </div>
 
               {totalRevisavel > 0 && (
                 <div className="flex justify-between items-center pt-2 mt-2 border-t border-white/5">
-                  <span className="text-amber-400 font-medium flex items-center gap-1 text-sm">
+                  <span className="text-warn font-medium flex items-center gap-1 text-sm">
                     <AlertTriangle className="w-4 h-4" /> Vale revisar
                   </span>
-                  <span className="text-amber-400 font-bold">{formatMoney(totalRevisavel)}<span className="text-neutral-600 text-xs font-normal">/mês</span></span>
+                  <span className="text-warn font-bold">{formatMoney(totalRevisavel)}<span className="text-ink-3 text-xs font-normal">/mês</span></span>
                 </div>
               )}
             </div>
@@ -120,8 +120,8 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
             <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
               {uniqueSubscriptions.length === 0 ? (
                 <div className="text-center py-8">
-                  <ShieldAlert className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                  <p className="text-neutral-400 text-sm">Nenhuma assinatura detectada. Seu dinheiro está seguro!</p>
+                  <ShieldAlert className="w-12 h-12 text-ink-3 mx-auto mb-3" />
+                  <p className="text-ink-2 text-sm">Nenhuma assinatura detectada. Seu dinheiro está seguro!</p>
                 </div>
               ) : (
                 uniqueSubscriptions.map((sub, idx) => {
@@ -129,34 +129,34 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
                   const essencial = sub.kind === 'essencial';
 
                   return (
-                    <div key={idx} className="flex flex-col p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                    <div key={idx} className="flex flex-col p-3 rounded-inner bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${essencial ? 'bg-blue-500/10' : 'bg-amber-500/10'}`}>
-                            <CreditCard className={`w-4 h-4 ${essencial ? 'text-blue-400' : 'text-amber-400'}`} />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${essencial ? 'bg-white/10' : 'bg-warn/10'}`}>
+                            <CreditCard className={`w-4 h-4 ${essencial ? 'text-ink-2' : 'text-warn'}`} />
                           </div>
                           <div className="min-w-0">
-                            <span className="text-white font-medium block truncate">{sub.title}</span>
-                            <span className="text-[11px] text-neutral-500">
+                            <span className="text-ink font-medium block truncate">{sub.title}</span>
+                            <span className="text-xs text-ink-3">
                               {sub.category} · {sub.occurrences}x em {sub.monthsSpan} {sub.monthsSpan === 1 ? 'mês' : 'meses'}
                               {sub.confidence < 0.7 && ' · possível'}
                             </span>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-white font-bold text-sm">{formatMoney(sub.amount)}<span className="text-neutral-500 text-xs font-normal">/mês</span></div>
+                          <div className="text-ink font-bold text-sm">{formatMoney(sub.amount)}<span className="text-ink-3 text-xs font-normal">/mês</span></div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between pl-11 gap-2 flex-wrap">
-                        <span className="text-neutral-400 text-xs font-medium bg-white/5 px-2 py-0.5 rounded-md">
+                        <span className="text-ink-2 text-xs font-medium bg-white/5 px-2 py-0.5 rounded-md">
                           {formatMoney(yearly)} ao ano
                         </span>
 
                         {/* Sugestão só para o que é de fato discricionário.
                             Conta fixa é compromisso, não desperdício. */}
                         {!essencial && sub.amount > 40 && (
-                          <span className="text-xs text-amber-400 flex items-center gap-1">
+                          <span className="text-xs text-warn flex items-center gap-1">
                             <TrendingDown className="w-3 h-3" /> Ainda usa?
                           </span>
                         )}
@@ -168,8 +168,8 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
             </div>
             
             <div className="mt-6 pt-4 border-t border-white/10 relative z-10">
-               <p className="text-xs text-neutral-400 text-center flex items-center justify-center gap-1">
-                 <Sparkles className="w-3 h-3 text-indigo-400" /> 
+               <p className="text-xs text-ink-2 text-center flex items-center justify-center gap-1">
+                 <Sparkles className="w-3 h-3 text-brand" /> 
                  Reveja essas assinaturas. A maioria não usamos o suficiente para justificar o custo anual.
                </p>
             </div>

@@ -21,9 +21,9 @@ import { toast } from "./Toast";
  */
 
 const TIPOS = [
-  { id: 'bug',       label: 'Algo quebrou',  icon: Bug,         color: 'text-rose-400',    bg: 'bg-rose-500/10 border-rose-500/30' },
-  { id: 'sugestao',  label: 'Tenho ideia',   icon: Lightbulb,   color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/30' },
-  { id: 'duvida',    label: 'Não entendi',   icon: HelpCircle,  color: 'text-indigo-400',  bg: 'bg-indigo-500/10 border-indigo-500/30' },
+  { id: 'bug',       label: 'Algo quebrou',  icon: Bug,         color: 'text-neg',    bg: 'bg-neg/10 border-neg/30' },
+  { id: 'sugestao',  label: 'Tenho ideia',   icon: Lightbulb,   color: 'text-warn',   bg: 'bg-warn/10 border-warn/30' },
+  { id: 'duvida',    label: 'Não entendi',   icon: HelpCircle,  color: 'text-brand',  bg: 'bg-brand/10 border-brand/30' },
 ] as const;
 
 export function FeedbackWidget() {
@@ -74,7 +74,7 @@ export function FeedbackWidget() {
         onClick={() => setIsOpen(true)}
         aria-label="Enviar feedback"
         title="Enviar feedback"
-        className="fixed bottom-above-nav md:bottom-6 left-4 z-40 w-11 h-11 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-xl text-neutral-400 hover:text-white hover:border-white/20 shadow-xl flex items-center justify-center transition-colors cursor-pointer"
+        className="fixed bottom-above-nav md:bottom-6 left-4 z-40 w-11 h-11 rounded-full bg-surface/90 border border-white/10 backdrop-blur-xl text-ink-2 hover:text-ink hover:border-white/20 shadow-xl flex items-center justify-center transition-colors cursor-pointer"
       >
         <MessageSquare className="w-5 h-5" />
       </button>
@@ -85,7 +85,7 @@ export function FeedbackWidget() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
             />
 
             <motion.div
@@ -96,24 +96,24 @@ export function FeedbackWidget() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl"
+              className="relative w-full max-w-md sheet-panel rounded-card p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)]"
             >
               {enviado ? (
                 <div className="py-8 text-center">
-                  <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-6 h-6 text-emerald-400" />
+                  <div className="w-12 h-12 bg-pos/10 border border-pos/20 rounded-inner flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-6 h-6 text-pos" />
                   </div>
-                  <p className="text-white font-bold mb-1">Recebido!</p>
-                  <p className="text-xs text-neutral-500">Obrigado — isso ajuda mais do que parece.</p>
+                  <p className="text-ink font-bold mb-1">Recebido!</p>
+                  <p className="text-xs text-ink-3">Obrigado — isso ajuda mais do que parece.</p>
                 </div>
               ) : (
                 <>
                   <div className="flex justify-between items-start mb-5">
                     <div>
-                      <h2 id="feedback-title" className="text-lg font-bold text-white leading-snug">Como está sendo?</h2>
-                      <p className="text-[11px] text-neutral-500 mt-0.5">O Nexa está em beta — seu retorno molda o que vem depois.</p>
+                      <h2 id="feedback-title" className="text-lg font-bold text-ink leading-snug">Como está sendo?</h2>
+                      <p className="text-xs text-ink-3 mt-0.5">O Nexa está em beta — seu retorno molda o que vem depois.</p>
                     </div>
-                    <button onClick={() => setIsOpen(false)} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                    <button onClick={() => setIsOpen(false)} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer shrink-0">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -126,8 +126,8 @@ export function FeedbackWidget() {
                         <button
                           key={t.id}
                           onClick={() => setKind(t.id)}
-                          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
-                            ativo ? t.bg + ' text-white' : 'bg-black/30 border-white/10 text-neutral-400 hover:text-white'
+                          className={`flex flex-col items-center gap-1.5 py-3 rounded-field border text-xs font-semibold transition-colors cursor-pointer ${
+                            ativo ? t.bg + ' text-ink' : 'bg-black/30 border-white/10 text-ink-2 hover:text-ink'
                           }`}
                         >
                           <Icon className={`w-4 h-4 ${ativo ? t.color : ''}`} />
@@ -148,17 +148,17 @@ export function FeedbackWidget() {
                       : kind === 'sugestao' ? 'O que faria o app te ajudar mais?'
                       : 'O que ficou confuso?'
                     }
-                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors resize-none mb-3"
+                    className="w-full bg-black/40 border border-white/10 rounded-field p-3.5 text-ink text-sm placeholder:text-ink-3 focus:outline-none focus:border-brand transition-colors resize-none mb-3"
                   />
 
-                  <p className="text-[10px] text-neutral-600 mb-4 leading-relaxed">
+                  <p className="text-xs text-ink-3 mb-4 leading-relaxed">
                     Enviamos junto a tela em que você está e o navegador, para eu conseguir reproduzir. Nenhum valor ou lançamento seu vai nesta mensagem.
                   </p>
 
                   <button
                     onClick={enviar}
                     disabled={isSending}
-                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar'}
                   </button>

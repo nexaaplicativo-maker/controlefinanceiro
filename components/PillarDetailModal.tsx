@@ -40,12 +40,18 @@ type Transacao = {
   is_paid?: boolean | null;
 };
 
+/**
+ * Só três tons, e cada um significa um estado — não a identidade do card.
+ * As chaves antigas (emerald, blue, indigo) continuam aceitas para não quebrar
+ * quem ainda as passa, apontando todas para o tom neutro.
+ */
 const ACCENTS: Record<string, { text: string; bar: string; ring: string }> = {
-  emerald: { text: 'text-emerald-400', bar: 'bg-emerald-400', ring: 'border-emerald-500/30' },
-  blue:    { text: 'text-blue-400',    bar: 'bg-blue-400',    ring: 'border-blue-500/30' },
-  rose:    { text: 'text-rose-400',    bar: 'bg-rose-400',    ring: 'border-rose-500/30' },
-  amber:   { text: 'text-amber-400',   bar: 'bg-amber-400',   ring: 'border-amber-500/30' },
-  indigo:  { text: 'text-indigo-400',  bar: 'bg-indigo-400',  ring: 'border-indigo-500/30' },
+  padrao:  { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
+  amber:   { text: 'text-warn',  bar: 'bg-warn',  ring: 'border-warn/30' },
+  rose:    { text: 'text-neg',   bar: 'bg-neg',   ring: 'border-neg/30' },
+  emerald: { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
+  blue:    { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
+  indigo:  { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
 };
 
 export function PillarDetailModal({
@@ -70,7 +76,7 @@ export function PillarDetailModal({
   const a11yRef = useModalA11y(isOpen, onClose);
   if (!isOpen) return null;
 
-  const theme = ACCENTS[accent] ?? ACCENTS.indigo;
+  const theme = ACCENTS[accent] ?? ACCENTS.padrao;
 
   // Ordena uma cópia: `sort` altera no lugar, e a lista recebida é a mesma que
   // alimenta o cálculo do card. Ordenar o original mudaria a ordem no painel.
@@ -85,7 +91,7 @@ export function PillarDetailModal({
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/70 backdrop-blur-md"
           onClick={onClose}
         />
 
@@ -98,15 +104,15 @@ export function PillarDetailModal({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 40, opacity: 0 }}
           transition={{ type: "spring", bounce: 0, duration: 0.35 }}
-          className={`relative w-full sm:max-w-lg bg-neutral-900 border ${theme.ring} rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[80dvh] overflow-hidden`}
+          className={`relative w-full sm:max-w-lg sheet-panel sheet-grab rounded-t-card sm:rounded-card shadow-[0_24px_60px_rgba(0,0,0,0.65)] flex flex-col max-h-[85dvh] sm:max-h-[80dvh] overflow-hidden`}
         >
           {/* shrink-0 no cabeçalho e no rodapé, flex-1 + min-h-0 no corpo:
               sem isso o flex comprime o conteúdo em vez de rolar. */}
           <div className="shrink-0 p-5 pb-4 border-b border-white/10">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="text-lg font-bold text-white truncate">{title}</h2>
-                <p className="text-xs text-neutral-500 mt-0.5">
+                <h2 className="text-lg font-bold text-ink truncate">{title}</h2>
+                <p className="text-xs text-ink-3 mt-0.5">
                   {transactions.length === 0
                     ? 'Nenhum lançamento neste mês'
                     : `${transactions.length} ${transactions.length === 1 ? 'lançamento' : 'lançamentos'} • ${subtitle ?? ''}`}
@@ -115,23 +121,23 @@ export function PillarDetailModal({
               <button
                 onClick={onClose}
                 aria-label="Fechar"
-                className="shrink-0 p-2 text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                className="shrink-0 p-2 text-ink-2 hover:text-ink bg-white/5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className={`text-3xl font-extrabold tracking-tight mt-3 ${theme.text}`}>{dinheiro(total)}</p>
+            <p className="text-[32px] font-semibold tracking-[-0.02em] mt-3 text-ink tnum">{dinheiro(total)}</p>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 custom-scrollbar">
             {ordenadas.length === 0 ? (
               <div className="py-12 text-center">
-                <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Inbox className="w-5 h-5 text-neutral-600" />
+                <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-inner flex items-center justify-center mx-auto mb-4">
+                  <Inbox className="w-5 h-5 text-ink-3" />
                 </div>
-                <p className="text-sm text-neutral-400">Nada lançado aqui neste mês.</p>
-                <p className="text-xs text-neutral-600 mt-1 leading-relaxed max-w-xs mx-auto">
+                <p className="text-sm text-ink-2">Nada lançado aqui neste mês.</p>
+                <p className="text-xs text-ink-3 mt-1 leading-relaxed max-w-xs mx-auto">
                   Se você esperava ver algo, confira se o lançamento está na categoria certa ou em outro mês.
                 </p>
               </div>
@@ -142,7 +148,7 @@ export function PillarDetailModal({
                 return (
                   <div
                     key={t.id}
-                    className="relative p-3 rounded-2xl bg-black/20 border border-white/5 overflow-hidden"
+                    className="relative p-3 rounded-inner bg-white/5 border border-white/5 overflow-hidden"
                   >
                     {/* Barra proporcional ao MAIOR item, não ao total: com 30
                         lançamentos, todas as fatias contra o total viram
@@ -154,19 +160,17 @@ export function PillarDetailModal({
 
                     <div className="relative flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border ${isIncome ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400' : 'bg-rose-400/10 border-rose-400/20 text-rose-400'}`}>
-                          {isIncome ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                        <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-white/5 text-ink-2">
+                          {isIncome ? <TrendingUp className="w-[18px] h-[18px]" /> : <TrendingDown className="w-[18px] h-[18px]" />}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-white truncate">{t.title || 'Sem título'}</p>
                             {t.is_paid === false && (
-                              <span className="shrink-0 bg-amber-500/20 text-amber-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                                Pendente
-                              </span>
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-warn" title="Pendente" />
                             )}
+                            <p className="text-[15px] font-medium text-ink truncate">{t.title || 'Sem título'}</p>
                           </div>
-                          <p className="text-[11px] text-neutral-500 mt-0.5 truncate">
+                          <p className="text-xs text-ink-3 mt-0.5 truncate">
                             {t.category || 'Sem categoria'}
                             {t.date && ` • ${new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`}
                           </p>
@@ -175,9 +179,9 @@ export function PillarDetailModal({
 
                       <div className="shrink-0 flex items-center gap-2">
                         <div className="text-right">
-                          <p className="text-sm font-bold text-white whitespace-nowrap">{dinheiro(t.amount)}</p>
+                          <p className="text-[15px] font-semibold text-ink whitespace-nowrap tnum">{dinheiro(t.amount)}</p>
                           {total > 0 && showValues && (
-                            <p className="text-[10px] text-neutral-500 mt-0.5">{fatia.toFixed(0)}% do total</p>
+                            <p className="text-xs text-ink-3 mt-0.5">{fatia.toFixed(0)}% do total</p>
                           )}
                         </div>
                         {onEdit && (
@@ -185,7 +189,7 @@ export function PillarDetailModal({
                             onClick={() => onEdit(t)}
                             aria-label={`Editar ${t.title || 'lançamento'}`}
                             title="Editar"
-                            className="p-2 text-indigo-500/60 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors cursor-pointer"
+                            className="p-2 text-brand/60 hover:text-brand hover:bg-brand/10 rounded-field transition-colors cursor-pointer"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -198,8 +202,8 @@ export function PillarDetailModal({
             )}
           </div>
 
-          <div className="shrink-0 px-5 py-3 border-t border-white/10 bg-black/20">
-            <p className="text-[11px] text-neutral-600 leading-snug">
+          <div className="shrink-0 px-5 py-3 border-t border-white/10 bg-white/5">
+            <p className="text-xs text-ink-3 leading-snug">
               {onEdit
                 ? 'Toque no lápis para corrigir valor ou categoria. Para apagar, use a lista do mês.'
                 : 'Para editar ou apagar, use a lista de lançamentos do mês.'}

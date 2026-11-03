@@ -137,27 +137,27 @@ export function InstallPrompt() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-neutral-900 border border-indigo-500/30 shadow-2xl shadow-indigo-500/20 rounded-2xl p-5 z-50 flex items-center justify-between"
+          className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-surface border border-brand/30 shadow-[0_24px_60px_rgba(0,0,0,0.65)] shadow-brand/20 rounded-inner p-5 z-50 flex items-center justify-between"
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center shrink-0">
-              <Download className="w-6 h-6 text-indigo-400" />
+            <div className="w-12 h-12 bg-brand/20 rounded-field flex items-center justify-center shrink-0">
+              <Download className="w-6 h-6 text-brand" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-sm">Instalar Aplicativo</h3>
-              <p className="text-xs text-neutral-400">Tenha o Nexa na sua tela inicial</p>
+              <h3 className="font-bold text-ink text-sm">Instalar Aplicativo</h3>
+              <p className="text-xs text-ink-2">Tenha o Nexa na sua tela inicial</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleInstallClick}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-colors cursor-pointer"
+              className="bg-brand hover:bg-brand-strong text-canvas text-xs font-bold py-2 px-4 rounded-field transition-colors cursor-pointer"
             >
               Instalar
             </button>
             <button
               onClick={dismiss}
-              className="text-neutral-500 hover:text-white p-2 cursor-pointer"
+              className="text-ink-3 hover:text-ink p-2 cursor-pointer"
               title="Não mostrar por 30 dias"
             >
               <X className="w-4 h-4" />
@@ -172,16 +172,16 @@ export function InstallPrompt() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur-xl border-t border-white/10 p-6 z-[100] pb-10"
+          className="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/10 p-6 z-[100] pb-10"
         >
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="font-bold text-white text-lg">Instalar no iPhone</h3>
-              <p className="text-sm text-neutral-400 mt-1">Instale o Nexa para ter a experiência completa de aplicativo.</p>
+              <h3 className="font-bold text-ink text-lg">Instalar no iPhone</h3>
+              <p className="text-sm text-ink-2 mt-1">Instale o Nexa para ter a experiência completa de aplicativo.</p>
             </div>
             <button
               onClick={dismiss}
-              className="bg-white/5 p-2 rounded-full text-neutral-400 hover:text-white cursor-pointer shrink-0"
+              className="bg-white/5 p-2 rounded-full text-ink-2 hover:text-ink cursor-pointer shrink-0"
               title="Não mostrar por 30 dias"
             >
               <X className="w-5 h-5" />
@@ -189,23 +189,23 @@ export function InstallPrompt() {
           </div>
 
           <div className="space-y-4 mt-6">
-            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl">
-              <div className="bg-indigo-500/20 p-2 rounded-lg">
-                <Share className="w-5 h-5 text-indigo-400" />
+            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-field">
+              <div className="bg-brand/20 p-2 rounded-lg">
+                <Share className="w-5 h-5 text-brand" />
               </div>
-              <p className="text-sm text-white">1. Toque no botão de <strong>Compartilhar</strong> na barra inferior do Safari.</p>
+              <p className="text-sm text-ink">1. Toque no botão de <strong>Compartilhar</strong> na barra inferior do Safari.</p>
             </div>
-            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl">
-              <div className="bg-emerald-500/20 p-2 rounded-lg">
-                <PlusSquare className="w-5 h-5 text-emerald-400" />
+            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-field">
+              <div className="bg-pos/20 p-2 rounded-lg">
+                <PlusSquare className="w-5 h-5 text-pos" />
               </div>
-              <p className="text-sm text-white">2. Role para baixo e escolha <strong>Adicionar à Tela de Início</strong>.</p>
+              <p className="text-sm text-ink">2. Role para baixo e escolha <strong>Adicionar à Tela de Início</strong>.</p>
             </div>
           </div>
 
           <button
             onClick={dismiss}
-            className="w-full mt-5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer py-2"
+            className="w-full mt-5 text-xs text-ink-3 hover:text-ink-2 transition-colors cursor-pointer py-2"
           >
             Já instalei, não mostrar novamente
           </button>

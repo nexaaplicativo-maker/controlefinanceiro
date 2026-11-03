@@ -139,28 +139,31 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
-          <motion.div ref={a11yRef} role="dialog" aria-modal="true" initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <motion.div ref={a11yRef} role="dialog" aria-modal="true" initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-lg sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden max-h-[90vh] flex flex-col">
             
             <div className="flex justify-between items-center mb-6 shrink-0">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Target className="w-5 h-5 text-pink-400" /> Orçamentos (Tetos)
+              <h2 className="text-xl font-bold text-ink flex items-center gap-2">
+                <Target className="w-5 h-5 text-ink-2" /> Orçamentos (Tetos)
               </h2>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white">
+              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 pb-4 flex flex-col gap-5">
+            <div className="flex-1 overflow-y-auto [&>*]:shrink-0 pr-2 pb-4 flex flex-col gap-5">
               
               {AI_ENABLED && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-5 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
-                  <h3 className="text-white font-bold mb-2 flex items-center gap-2 relative z-10"><Sparkles className="w-4 h-4 text-purple-400" /> Auto-Orçamento IA</h3>
-                  <p className="text-sm text-neutral-400 mb-4 relative z-10">Deixe o Gemini analisar sua renda de <strong className="text-white">{formatMoney(currentIncome)}</strong> e sugerir tetos saudáveis usando a regra 50/30/20.</p>
-                  <button onClick={handleAiSuggest} disabled={isAiLoading} className="w-full relative z-10 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                /* `shrink-0`: sem isto o card encolhia dentro da coluna
+                   rolável e, como ele mesmo tem `overflow-hidden`, engolia o
+                   próprio texto e o botão — sobrava só o título. */
+                <div className="shrink-0 bg-white/5 border border-white/10 rounded-inner p-5 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-brand/[0.06] rounded-full blur-2xl group-hover:bg-brand/[0.06] transition-all"></div>
+                  <h3 className="text-ink font-bold mb-2 flex items-center gap-2 relative z-10"><Sparkles className="w-4 h-4 text-brand" /> Auto-Orçamento IA</h3>
+                  <p className="text-sm text-ink-2 mb-4 relative z-10">Deixe o Gemini analisar sua renda de <strong className="text-ink">{formatMoney(currentIncome)}</strong> e sugerir tetos saudáveis usando a regra 50/30/20.</p>
+                  <button onClick={handleAiSuggest} disabled={isAiLoading} className="w-full relative z-10 bg-brand/20 hover:bg-brand/30 text-brand border border-brand/30 font-semibold py-2.5 rounded-field transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                     {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                     {isAiLoading ? "Pensando..." : "Sugerir com IA"}
                   </button>
@@ -173,31 +176,31 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
                   const spent = getSpentAmount(cat);
                   const percent = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
                   
-                  let barColor = "bg-emerald-500";
-                  if (percent > 75) barColor = "bg-yellow-500";
-                  if (percent >= 100) barColor = "bg-rose-500";
+                  let barColor = "bg-pos";
+                  if (percent > 75) barColor = "bg-warn";
+                  if (percent >= 100) barColor = "bg-neg";
 
                   return (
-                    <div key={cat} className="bg-black/20 border border-white/5 p-4 rounded-2xl">
+                    <div key={cat} className="bg-white/5 border border-white/5 p-4 rounded-inner">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-semibold text-white">{cat}</span>
+                        <span className="font-semibold text-ink">{cat}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-neutral-500">Teto: R$</span>
+                          <span className="text-xs text-ink-3">Teto: R$</span>
                           <input 
                             type="number" 
                             value={budgets[cat] || ""} 
                             onChange={(e) => setBudgets(p => ({ ...p, [cat]: Number(e.target.value) }))}
-                            className="w-24 bg-white/5 border border-white/10 rounded-lg p-1.5 text-white text-sm focus:outline-none focus:border-indigo-500 text-right font-medium"
+                            className="w-24 bg-white/5 border border-white/10 rounded-lg p-1.5 text-ink text-sm focus:outline-none focus:border-brand text-right font-medium"
                             placeholder="0,00"
                           />
                         </div>
                       </div>
-                      <div className="w-full h-2 bg-neutral-900 rounded-full overflow-hidden border border-white/5 mb-2">
+                      <div className="w-full h-2 bg-surface rounded-full overflow-hidden border border-white/5 mb-2">
                          <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} className={`h-full ${barColor}`}></motion.div>
                       </div>
                       <div className="flex justify-between text-xs font-medium">
-                        <span className="text-neutral-400">Gasto: {formatMoney(spent)}</span>
-                        <span className={percent >= 100 ? "text-rose-400" : "text-neutral-500"}>{percent.toFixed(0)}% do limite</span>
+                        <span className="text-ink-2">Gasto: {formatMoney(spent)}</span>
+                        <span className={percent >= 100 ? "text-neg" : "text-ink-3"}>{percent.toFixed(0)}% do limite</span>
                       </div>
                     </div>
                   );
@@ -206,7 +209,7 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
             </div>
 
             <div className="mt-4 shrink-0">
-              <button onClick={handleSave} disabled={isSaving} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-500/25 flex justify-center items-center gap-2">
+              <button onClick={handleSave} disabled={isSaving} className="w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-all shadow-lg shadow-brand/25 flex justify-center items-center gap-2">
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Salvar Orçamentos
               </button>

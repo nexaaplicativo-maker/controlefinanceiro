@@ -45,17 +45,17 @@ export function toastWithUndo(message: string, onUndo: () => void, durationMs = 
 }
 
 const ICONS = {
-  success: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />,
-  error: <XCircle className="w-5 h-5 text-rose-400 shrink-0" />,
-  warning: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />,
-  info: <Info className="w-5 h-5 text-indigo-400 shrink-0" />,
+  success: <CheckCircle2 className="w-5 h-5 text-pos shrink-0" />,
+  error: <XCircle className="w-5 h-5 text-neg shrink-0" />,
+  warning: <AlertTriangle className="w-5 h-5 text-warn shrink-0" />,
+  info: <Info className="w-5 h-5 text-brand shrink-0" />,
 };
 
 const STYLES = {
-  success: "border-emerald-500/30 bg-emerald-500/10",
-  error: "border-rose-500/30 bg-rose-500/10",
-  warning: "border-amber-500/30 bg-amber-500/10",
-  info: "border-indigo-500/30 bg-indigo-500/10",
+  success: "border-pos/30 bg-pos/10",
+  error: "border-neg/30 bg-neg/10",
+  warning: "border-warn/30 bg-warn/10",
+  info: "border-brand/30 bg-brand/10",
 };
 
 export function ToastContainer() {
@@ -87,18 +87,18 @@ export function ToastContainer() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 60, scale: 0.9 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl border backdrop-blur-xl shadow-2xl max-w-[320px] ${STYLES[t.type]}`}
+            className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-inner border backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,0.65)] max-w-[320px] ${STYLES[t.type]}`}
           >
             {ICONS[t.type]}
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white leading-snug">{t.message}</p>
+              <p className="text-sm text-ink leading-snug">{t.message}</p>
               {t.actionLabel && t.actionId && (
                 <button
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent("nexa:toast-action:" + t.actionId));
                     removeToast(t.id);
                   }}
-                  className="mt-1.5 text-xs font-bold text-indigo-300 hover:text-indigo-200 underline underline-offset-2 cursor-pointer"
+                  className="mt-1.5 text-xs font-bold text-brand hover:text-brand underline underline-offset-2 cursor-pointer"
                 >
                   {t.actionLabel}
                 </button>
@@ -107,7 +107,7 @@ export function ToastContainer() {
             <button
               onClick={() => removeToast(t.id)}
               aria-label="Fechar aviso"
-              className="text-neutral-400 hover:text-white transition-colors shrink-0 mt-0.5"
+              className="text-ink-2 hover:text-ink transition-colors shrink-0 mt-0.5"
             >
               <X className="w-4 h-4" />
             </button>

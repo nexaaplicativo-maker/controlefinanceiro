@@ -138,8 +138,8 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] bg-neutral-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      <div className="min-h-[100dvh] bg-canvas flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
       </div>
     );
   }
@@ -147,34 +147,34 @@ export default function AdminPage() {
   if (!isAuthorized) return null;
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-950 text-neutral-50 font-sans">
+    <div className="min-h-[100dvh] bg-canvas text-ink font-sans">
       <FeedbackInboxModal isOpen={isInboxOpen} onClose={() => { setIsInboxOpen(false); loadData(); }} />
       <ToastContainer />
 
       {/* Navbar */}
-      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white">
+            <Link href="/" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink">
               <ChevronLeft className="w-5 h-5" />
             </Link>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-indigo-400" />
+              <div className="w-8 h-8 rounded-field bg-brand/20 border border-brand/30 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-brand" />
               </div>
               <span className="font-bold text-lg tracking-tight">Painel Admin</span>
-              <span className="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-medium">NEXA</span>
+              <span className="text-xs bg-brand/20 text-brand border border-brand/30 px-2 py-0.5 rounded-full font-medium">NEXA</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsInboxOpen(true)}
-              className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer relative"
+              className="flex items-center gap-2 text-sm text-brand hover:text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer relative"
             >
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Feedback</span>
               {novosFeedbacks > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-neg text-canvas text-xs font-bold rounded-full flex items-center justify-center">
                   {novosFeedbacks}
                 </span>
               )}
@@ -183,7 +183,7 @@ export default function AdminPage() {
             <button
               onClick={loadData}
               disabled={isRefreshing}
-              className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm text-ink-2 hover:text-ink bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Atualizar</span>
@@ -195,32 +195,32 @@ export default function AdminPage() {
       <main className="max-w-7xl mx-auto px-6 py-10">
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2">Visão Geral do Sistema</h1>
-          <p className="text-neutral-400">Gerencie usuários, permissões e monitore a plataforma.</p>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2">Visão Geral do Sistema</h1>
+          <p className="text-ink-2">Gerencie usuários, permissões e monitore a plataforma.</p>
         </motion.div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           {[
-            { title: "Usuários Totais", value: stats.totalUsers, icon: <Users className="w-6 h-6 text-indigo-400" />, color: "indigo" },
-            { title: "Transações na Plataforma", value: stats.totalTransactions, icon: <TrendingUp className="w-6 h-6 text-emerald-400" />, color: "emerald" },
-            { title: "Volume Financeiro Total", value: formatMoney(stats.totalVolume), icon: <DollarSign className="w-6 h-6 text-amber-400" />, color: "amber" },
+            { title: "Usuários Totais", value: stats.totalUsers, icon: <Users className="w-6 h-6 text-brand" />, color: "indigo" },
+            { title: "Transações na Plataforma", value: stats.totalTransactions, icon: <TrendingUp className="w-6 h-6 text-pos" />, color: "emerald" },
+            { title: "Volume Financeiro Total", value: formatMoney(stats.totalVolume), icon: <DollarSign className="w-6 h-6 text-warn" />, color: "amber" },
           ].map((card, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm relative overflow-hidden"
+              className="bg-white/5 border border-white/10 rounded-card p-6 backdrop-blur-sm relative overflow-hidden"
             >
               <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-20 bg-${card.color}-500`} />
               <div className="flex items-center justify-between mb-4 relative z-10">
-                <div className={`p-3 rounded-2xl bg-${card.color}-500/10 border border-${card.color}-500/20`}>
+                <div className={`p-3 rounded-inner bg-${card.color}-500/10 border border-${card.color}-500/20`}>
                   {card.icon}
                 </div>
               </div>
-              <p className="text-neutral-400 text-sm font-medium mb-1 relative z-10">{card.title}</p>
-              <p className="text-3xl font-extrabold text-white tracking-tight relative z-10">{card.value}</p>
+              <p className="text-ink-2 text-sm font-medium mb-1 relative z-10">{card.title}</p>
+              <p className="text-3xl font-semibold text-ink tracking-tight relative z-10">{card.value}</p>
             </motion.div>
           ))}
         </div>
@@ -230,28 +230,28 @@ export default function AdminPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-semibold">Usuários Cadastrados</h2>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
               <input
                 type="text"
                 placeholder="Filtrar usuários..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="bg-white/5 border border-white/10 rounded-field py-2 pl-9 pr-4 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand transition-colors"
               />
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
+          <div className="bg-white/5 border border-white/10 rounded-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10 bg-black/20">
-                    <th className="text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider px-6 py-4">Usuário</th>
-                    <th className="text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider px-6 py-4">Role</th>
-                    <th className="text-right text-xs font-semibold text-neutral-400 uppercase tracking-wider px-6 py-4">Transações</th>
-                    <th className="text-right text-xs font-semibold text-neutral-400 uppercase tracking-wider px-6 py-4">Receitas</th>
-                    <th className="text-right text-xs font-semibold text-neutral-400 uppercase tracking-wider px-6 py-4">Despesas</th>
-                    <th className="text-center text-xs font-semibold text-neutral-400 uppercase tracking-wider px-6 py-4">Ações</th>
+                  <tr className="border-b border-white/10 bg-white/5">
+                    <th className="text-left text-xs font-semibold text-ink-2 px-6 py-4">Usuário</th>
+                    <th className="text-left text-xs font-semibold text-ink-2 px-6 py-4">Role</th>
+                    <th className="text-right text-xs font-semibold text-ink-2 px-6 py-4">Transações</th>
+                    <th className="text-right text-xs font-semibold text-ink-2 px-6 py-4">Receitas</th>
+                    <th className="text-right text-xs font-semibold text-ink-2 px-6 py-4">Despesas</th>
+                    <th className="text-center text-xs font-semibold text-ink-2 px-6 py-4">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -268,35 +268,35 @@ export default function AdminPage() {
                             mostrava o UUID, que nao identifica ninguem. O id fica
                             abaixo, pequeno, para quando for preciso casar com o
                             banco. */}
-                        <p className="text-white text-sm font-medium selectable">
-                          {user.email || <span className="text-neutral-600 italic">sem e-mail</span>}
+                        <p className="text-ink text-sm font-medium selectable">
+                          {user.email || <span className="text-ink-3 italic">sem e-mail</span>}
                         </p>
-                        <p className="text-neutral-600 font-mono text-[10px] mt-0.5 selectable">{user.id}</p>
+                        <p className="text-ink-3 font-mono text-xs mt-0.5 selectable">{user.id}</p>
                         {user.last_activity && (
-                          <p className="text-neutral-500 text-[10px] mt-0.5">
+                          <p className="text-ink-3 text-xs mt-0.5">
                             último lançamento em {new Date(user.last_activity + "T12:00:00Z").toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                           </p>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${user.role === 'admin' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${user.role === 'admin' ? 'bg-brand/20 text-brand' : 'bg-pos/10 text-pos'}`}>
                           {user.role === 'admin' ? '👑 Admin' : '👤 Cliente'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-white font-medium">{user.transaction_count}</span>
+                        <span className="text-ink font-medium">{user.transaction_count}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-emerald-400 font-medium">{formatMoney(user.total_income)}</span>
+                        <span className="text-pos font-medium">{formatMoney(user.total_income)}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-rose-400 font-medium">{formatMoney(user.total_expense)}</span>
+                        <span className="text-neg font-medium">{formatMoney(user.total_expense)}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => handleToggleRole(user.id, user.role)}
                           title={user.role === 'admin' ? 'Rebaixar para Cliente' : 'Promover para Admin'}
-                          className={`p-2 rounded-lg transition-colors ${user.role === 'admin' ? 'text-indigo-400 hover:bg-indigo-500/10' : 'text-neutral-400 hover:text-indigo-400 hover:bg-indigo-500/10'}`}
+                          className={`p-2 rounded-lg transition-colors ${user.role === 'admin' ? 'text-brand hover:bg-brand/10' : 'text-ink-2 hover:text-brand hover:bg-brand/10'}`}
                         >
                           {user.role === 'admin' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                         </button>
@@ -306,12 +306,12 @@ export default function AdminPage() {
                 </tbody>
               </table>
               {filteredUsers.length === 0 && (
-                <div className="text-center py-12 text-neutral-500">Nenhum usuário encontrado.</div>
+                <div className="text-center py-12 text-ink-3">Nenhum usuário encontrado.</div>
               )}
             </div>
           </div>
 
-          <p className="text-xs text-neutral-500 mt-3 text-center">
+          <p className="text-xs text-ink-3 mt-3 text-center">
             Nota: E-mails dos usuários não estão disponíveis via anon key. Use o Supabase Dashboard para ver e-mails completos.
           </p>
         </motion.div>

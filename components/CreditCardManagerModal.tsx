@@ -123,70 +123,70 @@ export function CreditCardManagerModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
           <motion.div ref={a11yRef} role="dialog" aria-modal="true"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl max-h-[88vh] bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-2xl max-h-[88vh] sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
           >
-            <div className="absolute -top-24 -right-24 w-56 h-56 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Cabeçalho */}
             <div className="flex justify-between items-center mb-5 shrink-0 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
-                  <CreditCard className="w-5 h-5 text-purple-400" />
+                <div className="p-2.5 bg-brand/10 border border-brand/20 rounded-inner">
+                  <CreditCard className="w-5 h-5 text-brand" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white leading-tight">Gestão de Cartões</h2>
-                  <p className="text-[11px] text-neutral-500">Quanto da sua renda já tem dono</p>
+                  <h2 className="text-xl font-bold text-ink leading-tight">Gestão de Cartões</h2>
+                  <p className="text-xs text-ink-3">Quanto da sua renda já tem dono</p>
                 </div>
               </div>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white cursor-pointer">
+              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Resumo */}
             <div className="grid grid-cols-2 gap-3 mb-5 shrink-0 relative z-10">
-              <div className={`rounded-2xl p-4 border ${alerta ? 'bg-rose-500/5 border-rose-500/20' : 'bg-white/5 border-white/10'}`}>
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mb-1.5">Fatura do mês</p>
-                <p className={`text-2xl font-extrabold tracking-tight ${alerta ? 'text-rose-400' : 'text-white'}`}>{formatMoney(faturaTotal)}</p>
+              <div className={`rounded-inner p-4 border ${alerta ? 'bg-neg/5 border-neg/20' : 'bg-white/5 border-white/10'}`}>
+                <p className="text-xs text-ink-3 font-semibold mb-1.5">Fatura do mês</p>
+                <p className={`text-2xl font-semibold tracking-tight ${alerta ? 'text-neg' : 'text-ink'}`}>{formatMoney(faturaTotal)}</p>
                 {renda > 0 && (
-                  <p className="text-[11px] text-neutral-500 mt-1">{faturaPercent.toFixed(0)}% da sua renda</p>
+                  <p className="text-xs text-ink-3 mt-1">{faturaPercent.toFixed(0)}% da sua renda</p>
                 )}
               </div>
-              <div className="rounded-2xl p-4 border bg-white/5 border-white/10">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mb-1.5">Parcelas futuras</p>
-                <p className="text-2xl font-extrabold tracking-tight text-amber-400">{formatMoney(futurasTotal)}</p>
+              <div className="rounded-inner p-4 border bg-white/5 border-white/10">
+                <p className="text-xs text-ink-3 font-semibold mb-1.5">Parcelas futuras</p>
+                <p className="text-2xl font-semibold tracking-tight text-warn">{formatMoney(futurasTotal)}</p>
                 {renda > 0 && futurasTotal > 0 && (
-                  <p className="text-[11px] text-neutral-500 mt-1">{mesesComprometidos.toFixed(1)} meses de renda</p>
+                  <p className="text-xs text-ink-3 mt-1">{mesesComprometidos.toFixed(1)} meses de renda</p>
                 )}
               </div>
             </div>
 
             {alerta && (
-              <div className="flex items-start gap-2.5 bg-rose-500/5 border border-rose-500/20 rounded-2xl p-3.5 mb-5 shrink-0 relative z-10">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-neutral-300 leading-relaxed">
+              <div className="flex items-start gap-2.5 bg-neg/5 border border-neg/20 rounded-inner p-3.5 mb-5 shrink-0 relative z-10">
+                <AlertTriangle className="w-4 h-4 text-neg shrink-0 mt-0.5" />
+                <p className="text-xs text-ink-2 leading-relaxed">
                   Sua fatura passou de {insights.gargaloCritical.toFixed(0)}% da renda, o teto do seu perfil. Cada nova parcela aqui é renda futura que você já gastou.
                 </p>
               </div>
             )}
 
             {/* Listas */}
-            <div className="flex-1 overflow-y-auto relative z-10 pr-1 flex flex-col gap-6">
+            <div className="flex-1 overflow-y-auto [&>*]:shrink-0 relative z-10 pr-1 flex flex-col gap-6">
 
               <section>
-                <div className="flex items-center justify-between mb-3 sticky top-0 bg-neutral-900 py-1">
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <CalendarClock className="w-4 h-4 text-purple-400" /> Fatura do Mês Atual
+                <div className="flex items-center justify-between mb-3 sticky top-0 bg-surface py-1">
+                  <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <CalendarClock className="w-4 h-4 text-brand" /> Fatura do Mês Atual
                   </h3>
                   {faturaPendente > 0 && (
-                    <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full uppercase tracking-wider">
+                    <span className="text-xs font-bold text-warn bg-warn/10 px-2 py-1 rounded-full">
                       {formatMoney(faturaPendente)} em aberto
                     </span>
                   )}
@@ -197,29 +197,29 @@ export function CreditCardManagerModal({
                 ) : (
                   <div className="flex flex-col gap-2">
                     {fatura.map(t => (
-                      <div key={t.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-colors ${t.is_paid === false ? 'bg-amber-500/5 border-amber-500/10' : 'bg-black/20 border-white/5'}`}>
+                      <div key={t.id} className={`flex items-center justify-between gap-3 p-3 rounded-field border transition-colors ${t.is_paid === false ? 'bg-warn/5 border-warn/10' : 'bg-white/5 border-white/5'}`}>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-white truncate">{t.title || 'Sem título'}</p>
+                            <p className="text-sm font-medium text-ink truncate">{t.title || 'Sem título'}</p>
                             {t.installment_info && (
-                              <span className="text-[10px] font-bold text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded shrink-0">{t.installment_info}</span>
+                              <span className="text-xs font-bold text-brand bg-brand/10 px-1.5 py-0.5 rounded shrink-0">{t.installment_info}</span>
                             )}
                           </div>
-                          <p className="text-[11px] text-neutral-500 mt-0.5">{formatDate(t.date)}</p>
+                          <p className="text-xs text-ink-3 mt-0.5">{formatDate(t.date)}</p>
                         </div>
-                        <span className="text-sm font-bold text-white whitespace-nowrap">{formatMoney(t.amount ?? 0)}</span>
+                        <span className="text-sm font-bold text-ink whitespace-nowrap">{formatMoney(t.amount ?? 0)}</span>
                         <div className="flex items-center gap-1 shrink-0">
                           {onTogglePaid && t.is_paid !== undefined && (
                             <button
                               onClick={() => onTogglePaid(t.id, !!t.is_paid)}
-                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${t.is_paid ? 'text-emerald-500/60 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-500/80 hover:text-amber-400 hover:bg-amber-500/10'}`}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${t.is_paid ? 'text-pos/60 hover:text-pos hover:bg-pos/10' : 'text-warn/80 hover:text-warn hover:bg-warn/10'}`}
                               title={t.is_paid ? 'Marcar como pendente' : 'Marcar como pago'}
                             >
                               {t.is_paid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
                             </button>
                           )}
                           {onDelete && (
-                            <button onClick={() => onDelete(t.id)} className="p-1.5 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer" title="Excluir">
+                            <button onClick={() => onDelete(t.id)} className="p-1.5 text-neg/50 hover:text-neg hover:bg-neg/10 rounded-lg transition-colors cursor-pointer" title="Excluir">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -231,12 +231,12 @@ export function CreditCardManagerModal({
               </section>
 
               <section>
-                <div className="flex items-center justify-between mb-3 sticky top-0 bg-neutral-900 py-1">
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-amber-400" /> Parcelas Futuras
+                <div className="flex items-center justify-between mb-3 sticky top-0 bg-surface py-1">
+                  <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-warn" /> Parcelas Futuras
                   </h3>
                   {futureGroups.length > 0 && (
-                    <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">
+                    <span className="text-xs text-ink-3 font-medium">
                       {futureGroups.length} compra{futureGroups.length > 1 ? 's' : ''}
                     </span>
                   )}
@@ -247,16 +247,16 @@ export function CreditCardManagerModal({
                 ) : (
                   <div className="flex flex-col gap-2">
                     {futureGroups.map(g => (
-                      <div key={g.key} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-black/20 border border-white/5">
+                      <div key={g.key} className="flex items-center justify-between gap-3 p-3 rounded-field bg-white/5 border border-white/5">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-white truncate">{g.title}</p>
-                          <p className="text-[11px] text-neutral-500 mt-0.5">
+                          <p className="text-sm font-medium text-ink truncate">{g.title}</p>
+                          <p className="text-xs text-ink-3 mt-0.5">
                             {g.count > 1 ? `${g.count} parcelas restantes` : '1 parcela'} · próxima em {formatDate(g.nextDate)}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-amber-400 whitespace-nowrap">{formatMoney(g.total)}</p>
-                          {g.info && <p className="text-[10px] text-neutral-600">a partir de {g.info}</p>}
+                          <p className="text-sm font-bold text-warn whitespace-nowrap">{formatMoney(g.total)}</p>
+                          {g.info && <p className="text-xs text-ink-3">a partir de {g.info}</p>}
                         </div>
                       </div>
                     ))}
@@ -269,9 +269,9 @@ export function CreditCardManagerModal({
             {futurasTotal > 0 && (
               <div className="pt-4 mt-4 border-t border-white/10 shrink-0 relative z-10">
                 <div className="flex items-center gap-2.5">
-                  <TrendingDown className="w-4 h-4 text-neutral-500 shrink-0" />
-                  <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Somando fatura e parcelas, <strong className="text-neutral-300">{formatMoney(faturaTotal + futurasTotal)}</strong> da sua renda já está comprometida com cartão.
+                  <TrendingDown className="w-4 h-4 text-ink-3 shrink-0" />
+                  <p className="text-xs text-ink-3 leading-relaxed">
+                    Somando fatura e parcelas, <strong className="text-ink-2">{formatMoney(faturaTotal + futurasTotal)}</strong> da sua renda já está comprometida com cartão.
                   </p>
                 </div>
               </div>
@@ -285,8 +285,8 @@ export function CreditCardManagerModal({
 
 function EmptyHint({ text, positive }: { text: string; positive?: boolean }) {
   return (
-    <div className={`rounded-xl border p-4 text-center ${positive ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-white/5 border-white/10'}`}>
-      <p className={`text-xs ${positive ? 'text-emerald-400/80' : 'text-neutral-500'}`}>{text}</p>
+    <div className={`rounded-field border p-4 text-center ${positive ? 'bg-pos/5 border-pos/10' : 'bg-white/5 border-white/10'}`}>
+      <p className={`text-xs ${positive ? 'text-pos/80' : 'text-ink-3'}`}>{text}</p>
     </div>
   );
 }

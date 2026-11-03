@@ -1,6 +1,139 @@
 @import "tailwindcss";
 
 /* ===========================================================================
+   Tokens — fonte única de cor, raio e tom.
+
+   Até aqui o app não tinha token nenhum: cor e raio eram classe utilitária
+   crua espalhada em 37 arquivos, com 14 cores e 6 raios sem critério. O que
+   está em `design.json` na raiz é a diretriz; isto é a implementação dela.
+
+   Nomes curtos e semânticos de propósito: quem escreve JSX precisa saber o
+   PAPEL da cor ("ação", "negativo"), não o seu lugar na escala.
+   =========================================================================== */
+
+@theme {
+  /* Fundo. Preto azulado, nunca preto puro — a temperatura fria é a
+     assinatura do tema e some se usarmos cinza neutro. */
+  --color-canvas: #080b0f;
+  --color-surface: #121820;
+  --color-surface-2: #0d1218;
+
+  /* Bordas: presentes o suficiente para separar, discretas o suficiente para
+     não desenhar uma grade por cima do conteúdo. */
+  --color-line: rgba(255, 255, 255, 0.06);
+  --color-line-strong: rgba(255, 255, 255, 0.1);
+
+  /* A ÚNICA cor de ação do app. Substitui o par indigo/roxo, que era o que
+     mais datava a interface. Qualquer outra cor precisa significar estado. */
+  --color-brand: #8fbdd3;
+  --color-brand-strong: #6fa8c2;
+
+  /* Estado. Só em texto, seta e ponto — nunca preenchendo área grande. */
+  --color-pos: #5fd39b;
+  --color-neg: #f0776e;
+  --color-warn: #e8b75d;
+
+  /* Texto em três níveis, mais um quarto só para os centavos. */
+  --color-ink: #f3f6f8;
+  --color-ink-2: #93a1ac;
+  --color-ink-3: #5d6975;
+  --color-cents: #6b7784;
+
+  --radius-card: 22px;
+  --radius-inner: 16px;
+  --radius-field: 14px;
+}
+
+/* ---------------------------------------------------------------------------
+   Foco visível.
+
+   O app inteiro tinha DUAS ocorrências de focus-visible: quem navega por
+   teclado não conseguia ver onde estava. Uma regra global resolve de uma vez,
+   e `:focus-visible` não dispara no clique de mouse, então nada muda para
+   quem usa o dedo.
+   --------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Superfície padrão de cartão: gradiente quase imperceptível, mais claro no
+   canto de cima, como se a luz viesse do topo da tela. Separa por tom, não
+   por contorno. */
+@utility card {
+  background-image: linear-gradient(160deg, #151c23 0%, #0f141a 100%);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+/* Cartão herói: o mesmo princípio, com um azul-aço esfumaçado na abertura. */
+@utility card-hero {
+  background-image: linear-gradient(150deg, #24323c 0%, #121a21 70%);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-card);
+}
+
+/* Névoa fria atrás do bloco principal. Puramente decorativa — fica atrás do
+   conteúdo e não intercepta toque. */
+@utility hero-mist {
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  height: 220px;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 100% at 50% 0%,
+    rgba(143, 189, 211, 0.18) 0%,
+    rgba(143, 189, 211, 0) 70%
+  );
+}
+
+/* Painel de modal.
+
+   Antes eram 22 arquivos repetindo `bg-neutral-900 border border-white/10` à
+   mão — cinza chapado, com a mesma borda nos quatro lados. Aqui a luz vem de
+   cima: a aresta superior é a única clara, e o fundo escurece para baixo. É o
+   que faz a folha parecer apoiada sobre a tela em vez de colada nela. */
+@utility sheet-panel {
+  background-image: linear-gradient(175deg, #1a222a 0%, #0f151b 55%);
+  border: 1px solid var(--color-line);
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Alça da folha.
+
+   Diz, sem texto, que aquilo pertence à base da tela e sai por ali. Só no
+   celular — no desktop a folha volta a ser caixa centralizada, e uma alça ali
+   prometeria um arrastar que não existe.
+
+   Feita em `::before` para não exigir um elemento a mais em 28 arquivos. */
+.sheet-grab::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .sheet-grab::before {
+    display: none;
+  }
+}
+
+/* Dinheiro alinha por coluna: sem isto, o valor "dança" ao trocar de mês
+   porque cada algarismo tem largura diferente. */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ===========================================================================
    Comportamento de app nativo no celular.
 
    Antes este arquivo tinha só o @import. O resultado era o conteúdo passando
@@ -21,7 +154,7 @@ html {
   /* 100dvh acompanha a barra do navegador aparecendo e sumindo; 100vh não,
      e por isso o rodapé ficava escondido atrás dela. */
   min-height: 100dvh;
-  background-color: #0a0a0a;
+  background-color: #080b0f;
 }
 
 body {

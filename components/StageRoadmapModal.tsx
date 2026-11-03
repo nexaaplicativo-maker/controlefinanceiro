@@ -16,19 +16,19 @@ import { useModalA11y } from "../hooks/use-modal-a11y";
  */
 
 const ACCENT_DOT: Record<string, string> = {
-  rose: 'bg-rose-500', amber: 'bg-amber-500', blue: 'bg-blue-500',
-  indigo: 'bg-indigo-500', emerald: 'bg-emerald-500',
+  rose: 'bg-neg', amber: 'bg-warn', blue: 'bg-brand',
+  indigo: 'bg-brand', emerald: 'bg-pos',
 };
 
 const ACCENT_TEXT: Record<string, string> = {
-  rose: 'text-rose-400', amber: 'text-amber-400', blue: 'text-blue-400',
-  indigo: 'text-indigo-400', emerald: 'text-emerald-400',
+  rose: 'text-neg', amber: 'text-warn', blue: 'text-ink-2',
+  indigo: 'text-brand', emerald: 'text-pos',
 };
 
 const ACCENT_PANEL: Record<string, string> = {
-  rose: 'bg-rose-500/5 border-rose-500/30', amber: 'bg-amber-500/5 border-amber-500/30',
-  blue: 'bg-blue-500/5 border-blue-500/30', indigo: 'bg-indigo-500/5 border-indigo-500/30',
-  emerald: 'bg-emerald-500/5 border-emerald-500/30',
+  rose: 'bg-neg/5 border-neg/30', amber: 'bg-warn/5 border-warn/30',
+  blue: 'bg-white/5 border-white/30', indigo: 'bg-brand/5 border-brand/30',
+  emerald: 'bg-pos/5 border-pos/30',
 };
 
 export function StageRoadmapModal({
@@ -52,28 +52,28 @@ export function StageRoadmapModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
           <motion.div ref={a11yRef} role="dialog" aria-modal="true"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg max-h-[88vh] bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-lg max-h-[88vh] sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
           >
-            <div className="absolute -top-24 -right-24 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/[0.06] rounded-full blur-3xl pointer-events-none"></div>
 
             <div className="flex justify-between items-center mb-5 shrink-0 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
-                  <Route className="w-5 h-5 text-indigo-400" />
+                <div className="p-2.5 bg-brand/10 border border-brand/20 rounded-inner">
+                  <Route className="w-5 h-5 text-brand" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white leading-tight">Sua jornada financeira</h2>
-                  <p className="text-[11px] text-neutral-500">Onde você está e o que vem depois</p>
+                  <h2 className="text-xl font-bold text-ink leading-tight">Sua jornada financeira</h2>
+                  <p className="text-xs text-ink-3">Onde você está e o que vem depois</p>
                 </div>
               </div>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white cursor-pointer">
+              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -97,48 +97,48 @@ export function StageRoadmapModal({
                             isDone
                               ? `${ACCENT_DOT[stage.accent]} border-transparent`
                               : isCurrent
-                                ? `bg-neutral-900 ${stage.accent === 'rose' ? 'border-rose-500' : stage.accent === 'amber' ? 'border-amber-500' : stage.accent === 'blue' ? 'border-blue-500' : stage.accent === 'indigo' ? 'border-indigo-500' : 'border-emerald-500'}`
-                                : 'bg-neutral-900 border-white/10'
+                                ? `bg-surface ${stage.accent === 'rose' ? 'border-neg' : stage.accent === 'amber' ? 'border-warn' : stage.accent === 'blue' ? 'border-brand' : stage.accent === 'indigo' ? 'border-brand' : 'border-pos'}`
+                                : 'bg-surface border-white/10'
                           }`}>
                             {isDone ? (
-                              <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                              <Check className="w-4 h-4 text-ink" strokeWidth={3} />
                             ) : isCurrent ? (
                               <span className={`text-xs font-bold ${ACCENT_TEXT[stage.accent]}`}>{stage.level}</span>
                             ) : (
-                              <Lock className="w-3 h-3 text-neutral-600" />
+                              <Lock className="w-3 h-3 text-ink-3" />
                             )}
                           </div>
                         </div>
 
                         {/* Conteúdo */}
-                        <div className={`flex-1 min-w-0 rounded-2xl border p-4 transition-colors ${
+                        <div className={`flex-1 min-w-0 rounded-inner border p-4 transition-colors ${
                           isCurrent ? ACCENT_PANEL[stage.accent] : 'bg-white/[0.02] border-white/5'
                         }`}>
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className={`font-bold text-sm ${isCurrent ? 'text-white' : isDone ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                            <h3 className={`font-bold text-sm ${isCurrent ? 'text-ink' : isDone ? 'text-ink-2' : 'text-ink-3'}`}>
                               {stage.label}
                             </h3>
                             {isCurrent && (
-                              <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${ACCENT_TEXT[stage.accent]} bg-white/5`}>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ACCENT_TEXT[stage.accent]} bg-white/5`}>
                                 Você está aqui
                               </span>
                             )}
                             {isDone && (
-                              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-emerald-400 bg-emerald-400/10">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-pos bg-pos/10">
                                 Concluído
                               </span>
                             )}
                           </div>
 
-                          <p className={`text-xs leading-relaxed ${isCurrent ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                          <p className={`text-xs leading-relaxed ${isCurrent ? 'text-ink-2' : 'text-ink-3'}`}>
                             {goal}
                           </p>
 
                           {/* Quanto falta — só quando o critério é financeiro e ainda não foi batido */}
                           {!isDone && target !== null && remaining !== null && remaining > 0 && (
                             <div className="mt-3 pt-3 border-t border-white/5 flex items-baseline justify-between gap-2">
-                              <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Faltam</span>
-                              <span className={`text-sm font-bold ${isCurrent ? ACCENT_TEXT[stage.accent] : 'text-neutral-400'}`}>
+                              <span className="text-xs text-ink-3 font-semibold">Faltam</span>
+                              <span className={`text-sm font-bold ${isCurrent ? ACCENT_TEXT[stage.accent] : 'text-ink-2'}`}>
                                 {formatMoney(remaining)}
                               </span>
                             </div>
@@ -146,8 +146,8 @@ export function StageRoadmapModal({
 
                           {isCurrent && (
                             <div className="mt-3 pt-3 border-t border-white/5">
-                              <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mb-1">Sua prioridade agora</p>
-                              <p className="text-xs text-neutral-300 leading-relaxed">{stage.priority}</p>
+                              <p className="text-xs text-ink-3 font-semibold mb-1">Sua prioridade agora</p>
+                              <p className="text-xs text-ink-2 leading-relaxed">{stage.priority}</p>
                             </div>
                           )}
                         </div>
@@ -158,7 +158,7 @@ export function StageRoadmapModal({
               </div>
 
               {insights.monthlyCost <= 0 && (
-                <p className="text-[11px] text-neutral-600 leading-relaxed mt-5 text-center">
+                <p className="text-xs text-ink-3 leading-relaxed mt-5 text-center">
                   Lance algumas despesas para o Nexa calcular seu custo de vida — é ele que define os valores de cada degrau.
                 </p>
               )}
@@ -167,10 +167,10 @@ export function StageRoadmapModal({
                   o caminho para corrigir precisa estar aqui, não no SQL. */}
               {onEditProfile && (
                 <div className="mt-6 pt-4 border-t border-white/5 text-center">
-                  <p className="text-[11px] text-neutral-500 mb-2">Esse não é o seu caso?</p>
+                  <p className="text-xs text-ink-3 mb-2">Esse não é o seu caso?</p>
                   <button
                     onClick={onEditProfile}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
+                    className="text-xs text-brand hover:text-brand font-semibold underline underline-offset-2 cursor-pointer"
                   >
                     Ajustar meu perfil financeiro
                   </button>

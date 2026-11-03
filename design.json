@@ -1,0 +1,246 @@
+{
+  "$schema": "nexa-design-guidelines/v1",
+  "meta": {
+    "name": "Nexa — Sistema de Design",
+    "idioma": "pt-BR",
+    "plataforma": "PWA mobile-first (Android ~360px), com layout ampliado no desktop",
+    "tema": "escuro único, sem tema claro",
+    "objetivo": "Transformar um painel financeiro denso em uma superfície calma, onde o número importa e o resto recua."
+  },
+
+  "principios": [
+    "O número é o herói. Tudo em volta é legenda. Valores grandes, rótulos pequenos e apagados.",
+    "Calma por subtração. Menos bordas, menos cores, menos caixas. Separe por espaço e tom, não por linha.",
+    "Uma cor de ação só. Qualquer outra cor precisa justificar o que significa — positivo, negativo ou alerta.",
+    "Profundidade por luz, não por contorno. Cartões se destacam por um gradiente sutil e um brilho frio, não por borda forte.",
+    "Hierarquia por tom, não por tamanho de caixa. Três níveis de texto: valor, rótulo, detalhe.",
+    "Densidade confortável. Respiro generoso entre blocos; o conteúdo do mês cabe em rolagem curta.",
+    "Nada decorativo. Se um elemento não informa nem conduz a uma ação, ele sai."
+  ],
+
+  "cores": {
+    "fundo": {
+      "base": "#080B0F",
+      "elevado": "#0D1218",
+      "descricao": "Preto azulado, nunca preto puro nem cinza neutro. A leve temperatura fria é a assinatura do tema."
+    },
+    "superficie": {
+      "cartao": "linear-gradient(160deg, #151C23 0%, #0F141A 100%)",
+      "cartaoSolido": "#121820",
+      "cartaoDestaque": "linear-gradient(150deg, #24323C 0%, #121A21 70%)",
+      "sheet": "#111820",
+      "descricao": "Cartão comum usa gradiente quase imperceptível, mais claro no canto superior. O cartão de destaque (saldo/herói) abre com um azul-aço esfumaçado, como névoa."
+    },
+    "borda": {
+      "sutil": "rgba(255,255,255,0.06)",
+      "media": "rgba(255,255,255,0.10)",
+      "brilhoSuperior": "rgba(255,255,255,0.14)",
+      "descricao": "Borda de 1px, sempre discreta. Quando possível, apenas a aresta superior recebe o tom mais claro, simulando luz vinda de cima."
+    },
+    "acao": {
+      "primaria": "#8FBDD3",
+      "primariaForte": "#6FA8C2",
+      "primariaSuave": "rgba(143,189,211,0.12)",
+      "sobreAcao": "#06111A",
+      "descricao": "Azul-aço dessaturado. É a ÚNICA cor de ação do app: botão flutuante, item ativo, foco, destaque de gráfico. Substitui o indigo/roxo atual."
+    },
+    "semantica": {
+      "positivo": "#5FD39B",
+      "negativo": "#F0776E",
+      "alerta": "#E8B75D",
+      "descricao": "Usadas só em valor, seta e estado. Nunca como cor de fundo cheia, nunca para decorar ícone de menu."
+    },
+    "texto": {
+      "primario": "#F3F6F8",
+      "secundario": "#93A1AC",
+      "terciario": "#5D6975",
+      "centavos": "#6B7784",
+      "sobreDestaque": "#FFFFFF",
+      "descricao": "Três níveis bastam. O quarto tom existe só para os centavos."
+    },
+    "proibido": [
+      "Gradiente roxo/índigo saturado em botão.",
+      "Azul, rosa, teal, laranja e amarelo como enfeite de ícone — eram 5 cores sem significado no app antigo.",
+      "Verde e vermelho em área grande; só em texto, seta e ponto."
+    ]
+  },
+
+  "tipografia": {
+    "familia": "Inter (já instalada via next/font). Numerais tabulares obrigatórios em qualquer valor monetário.",
+    "escala": {
+      "saldoHeroi": { "tamanho": "40px", "peso": 600, "tracking": "-0.03em", "uso": "um por tela, o número principal" },
+      "valorCartao": { "tamanho": "28px", "peso": 600, "tracking": "-0.02em", "uso": "valor dentro de card de estatística" },
+      "tituloTela": { "tamanho": "22px", "peso": 700, "tracking": "-0.02em" },
+      "tituloSecao": { "tamanho": "16px", "peso": 600, "uso": "cabeçalho de lista, com link discreto à direita" },
+      "corpo": { "tamanho": "15px", "peso": 400, "altura": 1.5 },
+      "rotulo": { "tamanho": "13px", "peso": 500, "cor": "secundario" },
+      "detalhe": { "tamanho": "12px", "peso": 400, "cor": "terciario", "uso": "data, hora, contagem" }
+    },
+    "pisoAbsoluto": "12px. Nada abaixo disso em lugar nenhum — o app antigo tinha 131 usos de 9px a 11px.",
+    "regraDoValor": {
+      "nome": "Centavos recuados",
+      "descricao": "Em todo valor monetário, os reais ficam no tom primário e os centavos em tom menor e mais apagado. É a assinatura visual do sistema.",
+      "exemplo": "R$ 1.508 em 40px/#F3F6F8 + ,42 em 24px/#6B7784, alinhados pela linha de base",
+      "aplicarEm": ["saldo herói", "valor de card", "valor de linha de lançamento"],
+      "naoAplicarEm": ["campos de formulário", "tabelas densas"]
+    },
+    "maiusculas": "Só em rótulo de navegação de mês e etiqueta de estágio, com tracking de 0.08em e tamanho 12px."
+  },
+
+  "layout": {
+    "grade": "Coluna única no celular. Pares de cards lado a lado quando os dois valores se comparam (entrada/saída). Desktop: mesma coluna central com largura máxima de 1120px, nunca esticada.",
+    "margemLateral": "20px no celular, 32px a partir de 768px",
+    "ritmoVertical": {
+      "entreBlocos": "28px",
+      "entreCartoesIrmaos": "12px",
+      "dentroDoCartao": "20px de respiro interno"
+    },
+    "larguraMinimaSuportada": "320px. Nenhum elemento pode ultrapassar a largura da tela — flex sempre com min-w-0 e permissão de quebra.",
+    "areasSeguras": "Preservar pt-safe, pb-safe e pb-bottom-nav. Conteúdo nunca encosta na barra de gestos."
+  },
+
+  "raio": {
+    "cartao": "22px",
+    "cartaoInterno": "16px",
+    "pilula": "999px",
+    "campo": "14px",
+    "regra": "Só esses quatro. O app antigo usava seis valores sem critério."
+  },
+
+  "elevacao": {
+    "cartao": "nenhuma sombra; separação por tom de fundo",
+    "flutuante": "0 12px 32px rgba(0,0,0,0.55)",
+    "brilhoAcao": "0 8px 28px rgba(143,189,211,0.28)",
+    "nevoaHeroi": {
+      "descricao": "Clarão frio e difuso atrás do bloco de saldo, como luz entrando pelo topo da tela.",
+      "implementacao": "radial-gradient elíptico, centro em 50% -20%, de rgba(143,189,211,0.18) até transparente, com blur alto. Puramente decorativo, pointer-events none."
+    }
+  },
+
+  "iconografia": {
+    "biblioteca": "lucide-react, traço 1.5px",
+    "tamanhos": { "linha": "18px", "acao": "20px", "navegacao": "24px" },
+    "cor": "secundario por padrão; primário quando ativo; nunca colorido por categoria",
+    "containerCircular": "40px, fundo rgba(255,255,255,0.06), usado para ações do cabeçalho (sino, olho, voltar)"
+  },
+
+  "movimento": {
+    "biblioteca": "motion/react",
+    "duracoes": { "microinteracao": "150ms", "entradaDeTela": "260ms", "folha": "320ms" },
+    "curva": "cubic-bezier(0.22, 1, 0.36, 1)",
+    "toque": "escala 0.97 no press",
+    "entradaDeLista": "fade + 8px de subida, escalonado em 30ms por item, no máximo 6 itens",
+    "regra": "Animação confirma uma ação ou orienta de onde a tela veio. Nada pulsa, nada chama atenção sozinho."
+  },
+
+  "componentes": {
+    "cabecalhoSaudacao": {
+      "estrutura": "avatar/logo 40px · 'Bom dia,' em rótulo apagado sobre o nome em 22px/700 · ação circular à direita",
+      "regra": "Uma linha só. Texto longo trunca; a ação da direita nunca é empurrada para fora."
+    },
+    "barraDeTela": {
+      "estrutura": "voltar circular · título centralizado em 16px/600 · ação circular",
+      "uso": "topo de cada tela secundária, substituindo o cabeçalho de modal improvisado"
+    },
+    "blocoSaldo": {
+      "estrutura": "rótulo centralizado · valor herói com centavos recuados · variação com seta e percentual em tom semântico",
+      "fundo": "cartaoDestaque + nevoaHeroi",
+      "regra": "Um por tela. É o único lugar onde o texto é centralizado."
+    },
+    "barraDeAcoes": {
+      "estrutura": "pílula larga dividida em duas ações de texto, com botão circular de ação primária sobreposto no centro, elevado",
+      "regra": "No máximo duas ações nomeadas mais a primária. Se faltar espaço, o rótulo cai e sobra o ícone — nunca estoura a largura."
+    },
+    "cartaoEstatistica": {
+      "estrutura": "ícone pequeno + rótulo · valor com centavos recuados · variação ou contexto em detalhe · seta discreta no canto se navega",
+      "disposicao": "dois por linha quando comparáveis",
+      "altura": "uniforme entre irmãos, mesmo com texto de tamanhos diferentes"
+    },
+    "cartaoInsight": {
+      "estrutura": "ícone de brilho + 'Nexa sugere' em rótulo · texto corrido em corpo, no máximo três linhas",
+      "fundo": "cartao com acao.primariaSuave de 8% sobreposto",
+      "regra": "Sem botão dentro. Se houver ação, ela é um link em texto no fim."
+    },
+    "cabecalhoDeSecao": {
+      "estrutura": "título de seção à esquerda · 'Ver tudo' em detalhe à direita",
+      "regra": "Sem linha divisória abaixo."
+    },
+    "linhaDeLancamento": {
+      "estrutura": "ícone em círculo 40px (pela subcategoria, monocromático) · título em corpo/500 e subtítulo em detalhe · à direita, valor com centavos recuados e data em detalhe",
+      "estados": "pago/pendente por ponto de 6px à esquerda do valor, nunca por fundo colorido",
+      "selecao": "em modo de seleção, a linha inteira é alvo; caixa de seleção substitui o ícone",
+      "divisor": "nenhum; separação por espaçamento de 4px e fundo do cartão"
+    },
+    "navegacaoDeMes": {
+      "estrutura": "pílula com setas nas pontas e mês em 12px maiúsculo com tracking",
+      "regra": "Largura total no celular, ajustada ao conteúdo a partir de 640px"
+    },
+    "filtroChip": {
+      "estrutura": "pílula de 32px, borda sutil, texto em rótulo; ativo recebe acao.primariaSuave e texto primário",
+      "regra": "Rola horizontalmente em faixa própria, nunca empurra a página"
+    },
+    "grafico": {
+      "biblioteca": "recharts",
+      "barras": "preenchimento em gradiente vertical, do branco a 85% no topo até transparente na base; cantos superiores arredondados em 6px; largura 60% do passo",
+      "eixos": "sem linhas, sem grade; marcações do eixo Y em detalhe, quatro no máximo",
+      "destaque": "barra selecionada ganha linha vertical fina em acao.primaria com um ponto no topo e um balão com o valor",
+      "regra": "Um gráfico por tela. Sem legenda quando houver uma série só."
+    },
+    "barraInferior": {
+      "estrutura": "quatro destinos com ícone 24px e rótulo 12px, mais botão flutuante central",
+      "ativo": "ícone e rótulo em acao.primaria",
+      "fundo": "fundo.base a 80% com desfoque e aresta superior em borda.sutil",
+      "regra": "Os destinos são ROTAS, não abridores de modal. O item ativo reflete a rota atual."
+    },
+    "botaoFlutuanteIA": {
+      "estrutura": "círculo de 56px em acao.primaria com ícone de brilho, canto inferior direito, acima da barra",
+      "sombra": "brilhoAcao",
+      "regra": "Só aparece onde a leitura por IA faz sentido. Respeita a área segura."
+    },
+    "folha": {
+      "descricao": "Substitui o modal centralizado atual. Sobe a partir da base, ocupa no máximo 92% da altura, com alça de 36px no topo.",
+      "fundo": "superficie.sheet, raio 22px só nos cantos de cima",
+      "backdrop": "preto a 60% com desfoque de 8px",
+      "regra": "Um componente único para todas as folhas. Hoje a marcação está duplicada em 26 arquivos."
+    },
+    "dialogoDeConfirmacao": {
+      "estrutura": "centralizado, título em 16px/600, corpo em corpo, duas ações lado a lado",
+      "acaoDestrutiva": "texto em semantica.negativo sobre fundo negativo a 12%; nunca um botão vermelho cheio"
+    },
+    "aviso": {
+      "estrutura": "pílula flutuante acima da barra inferior, com ícone, texto em rótulo e ação 'Desfazer' em acao.primaria"
+    },
+    "estadoVazio": {
+      "estrutura": "ícone em círculo 56px apagado · frase em corpo dizendo o que falta · uma única ação",
+      "regra": "Toda lista e todo gráfico precisam do seu. Hoje o app quase não tem."
+    },
+    "esqueleto": {
+      "estrutura": "blocos no formato do conteúdo real, fundo rgba(255,255,255,0.04), pulso de 1.6s",
+      "regra": "Obrigatório em qualquer bloco que espera o banco. Hoje existe em um arquivo só."
+    }
+  },
+
+  "dados": {
+    "dinheiro": "Sempre pela função única de formatação (pt-BR, com separador de milhar). Nunca montar o valor à mão.",
+    "ocultarValores": "O modo privado troca o número por R$ ••••• mantendo a mesma largura de caixa, sem pular o layout.",
+    "sinal": "Entrada com seta para cima em positivo; saída com seta para baixo em negativo. O sinal vem da seta e da cor, não de parênteses.",
+    "datas": "Relativas até sete dias ('ontem', 'há 3 dias'); depois, dd/mm."
+  },
+
+  "acessibilidade": {
+    "foco": "Anel visível obrigatório em todo elemento focável: 2px em acao.primaria com 2px de deslocamento. Hoje o app tem duas ocorrências de focus-visible no total.",
+    "alvoDeToque": "mínimo 44x44px",
+    "contraste": "Texto secundário mínimo 4.5:1 sobre o fundo do cartão. Terciário só para informação redundante.",
+    "folhas": "Mantêm trap de foco, fechamento por Esc e devolução do foco ao gatilho — isso já existe e não pode regredir."
+  },
+
+  "antiPadroes": [
+    "Cartão dentro de cartão dentro de cartão.",
+    "Borda em volta de tudo para criar separação.",
+    "Texto abaixo de 12px.",
+    "Mais de uma cor de ação na mesma tela.",
+    "Modal que abre modal.",
+    "Largura fixa em flex sem min-w-0 — foi o que fez o cabeçalho vazar 49px numa tela de 360px.",
+    "Emoji como ícone."
+  ]
+}

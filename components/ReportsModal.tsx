@@ -9,9 +9,26 @@ import {
 import { useState } from "react";
 import { toast } from "./Toast";
 import { formatMoney } from "../lib/format";
+import { EmptyState } from "./ui/Surface";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 
-const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
+/**
+ * Fatias da rosquinha: um tom só, do claro ao escuro.
+ *
+ * Antes eram sete matizes diferentes — roxo, azul, verde, âmbar, vermelho,
+ * rosa, índigo. Sete cores sem relação entre si fazem o gráfico parecer sete
+ * assuntos, quando é um só repartido. E duas delas colidiam com o verde de
+ * "positivo" e o vermelho de "negativo", que no resto do app querem dizer
+ * outra coisa.
+ *
+ * Numa rampa de um tom, a ordem da legenda e a ordem do gráfico são a mesma
+ * informação: mais escuro é menor.
+ */
+const COLORS = ['#b9d7e6', '#8fbdd3', '#6fa8c2', '#548ea8', '#40748c', '#2f5a70', '#224456'];
+
+const COR_POS = '#5fd39b';
+const COR_NEG = '#f0776e';
+const COR_BRAND = '#8fbdd3';
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -108,13 +125,13 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-black/80 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-xl z-50">
-          <p className="text-white font-bold mb-1">{label || payload[0].name}</p>
+        <div className="bg-black/80 backdrop-blur-md border border-white/10 p-3 rounded-field shadow-xl z-50">
+          <p className="text-ink font-bold mb-1">{label || payload[0].name}</p>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center gap-2 text-sm">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-              <span className="text-neutral-300">{entry.name}:</span>
-              <span className="text-white font-bold">{formatMoney(Number(entry.value))}</span>
+              <span className="text-ink-2">{entry.name}:</span>
+              <span className="text-ink font-bold">{formatMoney(Number(entry.value))}</span>
             </div>
           ))}
         </div>
@@ -192,12 +209,12 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(16, 185, 129);
-      doc.text(`Receitas Totais: R$ ${totalIncome.toFixed(2).replace('.', ',')}`, 15, 65);
+      doc.text(`Receitas Totais: ${formatMoney(totalIncome)}`, 15, 65);
       doc.setTextColor(239, 68, 68);
-      doc.text(`Despesas Totais: R$ ${totalExpense.toFixed(2).replace('.', ',')}`, 15, 73);
+      doc.text(`Despesas Totais: ${formatMoney(totalExpense)}`, 15, 73);
       doc.setTextColor(balance >= 0 ? 16 : 239, balance >= 0 ? 185 : 68, balance >= 0 ? 129 : 68);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Saldo: R$ ${balance.toFixed(2).replace('.', ',')}`, 15, 81);
+      doc.text(`Saldo: ${formatMoney(balance)}`, 15, 81);
 
       // Table header
       let y = 95;
@@ -232,7 +249,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
         doc.setTextColor(isIncome ? 16 : 239, isIncome ? 185 : 68, isIncome ? 129 : 68);
         doc.text(isIncome ? 'Receita' : 'Despesa', 145, y);
         doc.setTextColor(60, 60, 60);
-        doc.text(`R$ ${t.amount.toFixed(2).replace('.', ',')}`, 165, y);
+        doc.text(formatMoney(t.amount), 165, y);
         doc.setTextColor(t.is_paid === false ? 217 : 16, t.is_paid === false ? 119 : 185, t.is_paid === false ? 6 : 129);
         doc.text(t.is_paid === false ? 'Pendente' : 'Pago', 187, y);
         y += 9;
@@ -257,28 +274,28 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md"
           />
           <motion.div ref={a11yRef} role="dialog" aria-modal="true" 
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="relative w-full max-w-2xl bg-neutral-900 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-white/10"
+            className="relative w-full max-w-2xl bg-surface sm:rounded-card rounded-t-3xl shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col max-h-[90vh] border border-white/10"
           >
             <div className="p-6 border-b border-white/10 flex justify-between items-start bg-white/5 flex-wrap gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 shadow-inner">
-                  <PieChartIcon className="w-5 h-5 text-indigo-400" />
+                <div className="w-10 h-10 rounded-field bg-brand/20 flex items-center justify-center border border-brand/30 shadow-inner">
+                  <PieChartIcon className="w-5 h-5 text-brand" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">Relatórios</h2>
+                  <h2 className="text-xl font-bold text-ink tracking-tight">Relatórios</h2>
                   {periodFilter === 'month' ? (
                     <div className="flex items-center gap-2 mt-0.5">
-                      <button onClick={onPrevMonth} className="p-0.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" /></button>
-                      <p className="text-xs text-neutral-300 font-medium">{periodLabel}</p>
-                      <button onClick={onNextMonth} className="p-0.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronRight className="w-3.5 h-3.5" /></button>
+                      <button onClick={onPrevMonth} className="p-0.5 text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                      <p className="text-xs text-ink-2 font-medium">{periodLabel}</p>
+                      <button onClick={onNextMonth} className="p-0.5 text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronRight className="w-3.5 h-3.5" /></button>
                     </div>
                   ) : (
-                    <p className="text-xs text-neutral-400 mt-0.5">{periodLabel}</p>
+                    <p className="text-xs text-ink-2 mt-0.5">{periodLabel}</p>
                   )}
                 </div>
               </div>
@@ -287,7 +304,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
                 <select 
                   value={periodFilter} 
                   onChange={(e: any) => setPeriodFilter(e.target.value)}
-                  className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-300 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 cursor-pointer appearance-none pr-8 relative"
+                  className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-xs font-medium text-ink-2 outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/50 cursor-pointer appearance-none pr-8 relative"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.7rem top 50%', backgroundSize: '0.65rem auto' }}
                 >
                   <option value="month">Mensal</option>
@@ -296,28 +313,28 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
                   <option value="year">Anual</option>
                   <option value="all">Todo Histórico</option>
                 </select>
-                <button onClick={handleExportCSV} className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-emerald-500/20">
+                <button onClick={handleExportCSV} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink px-3 py-1.5 rounded-full text-sm font-medium transition-colors border border-line">
                   <Download className="w-4 h-4" /> CSV
                 </button>
-                <button onClick={handleExportPDF} className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-rose-500/20">
+                <button onClick={handleExportPDF} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink px-3 py-1.5 rounded-full text-sm font-medium transition-colors border border-line">
                   <FileText className="w-4 h-4" /> PDF
                 </button>
-                <button onClick={onClose} aria-label="Fechar" className="p-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-full transition-colors">
+                <button onClick={onClose} aria-label="Fechar" className="p-2 text-ink-2 hover:text-ink hover:bg-white/10 rounded-full transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div className="flex p-4 gap-2 bg-black/20 border-b border-white/5 overflow-x-auto scrollbar-hide">
+            <div className="flex p-4 gap-2 bg-white/5 border-b border-white/5 overflow-x-auto scrollbar-hide">
               <button 
                 onClick={() => setActiveTab('categorias')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'categorias' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-neutral-400 hover:bg-white/5'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-field font-medium transition-all whitespace-nowrap ${activeTab === 'categorias' ? 'bg-brand/15 text-brand border border-brand/30' : 'text-ink-2 hover:bg-white/5'}`}
               >
                 <PieChartIcon className="w-4 h-4" /> Despesas por Categoria
               </button>
               <button 
                 onClick={() => setActiveTab('balanco')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'balanco' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-neutral-400 hover:bg-white/5'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-field font-medium transition-all whitespace-nowrap ${activeTab === 'balanco' ? 'bg-brand/15 text-brand border border-brand/30' : 'text-ink-2 hover:bg-white/5'}`}
               >
                 <BarChart3 className="w-4 h-4" /> Balanço Mensal
               </button>
@@ -328,7 +345,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
               {activeTab === 'categorias' && (
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-6">
                   {categoryData.length === 0 ? (
-                    <div className="text-center py-10 text-neutral-500">Nenhuma despesa registrada. Adicione um lançamento!</div>
+                    <EmptyState icon={<PieChartIcon className="h-6 w-6" />} title="Nenhuma despesa neste período." description="Assim que houver gasto no mês escolhido, a divisão por categoria aparece aqui." />
                   ) : (
                     <>
                       <div className="h-64 w-full relative">
@@ -346,29 +363,29 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
                           </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                          <span className="text-xs text-neutral-500 uppercase tracking-widest font-bold">Gasto</span>
-                          <span className="text-xl font-extrabold text-white">
+                          <span className="text-xs text-ink-3 tracking-wide">Gasto</span>
+                          <span className="text-2xl font-semibold tracking-tight text-ink tnum">
                             {formatMoney(Number(categoryData.reduce((a, b) => a + b.value, 0)))}
                           </span>
                         </div>
                       </div>
 
                       {investedInPeriod !== 0 && (
-                        <p className="text-[11px] text-neutral-500 text-center mt-3 leading-relaxed">
-                          <PiggyBank className="w-3 h-3 text-indigo-400 inline mr-1" />
-                          Fora daqui: <strong className="text-indigo-400">{formatMoney(investedInPeriod)}</strong> em aportes.
+                        <p className="text-xs text-ink-3 text-center mt-3 leading-relaxed">
+                          <PiggyBank className="w-3 h-3 text-brand inline mr-1" />
+                          Fora daqui: <strong className="text-brand">{formatMoney(investedInPeriod)}</strong> em aportes.
                           Investimento não é gasto — continua sendo seu dinheiro.
                         </p>
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                         {categoryData.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl">
+                          <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-field">
                             <div className="flex items-center gap-3">
-                              <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                              <span className="text-sm font-medium text-neutral-300">{item.name}</span>
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                              <span className="text-sm font-medium text-ink-2">{item.name}</span>
                             </div>
-                            <span className="text-sm font-bold text-white">{formatMoney(Number(item.value))}</span>
+                            <span className="text-sm font-semibold text-ink tnum">{formatMoney(Number(item.value))}</span>
                           </div>
                         ))}
                       </div>
@@ -380,38 +397,50 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
               {activeTab === 'balanco' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-6">
                   {balanceData.length === 0 ? (
-                     <div className="text-center py-10 text-neutral-500">Nenhum dado mensal registrado.</div>
+                     <EmptyState icon={<BarChart3 className="h-6 w-6" />} title="Ainda não há meses para comparar." description="O balanço precisa de pelo menos um mês fechado para desenhar a comparação." />
                   ) : (
                     <>
                       <div className="h-72 w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={balanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                            <XAxis dataKey="name" stroke="#666" tick={{fill: '#999', fontSize: 12}} axisLine={false} tickLine={false} />
-                            <YAxis stroke="#666" tick={{fill: '#999', fontSize: 12}} axisLine={false} tickLine={false} tickFormatter={(val) => `R$ ${val}`} />
-                            <Tooltip content={<CustomTooltip />} cursor={{fill: '#ffffff05'}} />
-                            <Legend wrapperStyle={{paddingTop: '20px'}} />
-                            <Bar dataKey="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={16} />
-                            <Bar dataKey="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={16} />
-                            <Bar dataKey="Investido" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={16} />
+                            {/* Barra acesa no topo e dissolvendo na base: o olho
+                                compara as alturas sem a grade ajudar, e o gráfico
+                                para de competir com o conteúdo em volta. */}
+                            <defs>
+                              {[['gReceitas', COR_POS], ['gDespesas', COR_NEG], ['gInvestido', COR_BRAND]].map(([id, cor]) => (
+                                <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={cor} stopOpacity={0.95} />
+                                  <stop offset="100%" stopColor={cor} stopOpacity={0.15} />
+                                </linearGradient>
+                              ))}
+                            </defs>
+                            {/* Sem grade: a referência não tem, e cada linha a mais
+                                é ruído atrás do dado. */}
+                            <XAxis dataKey="name" tick={{ fill: '#5d6975', fontSize: 12 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: '#5d6975', fontSize: 12 }} axisLine={false} tickLine={false} tickCount={4} tickFormatter={(val) => `R$ ${val}`} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff08' }} />
+                            <Legend wrapperStyle={{ paddingTop: 20, fontSize: 12, color: '#93a1ac' }} iconType="circle" iconSize={8} />
+                            <Bar dataKey="Receitas" fill="url(#gReceitas)" radius={[6, 6, 0, 0]} barSize={16} />
+                            <Bar dataKey="Despesas" fill="url(#gDespesas)" radius={[6, 6, 0, 0]} barSize={16} />
+                            <Bar dataKey="Investido" fill="url(#gInvestido)" radius={[6, 6, 0, 0]} barSize={16} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
 
-                      <div className="bg-gradient-to-r from-emerald-500/10 to-rose-500/10 border border-white/5 p-4 rounded-2xl flex items-center justify-around mt-4">
+                      <div className="bg-gradient-to-r from-pos/10 to-neg/10 border border-white/5 p-4 rounded-inner flex items-center justify-around mt-4">
                         <div className="text-center">
-                          <p className="text-xs text-neutral-400 mb-1 flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-400"/> Receitas Total</p>
-                          <p className="font-bold text-emerald-400">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + b.Receitas, 0)))}</p>
+                          <p className="text-xs text-ink-2 mb-1 flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3 text-pos"/> Receitas Total</p>
+                          <p className="font-bold text-pos">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + b.Receitas, 0)))}</p>
                         </div>
                         <div className="w-px h-10 bg-white/10"></div>
                         <div className="text-center">
-                          <p className="text-xs text-neutral-400 mb-1 flex items-center justify-center gap-1"><TrendingDown className="w-3 h-3 text-rose-400"/> Despesas Total</p>
-                          <p className="font-bold text-rose-400">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + b.Despesas, 0)))}</p>
+                          <p className="text-xs text-ink-2 mb-1 flex items-center justify-center gap-1"><TrendingDown className="w-3 h-3 text-neg"/> Despesas Total</p>
+                          <p className="font-bold text-neg">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + b.Despesas, 0)))}</p>
                         </div>
                         <div className="w-px h-10 bg-white/10"></div>
                         <div className="text-center">
-                          <p className="text-xs text-neutral-400 mb-1 flex items-center justify-center gap-1"><PiggyBank className="w-3 h-3 text-indigo-400"/> Investido</p>
-                          <p className="font-bold text-indigo-400">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + (b.Investido || 0), 0)))}</p>
+                          <p className="text-xs text-ink-2 mb-1 flex items-center justify-center gap-1"><PiggyBank className="w-3 h-3 text-brand"/> Investido</p>
+                          <p className="font-bold text-brand">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + (b.Investido || 0), 0)))}</p>
                         </div>
                       </div>
                     </>

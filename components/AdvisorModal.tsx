@@ -133,37 +133,37 @@ export function AdvisorModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
           <motion.div ref={a11yRef} role="dialog" aria-modal="true"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg max-h-[88vh] bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-lg max-h-[88vh] sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
           >
-            <div className="absolute -top-24 -right-24 w-56 h-56 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
 
             <div className="flex justify-between items-center mb-5 shrink-0 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
-                  <Bot className="w-5 h-5 text-purple-400" />
+                <div className="p-2.5 bg-brand/10 border border-brand/20 rounded-inner">
+                  <Bot className="w-5 h-5 text-brand" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white leading-tight">Conselheiro IA</h2>
-                  <p className="text-[11px] text-neutral-500">{strategy.name} · {insights.stage.label}</p>
+                  <h2 className="text-xl font-bold text-ink leading-tight">Conselheiro IA</h2>
+                  <p className="text-xs text-ink-3">{strategy.name} · {insights.stage.label}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => fetchAdvice(true)}
                   disabled={isFetching}
-                  className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white disabled:opacity-40 cursor-pointer"
+                  className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink disabled:opacity-40 cursor-pointer"
                   title="Gerar novo conselho"
                 >
                   <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
                 </button>
-                <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white cursor-pointer">
+                <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -172,18 +172,18 @@ export function AdvisorModal({
             <div className="overflow-y-auto pr-1 flex-1 relative z-10">
               {isFetching ? (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <Loader2 className="w-9 h-9 text-purple-500 animate-spin mb-4" />
-                  <p className="text-neutral-400 font-medium text-sm">Analisando suas finanças...</p>
-                  <p className="text-neutral-600 text-xs mt-1">Isso leva alguns segundos</p>
+                  <Loader2 className="w-9 h-9 text-brand animate-spin mb-4" />
+                  <p className="text-ink-2 font-medium text-sm">Analisando suas finanças...</p>
+                  <p className="text-ink-3 text-xs mt-1">Isso leva alguns segundos</p>
                 </div>
               ) : advice ? (
-                <div className="prose prose-invert prose-sm prose-p:text-neutral-300 prose-li:text-neutral-300 prose-strong:text-purple-400 prose-headings:text-white bg-white/5 border border-white/10 rounded-2xl p-5">
+                <div className="prose prose-invert prose-sm prose-p:text-ink-2 prose-li:text-ink-2 prose-strong:text-brand prose-headings:text-ink bg-white/5 border border-white/10 rounded-inner p-5">
                   <ReactMarkdown>{advice}</ReactMarkdown>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Sparkles className="w-8 h-8 text-neutral-700 mb-3" />
-                  <p className="text-neutral-500 text-sm">Nenhum conselho ainda.</p>
+                  <Sparkles className="w-8 h-8 text-ink-3 mb-3" />
+                  <p className="text-ink-3 text-sm">Nenhum conselho ainda.</p>
                 </div>
               )}
             </div>

@@ -182,57 +182,57 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
-          <motion.div ref={a11yRef} role="dialog" aria-modal="true" initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <motion.div ref={a11yRef} role="dialog" aria-modal="true" initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-lg sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center mb-6 shrink-0">
-              <h2 className="text-xl font-bold text-white">Novo Lançamento</h2>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white">
+              <h2 className="text-xl font-bold text-ink">Novo Lançamento</h2>
+              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
               
-              <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10 shrink-0">
-                <button type="button" onClick={() => handleTypeChange('expense')} className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition-colors ${type === 'expense' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'text-neutral-400 hover:text-white'}`}>
+              <div className="flex gap-2 p-1 bg-white/5 rounded-inner border border-white/10 shrink-0">
+                <button type="button" onClick={() => handleTypeChange('expense')} className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-field text-sm font-medium transition-colors ${type === 'expense' ? 'bg-neg/20 text-neg border border-neg/30' : 'text-ink-2 hover:text-ink'}`}>
                   <TrendingDown className="w-4 h-4" /> Despesa
                 </button>
-                <button type="button" onClick={() => handleTypeChange('income')} className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition-colors ${type === 'income' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-neutral-400 hover:text-white'}`}>
+                <button type="button" onClick={() => handleTypeChange('income')} className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-field text-sm font-medium transition-colors ${type === 'income' ? 'bg-pos/20 text-pos border border-pos/30' : 'text-ink-2 hover:text-ink'}`}>
                   <TrendingUp className="w-4 h-4" /> Receita
                 </button>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-1.5">{isInstallment ? "Valor da Parcela" : "Valor Total"}</label>
+                <label className="block text-sm font-medium text-ink-2 mb-1.5">{isInstallment ? "Valor da Parcela" : "Valor Total"}</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-medium">R$</span>
-                  <input type="number" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3 font-medium">R$</span>
+                  <input type="number" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field py-3 pl-12 pr-4 text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand transition-colors" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-1.5">Título</label>
-                <input type="text" placeholder="Ex: Conta de Luz, Supermercado..." value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors" />
+                <label className="block text-sm font-medium text-ink-2 mb-1.5">Título</label>
+                <input type="text" placeholder="Ex: Conta de Luz, Supermercado..." value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field p-3 text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand transition-colors" />
               </div>
 
               <div className="flex gap-4">
 
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-neutral-400 mb-1.5">Data</label>
+                  <label className="block text-sm font-medium text-ink-2 mb-1.5">Data</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-10 pr-3 text-white focus:outline-none focus:border-indigo-500 transition-colors [color-scheme:dark]" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
+                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field py-3 pl-10 pr-3 text-ink focus:outline-none focus:border-brand transition-colors [color-scheme:dark]" />
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-neutral-400 mb-1.5">Categoria</label>
+                  <label className="block text-sm font-medium text-ink-2 mb-1.5">Categoria</label>
                   <div className="relative">
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-4 pr-10 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer">
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field py-3 pl-4 pr-10 text-ink focus:outline-none focus:border-brand transition-colors appearance-none cursor-pointer">
                       {type === 'expense' ? (
                       <>
                         <option value="Variáveis">Variáveis</option>
@@ -249,24 +249,24 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
                       </>
                     )}
                     </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" />
                   </div>
 
                   {/* Receita + Investimentos é quase sempre engano: quem compra
                       um ativo está tirando dinheiro da conta, não recebendo.
                       Só faz sentido em venda ou resgate. */}
                   {type === 'income' && category === 'Investimentos' && (
-                    <div className="mt-3 flex items-start gap-2.5 bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
-                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="mt-3 flex items-start gap-2.5 bg-warn/5 border border-warn/20 rounded-field p-3">
+                      <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
                       <div className="text-xs leading-relaxed">
-                        <p className="text-amber-200 font-semibold mb-1">Isso é uma venda ou resgate?</p>
-                        <p className="text-neutral-400">
-                          Se você está <strong className="text-neutral-300">comprando</strong> um ativo, o certo é lançar como <strong className="text-neutral-300">Despesa</strong> — o dinheiro sai da conta e vira patrimônio.
+                        <p className="text-warn font-semibold mb-1">Isso é uma venda ou resgate?</p>
+                        <p className="text-ink-2">
+                          Se você está <strong className="text-ink-2">comprando</strong> um ativo, o certo é lançar como <strong className="text-ink-2">Despesa</strong> — o dinheiro sai da conta e vira patrimônio.
                         </p>
                         <button
                           type="button"
                           onClick={() => { setType('expense'); setCategory('Investimentos'); }}
-                          className="mt-2 text-amber-400 hover:text-amber-300 font-semibold underline underline-offset-2 cursor-pointer"
+                          className="mt-2 text-warn hover:text-warn font-semibold underline underline-offset-2 cursor-pointer"
                         >
                           Mudar para Despesa
                         </button>
@@ -277,12 +277,12 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
 
                 {wallets.length > 0 && (
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-neutral-400 mb-1.5">Carteira</label>
+                    <label className="block text-sm font-medium text-ink-2 mb-1.5">Carteira</label>
                     <div className="relative">
-                      <select value={walletId} onChange={(e) => setWalletId(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-4 pr-10 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer">
+                      <select value={walletId} onChange={(e) => setWalletId(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field py-3 pl-4 pr-10 text-ink focus:outline-none focus:border-brand transition-colors appearance-none cursor-pointer">
                         {wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                       </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" />
                     </div>
                   </div>
                 )}
@@ -290,36 +290,36 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
 
               {type === 'expense' && (
                 <div>
-                  <label className="block text-sm font-medium text-neutral-400 mb-1.5">
-                    Onde foi o gasto <span className="text-neutral-600 font-normal">(opcional)</span>
+                  <label className="block text-sm font-medium text-ink-2 mb-1.5">
+                    Onde foi o gasto <span className="text-ink-3 font-normal">(opcional)</span>
                   </label>
                   <div className="relative">
-                    <select value={subcategoria} onChange={(e) => setSubcategoria(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-4 pr-10 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer">
+                    <select value={subcategoria} onChange={(e) => setSubcategoria(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-field py-3 pl-4 pr-10 text-ink focus:outline-none focus:border-brand transition-colors appearance-none cursor-pointer">
                       <option value="">Deduzir pela descrição</option>
                       {SUBCATEGORIAS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" />
                   </div>
-                  <p className="text-xs text-neutral-500 mt-1.5">
+                  <p className="text-xs text-ink-3 mt-1.5">
                     Serve para ver quanto foi em cada coisa no mês. Não altera o orçamento, que segue por categoria.
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-1.5">Comprovante (Opcional)</label>
-                <input type="file" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full bg-black/20 border border-white/10 rounded-xl py-2 px-3 text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 transition-colors cursor-pointer" />
+                <label className="block text-sm font-medium text-ink-2 mb-1.5">Comprovante (Opcional)</label>
+                <input type="file" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full bg-white/5 border border-white/10 rounded-field py-2 px-3 text-sm text-ink-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand/20 file:text-brand hover:file:bg-brand/30 transition-colors cursor-pointer" />
 
                 {/* Anexar a fatura aqui só guarda o arquivo: nada dentro dele é
                     lido, e o gasto vira um item único. Quem fez isso achou que
                     tinha importado a fatura. O campo precisa dizer. */}
                 {receiptFile?.type === 'application/pdf' && (
-                  <div className="mt-2.5 flex items-start gap-2.5 bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-3">
-                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <div className="mt-2.5 flex items-start gap-2.5 bg-brand/5 border border-brand/20 rounded-field p-3">
+                    <Sparkles className="w-4 h-4 text-brand shrink-0 mt-0.5" />
                     <div className="text-xs leading-relaxed">
-                      <p className="text-indigo-200 font-semibold mb-1">Isso é uma fatura?</p>
-                      <p className="text-neutral-400">
-                        Aqui o PDF fica só guardado como comprovante, e o lançamento vira <strong className="text-neutral-300">um item único</strong>.
+                      <p className="text-brand font-semibold mb-1">Isso é uma fatura?</p>
+                      <p className="text-ink-2">
+                        Aqui o PDF fica só guardado como comprovante, e o lançamento vira <strong className="text-ink-2">um item único</strong>.
                         {AI_ENABLED && onImportarFatura
                           ? ' Para separar compra por compra, use a leitura por IA.'
                           : ' A leitura automática está desligada, então as compras não serão separadas.'}
@@ -330,7 +330,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
                         <button
                           type="button"
                           onClick={onImportarFatura}
-                          className="mt-2 text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
+                          className="mt-2 text-brand hover:text-brand font-semibold underline underline-offset-2 cursor-pointer"
                         >
                           Ler a fatura e separar as compras
                         </button>
@@ -341,56 +341,56 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
               </div>
 
               {type === 'expense' && (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
+                <div className="bg-white/5 border border-white/10 rounded-field p-4 flex flex-col gap-4">
                   <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={isInstallment} onChange={(e) => { setIsInstallment(e.target.checked); setIsRecurring(false); }} className="w-5 h-5 rounded border-white/20 bg-black/20 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-neutral-900" />
-                    <span className="text-white font-medium">Compra Parcelada?</span>
+                    <input type="checkbox" checked={isInstallment} onChange={(e) => { setIsInstallment(e.target.checked); setIsRecurring(false); }} className="w-5 h-5 rounded border-white/20 bg-white/5 text-brand focus:ring-brand focus:ring-offset-neutral-900" />
+                    <span className="text-ink font-medium">Compra Parcelada?</span>
                   </label>
                   
                   {isInstallment && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-3">
-                      <span className="text-neutral-400 text-sm">Em</span>
-                      <input type="number" min="2" max="48" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value))} className="w-20 bg-black/20 border border-white/10 rounded-lg p-2 text-center text-white focus:outline-none focus:border-indigo-500" />
-                      <span className="text-neutral-400 text-sm">vezes</span>
+                      <span className="text-ink-2 text-sm">Em</span>
+                      <input type="number" min="2" max="48" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value))} className="w-20 bg-white/5 border border-white/10 rounded-lg p-2 text-center text-ink focus:outline-none focus:border-brand" />
+                      <span className="text-ink-2 text-sm">vezes</span>
                     </motion.div>
                   )}
 
                   <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={isRecurring} onChange={(e) => { setIsRecurring(e.target.checked); setIsInstallment(false); }} className="w-5 h-5 rounded border-white/20 bg-black/20 text-rose-500 focus:ring-rose-500 focus:ring-offset-neutral-900" />
-                    <span className="text-white font-medium">Conta Mensal Fixa (Repetir)?</span>
+                    <input type="checkbox" checked={isRecurring} onChange={(e) => { setIsRecurring(e.target.checked); setIsInstallment(false); }} className="w-5 h-5 rounded border-white/20 bg-white/5 text-neg focus:ring-neg focus:ring-offset-neutral-900" />
+                    <span className="text-ink font-medium">Conta Mensal Fixa (Repetir)?</span>
                   </label>
                   
                   {isRecurring && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-3">
-                      <span className="text-neutral-400 text-sm">Repetir por</span>
-                      <input type="number" min="2" max="48" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value))} className="w-20 bg-black/20 border border-white/10 rounded-lg p-2 text-center text-white focus:outline-none focus:border-indigo-500" />
-                      <span className="text-neutral-400 text-sm">meses</span>
+                      <span className="text-ink-2 text-sm">Repetir por</span>
+                      <input type="number" min="2" max="48" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value))} className="w-20 bg-white/5 border border-white/10 rounded-lg p-2 text-center text-ink focus:outline-none focus:border-brand" />
+                      <span className="text-ink-2 text-sm">meses</span>
                     </motion.div>
                   )}
 
                   <div className="h-px bg-white/10 w-full"></div>
 
                   <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={isSplit} onChange={(e) => setIsSplit(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-black/20 text-pink-500 focus:ring-pink-500 focus:ring-offset-neutral-900" />
+                    <input type="checkbox" checked={isSplit} onChange={(e) => setIsSplit(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-white/5 text-ink-2 focus:ring-brand focus:ring-offset-neutral-900" />
                     <div>
-                      <span className="text-white font-medium block">Dividir com Parceiro(a)?</span>
-                      <span className="text-neutral-500 text-xs">A despesa será cortada pela metade (50/50).</span>
+                      <span className="text-ink font-medium block">Dividir com Parceiro(a)?</span>
+                      <span className="text-ink-3 text-xs">A despesa será cortada pela metade (50/50).</span>
                     </div>
                   </label>
 
                   <div className="h-px bg-white/10 w-full"></div>
 
                   <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-black/20 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-neutral-900" />
+                    <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-white/5 text-pos focus:ring-pos focus:ring-offset-neutral-900" />
                     <div>
-                      <span className="text-white font-medium block">Já foi pago?</span>
-                      <span className="text-neutral-500 text-xs">Desmarque se for uma conta para o futuro.</span>
+                      <span className="text-ink font-medium block">Já foi pago?</span>
+                      <span className="text-ink-3 text-xs">Desmarque se for uma conta para o futuro.</span>
                     </div>
                   </label>
                 </div>
               )}
 
-              <button type="submit" disabled={isLoading} className="w-full mt-2 bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-500/50 text-white font-medium py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex justify-center items-center shrink-0">
+              <button type="submit" disabled={isLoading} className="w-full mt-2 bg-brand hover:bg-brand disabled:bg-brand/50 text-ink font-medium py-3.5 rounded-field transition-all shadow-lg shadow-brand/25 active:scale-[0.98] flex justify-center items-center shrink-0">
                 {isLoading ? "Salvando..." : "Salvar Lançamento"}
               </button>
             </form>

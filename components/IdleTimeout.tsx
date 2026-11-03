@@ -97,7 +97,7 @@ export function IdleTimeout() {
     <AnimatePresence>
       {avisando && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
           <motion.div
             role="alertdialog"
@@ -106,25 +106,25 @@ export function IdleTimeout() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-sm bg-neutral-900 border border-amber-500/25 rounded-3xl p-6 shadow-2xl text-center"
+            className="relative w-full max-w-sm bg-surface border border-warn/25 rounded-card p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] text-center"
           >
-            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <Clock className="w-6 h-6 text-amber-400" />
+            <div className="w-12 h-12 bg-warn/10 border border-warn/20 rounded-inner flex items-center justify-center mx-auto mb-5">
+              <Clock className="w-6 h-6 text-warn" />
             </div>
 
-            <h2 id="idle-title" className="text-lg font-bold text-white mb-2">Ainda está aí?</h2>
-            <p className="text-sm text-neutral-400 leading-relaxed mb-1">
+            <h2 id="idle-title" className="text-lg font-bold text-ink mb-2">Ainda está aí?</h2>
+            <p className="text-sm text-ink-2 leading-relaxed mb-1">
               Por segurança, vamos encerrar sua sessão em{' '}
-              <strong className="text-amber-400 tabular-nums">{segundos}s</strong>.
+              <strong className="text-warn tabular-nums">{segundos}s</strong>.
             </p>
-            <p className="text-xs text-neutral-600 leading-relaxed mb-6">
+            <p className="text-xs text-ink-3 leading-relaxed mb-6">
               Nada do que você lançou se perde.
             </p>
 
             <button
               onClick={continuar}
               disabled={saindo}
-              className="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-neutral-200 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-brand text-canvas font-bold py-3.5 rounded-field hover:bg-brand-strong transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saindo ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continuar conectado'}
             </button>

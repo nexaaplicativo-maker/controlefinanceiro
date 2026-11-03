@@ -5,6 +5,15 @@ import { Home, CreditCard, BarChart3, Settings, Plus, Camera, PenTool } from "lu
 import { motion, AnimatePresence } from "motion/react";
 import { AI_ENABLED } from "../lib/features";
 
+function Ponto({ ativo }: { ativo: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`mt-0.5 h-1 w-1 rounded-full transition-colors ${ativo ? "bg-brand" : "bg-transparent"}`}
+    />
+  );
+}
+
 export function BottomNav() {
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
@@ -23,17 +32,19 @@ export function BottomNav() {
   return (
     <div className="md:hidden block"> {/* <--- A CAPA DE INVISIBILIDADE NO PC ESTÁ AQUI */}
       <div className="fixed bottom-0 left-0 w-full z-40 pb-safe px-safe">
-        <div className="absolute inset-0 bg-neutral-950/80 backdrop-blur-xl border-t border-white/5"></div>
+        <div className="absolute inset-0 bg-canvas/85 backdrop-blur-xl border-t border-line-strong"></div>
         
         <div className="relative px-6 h-20 flex items-center justify-between">
           <div className="flex gap-8">
-            <button onClick={() => openModal('home')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'home' ? 'text-indigo-400' : 'text-neutral-500 hover:text-indigo-300'}`}>
-              <Home className="w-6 h-6" />
-              <span className="text-[10px] font-medium tracking-wide">Início</span>
+            <button onClick={() => openModal('home')} className={`flex flex-col items-center gap-0.5 min-w-[56px] py-2 transition-colors cursor-pointer ${activeTab === 'home' ? 'text-brand' : 'text-ink-3 hover:text-brand'}`}>
+              <Home className="h-[22px] w-[22px]" />
+              <span className="text-xs font-medium">Início</span>
+              <Ponto ativo={activeTab === 'home'} />
             </button>
-            <button onClick={() => openModal('cartoes')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'cartoes' ? 'text-indigo-400' : 'text-neutral-500 hover:text-indigo-300'}`}>
-              <CreditCard className="w-6 h-6" />
-              <span className="text-[10px] font-medium tracking-wide">Cartões</span>
+            <button onClick={() => openModal('cartoes')} className={`flex flex-col items-center gap-0.5 min-w-[56px] py-2 transition-colors cursor-pointer ${activeTab === 'cartoes' ? 'text-brand' : 'text-ink-3 hover:text-brand'}`}>
+              <CreditCard className="h-[22px] w-[22px]" />
+              <span className="text-xs font-medium">Cartões</span>
+              <Ponto ativo={activeTab === 'cartoes'} />
             </button>
           </div>
 
@@ -42,20 +53,22 @@ export function BottomNav() {
                 botão lança direto, sem abrir menu de um item. */}
             <button
               onClick={() => AI_ENABLED ? setIsFabOpen(!isFabOpen) : openModal('manual')}
-              className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300 ${isFabOpen ? 'bg-neutral-800 border border-white/10 rotate-45' : 'bg-gradient-to-r from-indigo-500 to-purple-600 shadow-indigo-500/30 hover:scale-105 active:scale-95'}`}
+              className={`w-14 h-14 rounded-full flex items-center justify-center text-canvas shadow-xl transition-all duration-300 cursor-pointer ${isFabOpen ? 'bg-white/5 border border-white/10 rotate-45' : 'bg-brand shadow-[0_8px_28px_rgba(143,189,211,0.35)] hover:scale-105 active:scale-95'}`}
             >
-              <Plus className="w-7 h-7" />
+              <Plus className="h-6 w-6" />
             </button>
           </div>
 
           <div className="flex gap-8">
-            <button onClick={() => openModal('relatorios')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'relatorios' ? 'text-indigo-400' : 'text-neutral-500 hover:text-indigo-300'}`}>
-              <BarChart3 className="w-6 h-6" />
-              <span className="text-[10px] font-medium tracking-wide">Gráficos</span>
+            <button onClick={() => openModal('relatorios')} className={`flex flex-col items-center gap-0.5 min-w-[56px] py-2 transition-colors cursor-pointer ${activeTab === 'relatorios' ? 'text-brand' : 'text-ink-3 hover:text-brand'}`}>
+              <BarChart3 className="h-[22px] w-[22px]" />
+              <span className="text-xs font-medium">Gráficos</span>
+              <Ponto ativo={activeTab === 'relatorios'} />
             </button>
-            <button onClick={() => openModal('config')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'config' ? 'text-indigo-400' : 'text-neutral-500 hover:text-indigo-300'}`}>
-              <Settings className="w-6 h-6" />
-              <span className="text-[10px] font-medium tracking-wide">Ajustes</span>
+            <button onClick={() => openModal('config')} className={`flex flex-col items-center gap-0.5 min-w-[56px] py-2 transition-colors cursor-pointer ${activeTab === 'config' ? 'text-brand' : 'text-ink-3 hover:text-brand'}`}>
+              <Settings className="h-[22px] w-[22px]" />
+              <span className="text-xs font-medium">Ajustes</span>
+              <Ponto ativo={activeTab === 'config'} />
             </button>
           </div>
         </div>
@@ -75,10 +88,10 @@ export function BottomNav() {
                 onClick={() => { setIsFabOpen(false); openModal('manual'); }}
                 className="flex flex-col items-center gap-2 group cursor-pointer"
               >
-                <div className="w-14 h-14 bg-neutral-800 border border-white/10 rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
-                  <PenTool className="w-6 h-6 text-indigo-400" />
+                <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
+                  <PenTool className="w-6 h-6 text-brand" />
                 </div>
-                <span className="text-white text-[11px] font-medium bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/5">Manual</span>
+                <span className="text-ink text-xs font-medium bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/5">Manual</span>
               </motion.button>
               
               <motion.button 
@@ -86,10 +99,10 @@ export function BottomNav() {
                 onClick={() => { setIsFabOpen(false); openModal('camera'); }}
                 className="flex flex-col items-center gap-2 group cursor-pointer"
               >
-                <div className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 active:scale-95 transition-transform">
-                  <Camera className="w-6 h-6 text-white" />
+                <div className="w-14 h-14 bg-gradient-to-r from-brand to-brand rounded-full flex items-center justify-center shadow-lg shadow-brand/30 group-hover:scale-110 active:scale-95 transition-transform">
+                  <Camera className="w-6 h-6 text-ink" />
                 </div>
-                <span className="text-white text-[11px] font-medium bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/5">Câmera IA</span>
+                <span className="text-ink text-xs font-medium bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/5">Câmera IA</span>
               </motion.button>
             </div>
           </>

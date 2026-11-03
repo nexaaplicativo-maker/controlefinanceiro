@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 // tem baixa visao, e um app financeiro e lido com atencao e com a vista
 // cansada. O ganho de impedir zoom acidental nao paga esse custo.
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#080b0f",
   width: "device-width",
   initialScale: 1,
   // Sem viewportFit "cover", env(safe-area-inset-*) devolve 0 e o app nao
@@ -42,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-neutral-950 text-white antialiased selection:bg-indigo-500/30 pb-bottom-nav md:pb-0 px-safe`}>
+      <body className={`${inter.className} bg-canvas text-ink antialiased selection:bg-brand/25 pb-bottom-nav md:pb-0 px-safe`}>
         <ErrorBoundary>{children}</ErrorBoundary>
         <BottomNav />
         <InstallPrompt />

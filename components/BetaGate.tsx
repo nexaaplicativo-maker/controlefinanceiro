@@ -114,8 +114,8 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
 
   if (estado === 'verificando') {
     return (
-      <div className="min-h-[100dvh] bg-neutral-950 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-neutral-600 animate-spin" />
+      <div className="min-h-[100dvh] bg-canvas flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-ink-3 animate-spin" />
       </div>
     );
   }
@@ -123,21 +123,21 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
   if (estado === 'liberado') return <>{children}</>;
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-950 flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-canvas flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-7 shadow-2xl relative overflow-hidden"
+        className="w-full max-w-md sheet-panel rounded-card p-7 shadow-[0_24px_60px_rgba(0,0,0,0.65)] relative overflow-hidden"
       >
-        <div className="absolute -top-24 -right-24 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-24 -right-24 w-56 h-56 bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
 
         {estado === 'precisa-convite' ? (
           <div className="relative z-10">
-            <div className="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mb-5">
-              <KeyRound className="w-5 h-5 text-indigo-400" />
+            <div className="w-12 h-12 bg-brand/10 border border-brand/20 rounded-inner flex items-center justify-center mb-5">
+              <KeyRound className="w-5 h-5 text-brand" />
             </div>
 
-            <h1 className="text-xl font-bold text-white mb-2">O Nexa está em beta fechado</h1>
-            <p className="text-sm text-neutral-400 leading-relaxed mb-6">
+            <h1 className="text-xl font-bold text-ink mb-2">O Nexa está em beta fechado</h1>
+            <p className="text-sm text-ink-2 leading-relaxed mb-6">
               Por enquanto o acesso é só por convite. Se você recebeu um código, digite abaixo — ele precisa ter sido emitido para este mesmo e-mail.
             </p>
 
@@ -148,38 +148,38 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
                 onChange={e => setCode(e.target.value.toUpperCase())}
                 placeholder="NEXA-ABC1"
                 aria-label="Código do convite"
-                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white text-center text-lg font-bold tracking-widest placeholder:text-neutral-700 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-black/40 border border-white/10 rounded-field py-3 px-4 text-ink text-center text-lg font-bold tracking-widest placeholder:text-ink-3 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-brand transition-colors"
               />
               <button
                 type="submit"
                 disabled={isBusy}
-                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-brand hover:bg-brand text-ink font-bold py-3.5 rounded-field transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
                 {isBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Entrar com o convite'}
               </button>
             </form>
 
-            <button onClick={sair} className="w-full mt-4 text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer flex items-center justify-center gap-1.5 py-2">
+            <button onClick={sair} className="w-full mt-4 text-xs text-ink-3 hover:text-ink-2 transition-colors cursor-pointer flex items-center justify-center gap-1.5 py-2">
               <LogOut className="w-3.5 h-3.5" /> Sair desta conta
             </button>
           </div>
         ) : (
           <div className="relative z-10">
-            <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mb-5">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <div className="w-12 h-12 bg-pos/10 border border-pos/20 rounded-inner flex items-center justify-center mb-5">
+              <ShieldCheck className="w-5 h-5 text-pos" />
             </div>
 
-            <h1 className="text-xl font-bold text-white mb-2">Antes de começar</h1>
-            <p className="text-sm text-neutral-400 leading-relaxed mb-5">
+            <h1 className="text-xl font-bold text-ink mb-2">Antes de começar</h1>
+            <p className="text-sm text-ink-2 leading-relaxed mb-5">
               O Nexa guarda informações financeiras suas. Leia como tratamos esses dados antes de continuar.
             </p>
 
             <div className="flex flex-col gap-2 mb-5">
-              <a href="/termos" target="_blank" rel="noreferrer" className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm text-neutral-300 hover:text-white transition-colors">
-                <FileText className="w-4 h-4 text-indigo-400 shrink-0" /> Termos de uso
+              <a href="/termos" target="_blank" rel="noreferrer" className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-field px-4 py-3 text-sm text-ink-2 hover:text-ink transition-colors">
+                <FileText className="w-4 h-4 text-brand shrink-0" /> Termos de uso
               </a>
-              <a href="/privacidade" target="_blank" rel="noreferrer" className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm text-neutral-300 hover:text-white transition-colors">
-                <FileText className="w-4 h-4 text-emerald-400 shrink-0" /> Política de privacidade
+              <a href="/privacidade" target="_blank" rel="noreferrer" className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-field px-4 py-3 text-sm text-ink-2 hover:text-ink transition-colors">
+                <FileText className="w-4 h-4 text-pos shrink-0" /> Política de privacidade
               </a>
             </div>
 
@@ -188,9 +188,9 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
                 type="checkbox"
                 checked={aceitou}
                 onChange={e => setAceitou(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded accent-indigo-500 shrink-0 cursor-pointer"
+                className="mt-0.5 w-4 h-4 rounded accent-brand shrink-0 cursor-pointer"
               />
-              <span className="text-xs text-neutral-400 leading-relaxed">
+              <span className="text-xs text-ink-2 leading-relaxed">
                 Li e aceito os termos de uso e a política de privacidade.
               </span>
             </label>
@@ -198,12 +198,12 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
             <button
               onClick={aceitarTermos}
               disabled={!aceitou || isBusy}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-pos hover:bg-pos text-ink font-bold py-3.5 rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
             >
               {isBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continuar'}
             </button>
 
-            <button onClick={sair} className="w-full mt-3 text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer py-2">
+            <button onClick={sair} className="w-full mt-3 text-xs text-ink-3 hover:text-ink-2 transition-colors cursor-pointer py-2">
               Sair desta conta
             </button>
           </div>

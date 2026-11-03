@@ -154,28 +154,28 @@ export function InvestmentsModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
           <motion.div ref={a11yRef} role="dialog" aria-modal="true"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl max-h-[88vh] bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-2xl max-h-[88vh] sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
           >
-            <div className="absolute -top-24 -right-24 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 w-56 h-56 bg-pos/10 rounded-full blur-3xl pointer-events-none"></div>
 
             <div className="flex justify-between items-center mb-5 shrink-0 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                  <LineChart className="w-5 h-5 text-emerald-400" />
+                <div className="p-2.5 bg-pos/10 border border-pos/20 rounded-inner">
+                  <LineChart className="w-5 h-5 text-pos" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white leading-tight">Patrimônio</h2>
-                  <p className="text-[11px] text-neutral-500">O que você tem e quanto vale hoje</p>
+                  <h2 className="text-xl font-bold text-ink leading-tight">Patrimônio</h2>
+                  <p className="text-xs text-ink-3">O que você tem e quanto vale hoje</p>
                 </div>
               </div>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white cursor-pointer">
+              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -183,21 +183,21 @@ export function InvestmentsModal({
             {/* Resumo */}
             {positions.length > 0 && (
               <div className="grid grid-cols-3 gap-3 mb-5 shrink-0 relative z-10">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mb-1">Aportado</p>
-                  <p className="text-lg font-bold text-white tracking-tight">{formatMoney(totalInvested)}</p>
+                <div className="bg-white/5 border border-white/10 rounded-inner p-3.5">
+                  <p className="text-xs text-ink-3 font-semibold mb-1">Aportado</p>
+                  <p className="text-lg font-bold text-ink tracking-tight">{formatMoney(totalInvested)}</p>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mb-1">Vale hoje</p>
-                  <p className="text-lg font-bold text-white tracking-tight">{formatMoney(totalCurrent)}</p>
+                <div className="bg-white/5 border border-white/10 rounded-inner p-3.5">
+                  <p className="text-xs text-ink-3 font-semibold mb-1">Vale hoje</p>
+                  <p className="text-lg font-bold text-ink tracking-tight">{formatMoney(totalCurrent)}</p>
                 </div>
-                <div className={`rounded-2xl p-3.5 border ${isUp ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
-                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mb-1">Rendimento</p>
-                  <p className={`text-lg font-bold tracking-tight flex items-center gap-1 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className={`rounded-inner p-3.5 border ${isUp ? 'bg-pos/5 border-pos/20' : 'bg-neg/5 border-neg/20'}`}>
+                  <p className="text-xs text-ink-3 font-semibold mb-1">Rendimento</p>
+                  <p className={`text-lg font-bold tracking-tight flex items-center gap-1 ${isUp ? 'text-pos' : 'text-neg'}`}>
                     {isUp ? <TrendingUp className="w-4 h-4 shrink-0" /> : <TrendingDown className="w-4 h-4 shrink-0" />}
                     {showValues ? `${isUp ? '+' : ''}${returnPercent.toFixed(1)}%` : '••%'}
                   </p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">{showValues ? `${isUp ? '+' : ''}${formatMoney(totalReturn).replace('R$ ', 'R$ ')}` : ''}</p>
+                  <p className="text-xs text-ink-3 mt-0.5">{showValues ? `${isUp ? '+' : ''}${formatMoney(totalReturn).replace('R$ ', 'R$ ')}` : ''}</p>
                 </div>
               </div>
             )}
@@ -208,21 +208,21 @@ export function InvestmentsModal({
               <AnimatePresence>
                 {showForm && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                    <div className="bg-black/30 border border-white/10 rounded-2xl p-4 mb-4 flex flex-col gap-3">
+                    <div className="bg-black/30 border border-white/10 rounded-inner p-4 mb-4 flex flex-col gap-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5 block">Ativo</label>
+                          <label className="text-xs text-ink-3 font-semibold mb-1.5 block">Ativo</label>
                           <input
                             type="text" value={name} onChange={e => setName(e.target.value)}
                             placeholder="Ex: BBAS3, Tesouro Selic"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white text-sm placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-black/40 border border-white/10 rounded-field py-2.5 px-3 text-ink text-sm placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5 block">Tipo</label>
+                          <label className="text-xs text-ink-3 font-semibold mb-1.5 block">Tipo</label>
                           <select
                             value={kind} onChange={e => setKind(e.target.value)}
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+                            className="w-full bg-black/40 border border-white/10 rounded-field py-2.5 px-3 text-ink text-sm focus:outline-none focus:border-pos transition-colors cursor-pointer"
                           >
                             {Object.entries(KINDS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
                           </select>
@@ -231,28 +231,28 @@ export function InvestmentsModal({
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5 block">Quanto aportou</label>
+                          <label className="text-xs text-ink-3 font-semibold mb-1.5 block">Quanto aportou</label>
                           <input
                             type="number" step="0.01" value={invested} onChange={e => setInvested(e.target.value)}
                             placeholder="0,00"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white text-sm font-semibold placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-black/40 border border-white/10 rounded-field py-2.5 px-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5 block">Vale hoje</label>
+                          <label className="text-xs text-ink-3 font-semibold mb-1.5 block">Vale hoje</label>
                           <input
                             type="number" step="0.01" value={current} onChange={e => setCurrent(e.target.value)}
                             placeholder="0,00"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-white text-sm font-semibold placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-black/40 border border-white/10 rounded-field py-2.5 px-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
                           />
                         </div>
                       </div>
 
                       <div className="flex gap-2 pt-1">
-                        <button onClick={resetForm} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
+                        <button onClick={resetForm} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink rounded-field text-sm font-semibold transition-colors cursor-pointer">
                           Cancelar
                         </button>
-                        <button onClick={handleSubmit} disabled={isSaving} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer">
+                        <button onClick={handleSubmit} disabled={isSaving} className="flex-1 bg-pos hover:bg-pos text-ink font-bold py-2.5 rounded-field text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer">
                           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> {editingId ? 'Atualizar' : 'Adicionar'}</>}
                         </button>
                       </div>
@@ -264,7 +264,7 @@ export function InvestmentsModal({
               {!showForm && (
                 <button
                   onClick={() => { resetForm(); setIsAdding(true); }}
-                  className="w-full mb-4 flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 py-3 rounded-2xl font-semibold text-sm transition-colors cursor-pointer"
+                  className="w-full mb-4 flex items-center justify-center gap-2 bg-pos/10 hover:bg-pos/20 text-pos border border-pos/20 py-3 rounded-inner font-semibold text-sm transition-colors cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Adicionar posição
                 </button>
@@ -272,12 +272,12 @@ export function InvestmentsModal({
 
               {/* Lista */}
               {isLoading ? (
-                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-neutral-600 animate-spin" /></div>
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-ink-3 animate-spin" /></div>
               ) : positions.length === 0 ? (
                 <div className="text-center py-8 px-4">
-                  <LineChart className="w-8 h-8 text-neutral-700 mx-auto mb-3" />
-                  <p className="text-sm text-neutral-400 mb-2">Nenhuma posição cadastrada.</p>
-                  <p className="text-xs text-neutral-600 leading-relaxed max-w-sm mx-auto">
+                  <LineChart className="w-8 h-8 text-ink-3 mx-auto mb-3" />
+                  <p className="text-sm text-ink-2 mb-2">Nenhuma posição cadastrada.</p>
+                  <p className="text-xs text-ink-3 leading-relaxed max-w-sm mx-auto">
                     Enquanto não houver posição, o app usa a soma dos seus aportes como patrimônio — ou seja, assume que o investimento vale exatamente o que você colocou.
                   </p>
                 </div>
@@ -288,29 +288,29 @@ export function InvestmentsModal({
                     const pct = Number(p.invested_amount) > 0 ? (ret / Number(p.invested_amount)) * 100 : 0;
                     const up = ret >= 0;
                     return (
-                      <div key={p.id} className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-black/20 border border-white/5">
+                      <div key={p.id} className="flex items-center justify-between gap-3 p-3.5 rounded-inner bg-white/5 border border-white/5">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-white truncate">{p.name}</p>
-                            <span className="text-[10px] text-neutral-500 bg-white/5 px-1.5 py-0.5 rounded shrink-0">{KINDS[p.kind ?? 'outro'] ?? 'Outro'}</span>
+                            <p className="text-sm font-semibold text-ink truncate">{p.name}</p>
+                            <span className="text-xs text-ink-3 bg-white/5 px-1.5 py-0.5 rounded shrink-0">{KINDS[p.kind ?? 'outro'] ?? 'Outro'}</span>
                           </div>
-                          <p className="text-[11px] text-neutral-500 mt-0.5">
+                          <p className="text-xs text-ink-3 mt-0.5">
                             Aportou {formatMoney(Number(p.invested_amount))}
                           </p>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-white whitespace-nowrap">{formatMoney(Number(p.current_value))}</p>
-                          <p className={`text-[11px] font-semibold ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <p className="text-sm font-bold text-ink whitespace-nowrap">{formatMoney(Number(p.current_value))}</p>
+                          <p className={`text-xs font-semibold ${up ? 'text-pos' : 'text-neg'}`}>
                             {showValues ? `${up ? '+' : ''}${pct.toFixed(1)}%` : '••%'}
                           </p>
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => startEdit(p)} className="p-1.5 text-indigo-500/60 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors cursor-pointer" title="Editar">
+                          <button onClick={() => startEdit(p)} className="p-1.5 text-brand/60 hover:text-brand hover:bg-brand/10 rounded-lg transition-colors cursor-pointer" title="Editar">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(p)} className="p-1.5 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer" title="Remover">
+                          <button onClick={() => handleDelete(p)} className="p-1.5 text-neg/50 hover:text-neg hover:bg-neg/10 rounded-lg transition-colors cursor-pointer" title="Remover">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -321,7 +321,7 @@ export function InvestmentsModal({
               )}
 
               {positions.length > 0 && (
-                <p className="text-[11px] text-neutral-600 leading-relaxed mt-5 text-center">
+                <p className="text-xs text-ink-3 leading-relaxed mt-5 text-center">
                   O app não consulta cotação — atualize o "vale hoje" quando quiser. Isto é patrimônio, separado dos seus lançamentos de aporte.
                 </p>
               )}

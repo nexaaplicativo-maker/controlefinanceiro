@@ -103,28 +103,28 @@ export function PayYourselfFirstModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
           <motion.div ref={a11yRef} role="dialog" aria-modal="true"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-lg sheet-panel rounded-t-card sm:rounded-card sheet-grab pb-safe sm:pb-0 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
           >
-            <div className="absolute -top-24 -right-24 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 w-56 h-56 bg-pos/10 rounded-full blur-3xl pointer-events-none"></div>
 
             <div className="flex justify-between items-center mb-6 shrink-0 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                  <PiggyBank className="w-5 h-5 text-emerald-400" />
+                <div className="p-2.5 bg-pos/10 border border-pos/20 rounded-inner">
+                  <PiggyBank className="w-5 h-5 text-pos" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white leading-tight">Pague-se Primeiro</h2>
-                  <p className="text-[11px] text-neutral-500">Antes das contas, antes do consumo</p>
+                  <h2 className="text-xl font-bold text-ink leading-tight">Pague-se Primeiro</h2>
+                  <p className="text-xs text-ink-3">Antes das contas, antes do consumo</p>
                 </div>
               </div>
-              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white cursor-pointer">
+              <button onClick={onClose} aria-label="Fechar" className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-ink-2 hover:text-ink cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -132,44 +132,44 @@ export function PayYourselfFirstModal({
             {blocked ? (
               /* Estágio 1 — aportar aqui seria conselho ruim. */
               <div className="relative z-10">
-                <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-5 mb-5">
+                <div className="bg-neg/5 border border-neg/20 rounded-inner p-5 mb-5">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-neg shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-bold text-white text-sm mb-1.5">Ainda não é hora de guardar</h3>
-                      <p className="text-xs text-neutral-400 leading-relaxed">
+                      <h3 className="font-bold text-ink text-sm mb-1.5">Ainda não é hora de guardar</h3>
+                      <p className="text-xs text-ink-2 leading-relaxed">
                         {insights.stage.priority}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-neutral-400 leading-relaxed mb-5">
-                  Dívida de cartão no rotativo custa cerca de <strong className="text-rose-400">15% ao mês</strong>. Reserva rende perto de <strong className="text-emerald-400">1%</strong>. Guardar antes de quitar significa perder a diferença todo mês — por isso o Nexa não vai sugerir aporte enquanto você estiver aqui.
+                <p className="text-xs text-ink-2 leading-relaxed mb-5">
+                  Dívida de cartão no rotativo custa cerca de <strong className="text-neg">15% ao mês</strong>. Reserva rende perto de <strong className="text-pos">1%</strong>. Guardar antes de quitar significa perder a diferença todo mês — por isso o Nexa não vai sugerir aporte enquanto você estiver aqui.
                 </p>
 
-                <button onClick={onClose} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer">
+                <button onClick={onClose} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-ink font-semibold py-3 rounded-field transition-colors cursor-pointer">
                   Entendi, vou atacar a dívida
                 </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
-                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4">
+                <div className="bg-pos/5 border border-pos/20 rounded-inner p-4">
                   <div className="flex items-start gap-3">
-                    <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-neutral-300 leading-relaxed">
-                      Sua estratégia prevê guardar <strong className="text-white">{(insights.suggestedSavingsRate * 100).toFixed(0)}%</strong> da renda.
+                    <ShieldCheck className="w-5 h-5 text-pos shrink-0 mt-0.5" />
+                    <p className="text-xs text-ink-2 leading-relaxed">
+                      Sua estratégia prevê guardar <strong className="text-ink">{(insights.suggestedSavingsRate * 100).toFixed(0)}%</strong> da renda.
                       {insights.reserveIdeal > 0 && (
-                        <> Sua reserva ideal é <strong className="text-white">{formatMoney(insights.reserveIdeal)}</strong> — {insights.reserveMonths.toFixed(1)} de {(insights.reserveIdeal / Math.max(1, insights.monthlyCost)).toFixed(0)} meses já garantidos.</>
+                        <> Sua reserva ideal é <strong className="text-ink">{formatMoney(insights.reserveIdeal)}</strong> — {insights.reserveMonths.toFixed(1)} de {(insights.reserveIdeal / Math.max(1, insights.monthlyCost)).toFixed(0)} meses já garantidos.</>
                       )}
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-neutral-400 mb-2 block">Quanto você vai guardar agora?</label>
+                  <label className="text-sm font-medium text-ink-2 mb-2 block">Quanto você vai guardar agora?</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-medium">R$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3 font-medium">R$</span>
                     <input
                       type="number"
                       step="0.01"
@@ -177,7 +177,7 @@ export function PayYourselfFirstModal({
                       value={amount}
                       onChange={e => setAmount(e.target.value)}
                       placeholder="0,00"
-                      className="w-full bg-black/30 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white text-lg font-semibold placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                      className="w-full bg-black/30 border border-white/10 rounded-field py-3.5 pl-12 pr-4 text-ink text-lg font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
                     />
                   </div>
                 </div>
@@ -190,14 +190,14 @@ export function PayYourselfFirstModal({
                   </div>
                 )}
 
-                <p className="text-[11px] text-neutral-500 leading-relaxed">
-                  O aporte é registrado como <strong className="text-neutral-400">Investimentos</strong> — sai do seu saldo disponível, mas continua sendo seu dinheiro.
+                <p className="text-xs text-ink-3 leading-relaxed">
+                  O aporte é registrado como <strong className="text-ink-2">Investimentos</strong> — sai do seu saldo disponível, mas continua sendo seu dinheiro.
                 </p>
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25 active:scale-95 cursor-pointer"
+                  className="w-full bg-pos hover:bg-pos text-ink font-bold py-3.5 rounded-field flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                     <><PiggyBank className="w-5 h-5" /> Guardar este valor</>
@@ -217,10 +217,10 @@ function QuickFill({ label, onClick, icon, highlighted }: { label: string; onCli
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors cursor-pointer ${
+      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-field border transition-colors cursor-pointer ${
         highlighted
-          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
-          : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white hover:bg-white/10'
+          ? 'bg-pos/10 border-pos/30 text-pos hover:bg-pos/20'
+          : 'bg-white/5 border-white/10 text-ink-2 hover:text-ink hover:bg-white/10'
       }`}
     >
       {icon}{label}

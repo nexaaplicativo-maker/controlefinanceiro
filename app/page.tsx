@@ -8,9 +8,12 @@ import {
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
   PieChart as PieChartIcon, Search, Trash2, Heart, CheckCircle2, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
   PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
-  WifiOff, RefreshCw, X
+  WifiOff, RefreshCw, X, ArrowUpRight
 } from "lucide-react";
 
+import { Money } from "../components/ui/Money";
+import { IconeSubcategoria } from "../components/ui/IconeSubcategoria";
+import { EmptyState, Skeleton } from "../components/ui/Surface";
 import { TransactionModal } from "../components/TransactionModal";
 import { EditTransactionModal } from "../components/EditTransactionModal";
 import { IncomeListModal } from "../components/IncomeListModal";
@@ -50,6 +53,20 @@ import { summarizeDebts } from "../lib/debt";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import type { StepId } from "../lib/onboarding";
+
+/**
+ * Saudação pela hora do dia.
+ *
+ * O cabeçalho dizia "OLÁ, SOUZA.HIGOR" em caixa alta — um rótulo, não uma
+ * saudação. Como é a primeira linha da tela, vale ela reconhecer a hora em
+ * que a pessoa abriu.
+ */
+function saudacao(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -635,9 +652,9 @@ export default function Dashboard() {
   const isGargaloCritico = gargaloTier === 'critico';
 
   const GARGALO_THEME = {
-    saudavel: { hex: '#10b981', accent: 'emerald', text: 'text-emerald-400', glow: 'bg-emerald-500', panel: 'bg-white/5 border-white/10' },
-    atencao:  { hex: '#f59e0b', accent: 'amber',   text: 'text-amber-400',   glow: 'bg-amber-500',   panel: 'bg-amber-500/5 border-amber-500/20' },
-    critico:  { hex: '#f43f5e', accent: 'rose',    text: 'text-rose-400',    glow: 'bg-rose-500',    panel: 'bg-rose-500/5 border-rose-500/20' },
+    saudavel: { hex: '#5fd39b', accent: 'padrao',  text: 'text-ink-2', glow: 'bg-pos',   panel: 'bg-white/5 border-line' },
+    atencao:  { hex: '#e8b75d', accent: 'amber',   text: 'text-warn',  glow: 'bg-warn',  panel: 'bg-warn/5 border-warn/20' },
+    critico:  { hex: '#f0776e', accent: 'rose',    text: 'text-neg',   glow: 'bg-neg',   panel: 'bg-neg/5 border-neg/20' },
   }[gargaloTier];
 
   // Título, lista e cor de cada card clicável num lugar só. A cor do gargalo
@@ -738,12 +755,12 @@ export default function Dashboard() {
 
   return (
     <BetaGate>
-    <div className="min-h-[100dvh] bg-neutral-950 text-neutral-50 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-[100dvh] bg-canvas text-ink font-sans selection:bg-brand/30">
       
-      <nav className="hidden md:flex border-b border-white/10 bg-black/20 backdrop-blur-md sticky top-0 z-50">
+      <nav className="hidden md:flex border-b border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 overflow-hidden bg-black/20">
+            <div className="w-10 h-10 rounded-field flex items-center justify-center shadow-lg shadow-brand/20 overflow-hidden bg-white/5">
               <img src="/icon-192.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-xl tracking-tight">Nexa</span>
@@ -753,22 +770,22 @@ export default function Dashboard() {
             <select 
               value={activeWalletId || ''} 
               onChange={(e) => setActiveWalletId(e.target.value || null)}
-              className="bg-black/30 border border-white/10 text-white text-sm rounded-lg py-1.5 px-3 focus:outline-none focus:border-indigo-500 hidden sm:block"
+              className="bg-black/30 border border-white/10 text-ink text-sm rounded-lg py-1.5 px-3 focus:outline-none focus:border-brand hidden sm:block"
             >
               <option value="">Todas Carteiras</option>
               {wallets.map(w => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </select>
-            <button onClick={() => setIsWalletsOpen(true)} className="text-xs bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-1.5 rounded-lg font-medium transition-colors border border-indigo-500/20 hidden sm:block">
+            <button onClick={() => setIsWalletsOpen(true)} className="text-xs bg-brand/10 text-brand hover:bg-brand/20 px-2 py-1.5 rounded-lg font-medium transition-colors border border-brand/20 hidden sm:block">
               Carteiras
             </button>
 
-            <button onClick={() => { setIsActivityOpen(true); setHasUnread(false); }} className="text-neutral-400 hover:text-white transition-colors relative ml-2">
+            <button onClick={() => { setIsActivityOpen(true); setHasUnread(false); }} className="text-ink-2 hover:text-ink transition-colors relative ml-2">
               <Bell className="w-5 h-5" />
-              {hasUnread && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>}
+              {hasUnread && <span className="absolute -top-1 -right-1 w-2 h-2 bg-neg rounded-full animate-pulse"></span>}
             </button>
-            <div onClick={() => setIsProfileOpen(true)} className={`w-9 h-9 border rounded-full flex items-center justify-center overflow-hidden cursor-pointer transition-colors ${userRole === 'admin' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400' : 'bg-neutral-800 border-white/10 text-neutral-400 hover:border-emerald-500'}`}>
+            <div onClick={() => setIsProfileOpen(true)} className={`w-9 h-9 border rounded-full flex items-center justify-center overflow-hidden cursor-pointer transition-colors ${userRole === 'admin' ? 'bg-brand/20 border-brand text-brand' : 'bg-white/5 border-white/10 text-ink-2 hover:border-pos'}`}>
               <User className="w-4 h-4" />
             </div>
           </div>
@@ -777,25 +794,39 @@ export default function Dashboard() {
 
       <main className="max-w-md md:max-w-7xl mx-auto px-6 pt-safe py-8 md:py-12">
         
-        <header className="flex md:hidden justify-between items-center gap-3 mb-8">
+        {/* No celular este é o ÚNICO cabeçalho.
+            Antes vinha ele e, logo abaixo, "Visão Geral / Acompanhe e gerencie
+            seu patrimônio" — duas apresentações seguidas, dizendo a mesma
+            coisa, ocupando quase uma tela antes do primeiro número. O título
+            de página sobrou só no desktop, onde há altura sobrando. */}
+        <header className="flex md:hidden justify-between items-center gap-3 mb-6">
           {/* `min-w-0` + `truncate`: e-mail comprido antes empurrava o sino
               para fora da tela, porque texto não encolhe sozinho em flex. */}
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 overflow-hidden bg-black/20">
-              <img src="/icon-192.png" alt="Logo" className="w-full h-full object-cover" />
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/5">
+              <img src="/icon-192.png" alt="" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-xs text-neutral-400 font-medium tracking-wide uppercase">Olá, {userEmail ? userEmail.split('@')[0] : 'Usuário'}</p>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Seu Nexa</h1>
+              <p className="truncate text-xs text-ink-2">{saudacao()},</p>
+              <h1 className="truncate text-xl font-semibold tracking-tight text-ink">
+                {userEmail ? userEmail.split('@')[0] : 'Usuário'}
+              </h1>
             </div>
           </div>
-          
+
           {/* Assinaturas e Conselheiro saíram daqui: ambos vivem no menu "Mais",
               e os ícones (lupa, alvo) não diziam o que abriam. */}
-          <div className="flex gap-2">
-             <button onClick={() => { setIsActivityOpen(true); setHasUnread(false); }} className="p-2.5 bg-white/5 rounded-full text-neutral-400 hover:text-white transition-colors relative">
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => setShowValues(!showValues)}
+              aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
+              className="rounded-full bg-white/5 p-2.5 text-ink-2 transition-colors hover:text-ink"
+            >
+              {showValues ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+            </button>
+            <button onClick={() => { setIsActivityOpen(true); setHasUnread(false); }} aria-label="Avisos" className="relative rounded-full bg-white/5 p-2.5 text-ink-2 transition-colors hover:text-ink">
                 <Bell className="w-5 h-5"/>
-                {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>}
+                {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-neg rounded-full"></span>}
              </button>
           </div>
         </header>
@@ -805,13 +836,13 @@ export default function Dashboard() {
               olho + seletor de mês passavam da largura da tela e empurravam a
               página inteira para o lado. Agora o seletor desce sozinho. */}
           <div className="flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-3 xl:w-auto xl:shrink-0 xl:flex-nowrap">
-            <div className="min-w-0 flex-1 xl:flex-none">
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">Visão Geral</h1>
-              <p className="text-neutral-400 text-sm md:text-base">Acompanhe e gerencie seu patrimônio</p>
+            <div className="hidden min-w-0 flex-1 md:block xl:flex-none">
+              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">Visão Geral</h1>
+              <p className="text-ink-2 text-sm md:text-base">Acompanhe e gerencie seu patrimônio</p>
             </div>
             <button
               onClick={() => setShowValues(!showValues)}
-              className="shrink-0 p-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden shrink-0 rounded-full border border-white/10 bg-white/5 p-2.5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink md:block"
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
               title={showValues ? "Ocultar valores" : "Mostrar valores"}
             >
@@ -824,9 +855,9 @@ export default function Dashboard() {
                 perceber de onde vinha a mudança. Aqui ele fica junto do título,
                 deixando claro que escopa tudo. */}
             <div className="flex w-full items-center justify-between gap-1 bg-white/5 p-1 rounded-full border border-white/10 sm:w-fit sm:justify-start">
-              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="shrink-0 p-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-              <div className="flex-1 text-center font-medium text-xs text-white tracking-wider uppercase sm:w-32 sm:flex-none">{MONTHS[activeMonth]} <span className="text-neutral-500">{activeYear}</span></div>
-              <button onClick={handleNextMonth} aria-label="Próximo mês" className="shrink-0 p-1.5 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
+              <div className="flex-1 text-center font-medium text-xs text-ink tracking-wider uppercase sm:w-32 sm:flex-none">{MONTHS[activeMonth]} <span className="text-ink-3">{activeYear}</span></div>
+              <button onClick={handleNextMonth} aria-label="Próximo mês" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
             </div>
           </div>
           
@@ -837,26 +868,26 @@ export default function Dashboard() {
               direita. Com base fixa e quebra de linha, eles se organizam em
               duas fileiras no celular e seguem numa só a partir do tablet. */}
           <div className="flex flex-wrap items-center gap-2.5 w-full min-w-0 xl:w-auto xl:flex-nowrap">
-            <motion.button onClick={() => setIsPayYourselfOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 sm:px-5 py-2.5 rounded-full font-medium transition-all active:scale-95 cursor-pointer border border-emerald-500/20 whitespace-nowrap">
+            <motion.button onClick={() => setIsPayYourselfOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink px-3 sm:px-5 py-2.5 rounded-full font-medium transition-colors active:scale-[0.97] cursor-pointer border border-line whitespace-nowrap">
               <PiggyBank className="w-4 h-4 shrink-0" /> <span className="text-sm">Poupar</span>
             </motion.button>
 
             {AI_ENABLED && (
-              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-3 sm:px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer border border-white/10 whitespace-nowrap">
+              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-strong text-canvas px-3 sm:px-5 py-2.5 rounded-full font-semibold transition-colors shadow-[0_8px_28px_rgba(143,189,211,0.28)] active:scale-[0.97] cursor-pointer whitespace-nowrap">
                 {/* "Ler Foto" escondia o caso mais útil: ler uma fatura em PDF
                     e abrir compra por compra. */}
                 <Sparkles className="w-4 h-4 shrink-0" /> <span className="text-sm">Ler Fatura</span>
               </motion.button>
             )}
 
-            <motion.button onClick={handleOpenModal} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white text-black px-3 sm:px-5 py-2.5 rounded-full font-bold transition-all hover:bg-neutral-200 active:scale-95 cursor-pointer whitespace-nowrap">
+            <motion.button onClick={handleOpenModal} className="flex-1 basis-32 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink px-3 sm:px-5 py-2.5 rounded-full font-medium transition-colors active:scale-[0.97] cursor-pointer border border-line whitespace-nowrap">
               <Plus className="w-4 h-4 shrink-0" /> <span className="text-sm">Lançar</span>
             </motion.button>
 
             <div className="relative shrink-0">
               <button
                 onClick={() => setIsMenuOpen(v => !v)}
-                className={`p-2.5 rounded-full border transition-colors cursor-pointer ${isMenuOpen ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'}`}
+                className={`p-2.5 rounded-full border transition-colors cursor-pointer ${isMenuOpen ? 'bg-white/10 border-white/20 text-ink' : 'bg-white/5 border-white/10 text-ink-2 hover:text-ink'}`}
                 title="Mais ferramentas"
               >
                 <MoreHorizontal className="w-5 h-5" />
@@ -871,27 +902,27 @@ export default function Dashboard() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.96 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-60 bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl p-2 z-50 origin-top-right"
+                      className="absolute right-0 top-full mt-2 w-60 bg-surface border border-white/10 rounded-inner shadow-2xl p-2 z-50 origin-top-right"
                     >
                       {[
-                        { label: 'Cartões',     icon: <CreditCard className="w-4 h-4" />,    color: 'text-purple-400',  action: () => setIsCardsOpen(true) },
-                        { label: 'Relatórios',  icon: <PieChartIcon className="w-4 h-4" />,  color: 'text-indigo-400',  action: () => setIsReportsOpen(true) },
-                        { label: 'Orçamentos',  icon: <Wallet className="w-4 h-4" />,        color: 'text-orange-400',  action: () => setIsBudgetOpen(true) },
-                        { label: 'Metas',       icon: <Target className="w-4 h-4" />,        color: 'text-yellow-400',  action: () => setIsGoalsOpen(true) },
-                        { label: 'Calendário',  icon: <Calendar className="w-4 h-4" />,      color: 'text-blue-400',    action: () => setIsCalendarOpen(true) },
-                        { label: 'Assinaturas', icon: <Clock className="w-4 h-4" />,         color: 'text-teal-400',    action: () => setIsTrackerOpen(true) },
-                        ...(AI_ENABLED ? [{ label: 'Conselheiro IA', icon: <Bot className="w-4 h-4" />, color: 'text-purple-400', action: () => setIsPlannerOpen(true) }] : []),
-                        { label: 'Casal',       icon: <Heart className="w-4 h-4" />,         color: 'text-pink-400',    action: () => setIsCoupleOpen(true) },
-                        { label: 'Previsão',    icon: <CalendarClock className="w-4 h-4" />,  color: 'text-blue-400',    action: () => setIsForecastOpen(true) },
-                        { label: 'Raio-x dos gastos', icon: <PieChartIcon className="w-4 h-4" />, color: 'text-amber-400', action: () => setIsSpendingOpen(true) },
-                        { label: 'Dívidas',     icon: <TrendingDown className="w-4 h-4" />,    color: 'text-rose-400',    action: () => setIsDebtsOpen(true) },
-                        { label: 'Patrimônio',  icon: <LineChart className="w-4 h-4" />,     color: 'text-emerald-400', action: () => setIsInvestmentsOpen(true) },
-                        { label: 'Perfil financeiro', icon: <SlidersHorizontal className="w-4 h-4" />, color: 'text-neutral-400', action: () => setIsProfileSettingsOpen(true) },
+                        { label: 'Cartões',     icon: <CreditCard className="w-4 h-4" />,    color: 'text-brand',  action: () => setIsCardsOpen(true) },
+                        { label: 'Relatórios',  icon: <PieChartIcon className="w-4 h-4" />,  color: 'text-brand',  action: () => setIsReportsOpen(true) },
+                        { label: 'Orçamentos',  icon: <Wallet className="w-4 h-4" />,        color: 'text-ink-2',  action: () => setIsBudgetOpen(true) },
+                        { label: 'Metas',       icon: <Target className="w-4 h-4" />,        color: 'text-warn',  action: () => setIsGoalsOpen(true) },
+                        { label: 'Calendário',  icon: <Calendar className="w-4 h-4" />,      color: 'text-ink-2',    action: () => setIsCalendarOpen(true) },
+                        { label: 'Assinaturas', icon: <Clock className="w-4 h-4" />,         color: 'text-ink-2',    action: () => setIsTrackerOpen(true) },
+                        ...(AI_ENABLED ? [{ label: 'Conselheiro IA', icon: <Bot className="w-4 h-4" />, color: 'text-brand', action: () => setIsPlannerOpen(true) }] : []),
+                        { label: 'Casal',       icon: <Heart className="w-4 h-4" />,         color: 'text-ink-2',    action: () => setIsCoupleOpen(true) },
+                        { label: 'Previsão',    icon: <CalendarClock className="w-4 h-4" />,  color: 'text-ink-2',    action: () => setIsForecastOpen(true) },
+                        { label: 'Raio-x dos gastos', icon: <PieChartIcon className="w-4 h-4" />, color: 'text-warn', action: () => setIsSpendingOpen(true) },
+                        { label: 'Dívidas',     icon: <TrendingDown className="w-4 h-4" />,    color: 'text-neg',    action: () => setIsDebtsOpen(true) },
+                        { label: 'Patrimônio',  icon: <LineChart className="w-4 h-4" />,     color: 'text-pos', action: () => setIsInvestmentsOpen(true) },
+                        { label: 'Perfil financeiro', icon: <SlidersHorizontal className="w-4 h-4" />, color: 'text-ink-2', action: () => setIsProfileSettingsOpen(true) },
                       ].map(item => (
                         <button
                           key={item.label}
                           onClick={() => { setIsMenuOpen(false); item.action(); }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-neutral-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer text-left"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-field text-sm text-ink-2 hover:bg-white/5 hover:text-ink transition-colors cursor-pointer text-left"
                         >
                           <span className={item.color}>{item.icon}</span>
                           {item.label}
@@ -915,6 +946,104 @@ export default function Dashboard() {
             onSecondaryAction={handleOnboardingSkip}
           />
         )}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
+            {[1,2,3,4].map(i => (
+              <Skeleton key={i} className="min-w-[80%] md:min-w-0 h-40 rounded-card" />
+            ))}
+          </div>
+        ) : erroCarregamento ? (
+          <div className="pb-6 md:pb-8">
+            <div className="bg-warn/5 border border-warn/25 rounded-card p-6 md:p-8 text-center">
+              <div className="w-12 h-12 bg-warn/10 border border-warn/20 rounded-inner flex items-center justify-center mx-auto mb-5">
+                <WifiOff className="w-6 h-6 text-warn" />
+              </div>
+
+              <h2 className="text-lg font-bold text-ink mb-2">Não consegui carregar seus lançamentos</h2>
+              <p className="text-sm text-ink-2 leading-relaxed max-w-md mx-auto">
+                Seus dados estão salvos e intactos — o que falhou foi a leitura
+                agora. Nenhum número apareceria correto nesta tela, então
+                preferi não mostrar nenhum.
+              </p>
+
+              <button
+                onClick={carregarPainel}
+                className="mt-6 bg-brand text-canvas font-bold py-3 px-6 rounded-field hover:bg-brand-strong transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Tentar de novo
+              </button>
+
+              <p className="text-xs text-ink-3 mt-5 break-words max-w-md mx-auto">
+                Detalhe técnico: {erroCarregamento}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
+            <div className="md:col-span-3">
+              <PillarCard
+                title="Capacidade de Poupança"
+                value={capacidadePoupanca}
+                visible={showValues}
+                caption={capacidadePoupanca >= 0 ? 'Disponível para construir patrimônio' : 'Você gastou mais do que ganhou'}
+                icon={<PiggyBank className={`h-[18px] w-[18px] ${capacidadePoupanca >= 0 ? 'text-brand' : 'text-neg'}`} />}
+                accent={capacidadePoupanca >= 0 ? 'padrao' : 'rose'}
+                hero
+                delay={0.16}
+                secondary={{
+                  label: 'Saldo em conta',
+                  value: balance,
+                  positive: balance >= 0,
+                  hint: sumCategory(investimentos) > 0
+                    ? `Já descontados ${showValues ? formatMoney(sumCategory(investimentos)) : 'R$ •••••'} que você guardou`
+                    : undefined,
+                }}
+              />
+            </div>
+            <div>
+              <PillarCard
+                title="Renda Líquida"
+                value={rendaLiquida}
+                visible={showValues}
+                caption="Tudo que entrou no mês"
+                icon={<TrendingUp className="h-[18px] w-[18px] text-pos" />}
+                delay={0.04}
+                onEditClick={() => setIsIncomeModalOpen(true)}
+                onClick={() => setPilarAberto('renda')}
+              />
+            </div>
+            <div>
+              <PillarCard
+                title="Custos Fixos"
+                value={custosFixos}
+                visible={showValues}
+                caption="O que você paga todo mês"
+                icon={<HomeIcon className="h-[18px] w-[18px] text-ink-2" />}
+                delay={0.08}
+                onClick={() => setPilarAberto('fixos')}
+              />
+            </div>
+            <div>
+              <PillarCard
+                title="Cartões & Variáveis"
+                value={gargalo}
+                visible={showValues}
+                caption={gargaloTier === 'critico' ? 'Bem acima do seu teto — corte aqui primeiro' : gargaloTier === 'atencao' ? 'Acima do seu teto de consumo' : 'Onde o dinheiro escapa'}
+                icon={<CreditCard className={`h-[18px] w-[18px] ${GARGALO_THEME.text}`} />}
+                accent={GARGALO_THEME.accent}
+                /* A badge mostra o dado, não um rótulo: "38% da renda" responde
+                   "isso está bom ou ruim?" — "Gargalo" exigia decorar o jargão.
+                   Some quando não há gasto ou quando não há renda para comparar. */
+                badge={gargalo > 0 && rendaLiquida > 0
+                  ? (showValues ? `${comprometimentoRaw.toFixed(0)}% da renda` : '••% da renda')
+                  : undefined}
+                delay={0.12}
+                onClick={() => setPilarAberto('gargalo')}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Estágio financeiro: define o que o app prioriza para ESTE usuário */}
         {pronto && (
@@ -923,29 +1052,30 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             onClick={() => setIsRoadmapOpen(true)}
-            className={`w-full text-left mb-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 border rounded-2xl px-5 py-4 cursor-pointer hover:brightness-125 transition-all ${STAGE_PANEL[insights.stage.accent]}`}
+            // Virou cartão de leitura, no formato da referência: um rótulo
+            // discreto em cima e a frase embaixo. Antes era uma faixa colorida
+            // de ponta a ponta, com etiqueta em caixa alta — gritava mais que
+            // o saldo, logo acima.
+            className="card mb-6 block w-full cursor-pointer p-5 text-left transition-colors hover:border-white/15"
           >
-            <div className="flex items-center gap-3 shrink-0">
-              <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${STAGE_BADGE[insights.stage.accent]}`}>
-                Estágio {insights.stage.level}/5
-              </span>
-              <span className="font-bold text-white text-sm">{insights.stage.label}</span>
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 shrink-0 text-brand" />
+              <span className="text-[13px] font-medium text-ink">{insights.stage.label}</span>
+              <span className="text-xs text-ink-3">· Estágio {insights.stage.level}/5</span>
+              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-ink-3" />
             </div>
-            <p className="text-xs text-neutral-400 leading-relaxed sm:border-l sm:border-white/10 sm:pl-4 flex-1">
+            <p className="text-[13px] leading-relaxed text-ink-2">
               {insights.needsOnboarding
                 ? 'Responda 4 perguntas rápidas no seu perfil para o Nexa calibrar os limites ao seu caso.'
                 : insights.stage.id === 'emergencia' && debtSummary.expensiveTotal > 0
                   // No Estágio 1 a prioridade vira número: dívida cara restante
                   // e o que ela cobra por mês. "Quite a dívida" sem valor é
                   // conselho; com valor é meta.
-                  ? <>Dívida cara restante: <strong className="text-rose-300">{showValues ? formatMoney(debtSummary.expensiveTotal) : 'R$ •••••'}</strong>, custando <strong className="text-rose-300">{showValues ? formatMoney(debtSummary.expensiveMonthlyInterest) : 'R$ •••••'}</strong> por mês só de juros.</>
+                  ? <>Dívida cara restante: <strong className="text-neg">{showValues ? formatMoney(debtSummary.expensiveTotal) : 'R$ •••••'}</strong>, custando <strong className="text-neg">{showValues ? formatMoney(debtSummary.expensiveMonthlyInterest) : 'R$ •••••'}</strong> por mês só de juros.</>
                   : insights.stage.id === 'emergencia' && !hasRegisteredDebts && profile?.has_debt
                     ? 'Você indicou ter dívida. Cadastre-a para o Nexa calcular quanto custa e quando acaba.'
                     : insights.stage.priority}
             </p>
-            <span className="hidden sm:flex items-center gap-1 text-[10px] text-neutral-500 font-semibold uppercase tracking-wider shrink-0">
-              Ver jornada <ChevronRight className="w-3.5 h-3.5" />
-            </span>
           </motion.button>
         )}
 
@@ -958,109 +1088,13 @@ export default function Dashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.15 }}
-              className="-mt-3 mb-6 px-5 text-xs text-neutral-500 leading-relaxed flex items-start gap-2"
+              className="-mt-4 mb-6 flex items-start gap-2 px-5 text-xs leading-relaxed text-ink-3"
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400/70 shrink-0 mt-0.5" />
+              <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-ink-3" />
               {dicaDoMes}
             </motion.p>
           )}
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="min-w-[80%] md:min-w-0 h-40 bg-white/5 border border-white/10 rounded-3xl animate-pulse"></div>
-            ))}
-          </div>
-        ) : erroCarregamento ? (
-          <div className="pb-6 md:pb-8">
-            <div className="bg-amber-500/5 border border-amber-500/25 rounded-3xl p-6 md:p-8 text-center">
-              <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <WifiOff className="w-6 h-6 text-amber-400" />
-              </div>
-
-              <h2 className="text-lg font-bold text-white mb-2">Não consegui carregar seus lançamentos</h2>
-              <p className="text-sm text-neutral-400 leading-relaxed max-w-md mx-auto">
-                Seus dados estão salvos e intactos — o que falhou foi a leitura
-                agora. Nenhum número apareceria correto nesta tela, então
-                preferi não mostrar nenhum.
-              </p>
-
-              <button
-                onClick={carregarPainel}
-                className="mt-6 bg-white text-black font-bold py-3 px-6 rounded-xl hover:bg-neutral-200 transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Tentar de novo
-              </button>
-
-              <p className="text-[11px] text-neutral-600 mt-5 break-words max-w-md mx-auto">
-                Detalhe técnico: {erroCarregamento}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            <div className="md:col-span-3">
-              <PillarCard
-                title="Capacidade de Poupança"
-                amount={showValues ? formatMoney(capacidadePoupanca) : 'R$ •••••'}
-                caption={capacidadePoupanca >= 0 ? 'Disponível para construir patrimônio' : 'Você gastou mais do que ganhou'}
-                icon={<PiggyBank className={`w-5 h-5 ${capacidadePoupanca >= 0 ? 'text-indigo-400' : 'text-rose-400'}`} />}
-                accent={capacidadePoupanca >= 0 ? 'indigo' : 'rose'}
-                highlight
-                delay={0.4}
-                secondary={{
-                  label: 'Saldo em conta',
-                  value: showValues ? formatMoney(balance) : 'R$ •••••',
-                  positive: balance >= 0,
-                  hint: sumCategory(investimentos) > 0
-                    ? `Já descontados ${showValues ? formatMoney(sumCategory(investimentos)) : 'R$ •••••'} que você guardou`
-                    : undefined,
-                }}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Renda Líquida"
-                amount={showValues ? formatMoney(rendaLiquida) : 'R$ •••••'}
-                caption="Tudo que entrou no mês"
-                icon={<TrendingUp className="w-5 h-5 text-emerald-400" />}
-                accent="emerald"
-                delay={0.1}
-                onEditClick={() => setIsIncomeModalOpen(true)}
-                onClick={() => setPilarAberto('renda')}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Custos Fixos"
-                amount={showValues ? formatMoney(custosFixos) : 'R$ •••••'}
-                caption="O que você paga todo mês"
-                icon={<HomeIcon className="w-5 h-5 text-blue-400" />}
-                accent="blue"
-                delay={0.2}
-                onClick={() => setPilarAberto('fixos')}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Cartões & Variáveis"
-                amount={showValues ? formatMoney(gargalo) : 'R$ •••••'}
-                caption={gargaloTier === 'critico' ? 'Bem acima do seu teto — corte aqui primeiro' : gargaloTier === 'atencao' ? 'Acima do seu teto de consumo' : 'Onde o dinheiro escapa'}
-                icon={<CreditCard className={`w-5 h-5 ${GARGALO_THEME.text}`} />}
-                accent={GARGALO_THEME.accent}
-                /* A badge mostra o dado, não um rótulo: "38% da renda" responde
-                   "isso está bom ou ruim?" — "Gargalo" exigia decorar o jargão.
-                   Some quando não há gasto ou quando não há renda para comparar. */
-                badge={gargalo > 0 && rendaLiquida > 0
-                  ? (showValues ? `${comprometimentoRaw.toFixed(0)}% da renda` : '••% da renda')
-                  : undefined}
-                delay={0.3}
-                onClick={() => setPilarAberto('gargalo')}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Termômetro removido: o anel repetia o % que o card de Cartões &
             Variáveis já mostra no badge, ocupando uma faixa inteira. */}
@@ -1089,20 +1123,20 @@ export default function Dashboard() {
           {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
 
           <div className="w-full">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm h-full">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="card h-full p-5">
               <div className="flex flex-col gap-4 mb-6">
                 <div className="flex justify-between items-center gap-3">
-                  <h2 className="text-lg font-semibold tracking-tight">
+                  <h2 className="text-base font-semibold tracking-tight text-ink">
                     {buscaForaDoMes ? 'Resultados' : `Lançamentos de ${MONTHS[activeMonth]}`}
                   </h2>
                   <div className="flex items-center gap-2 shrink-0">
                     {buscaForaDoMes && !modoSelecao && (
-                      <span className="text-[11px] text-neutral-500">de todos os meses</span>
+                      <span className="text-xs text-ink-3">de todos os meses</span>
                     )}
                     {recentTransactions.length > 0 && (
                       <button
                         onClick={() => modoSelecao ? sairDaSelecao() : setModoSelecao(true)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-black/20 text-neutral-400 border-white/10 hover:text-white'}`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
                       >
                         {modoSelecao ? 'Cancelar' : 'Selecionar'}
                       </button>
@@ -1114,16 +1148,16 @@ export default function Dashboard() {
                   <div className="flex flex-wrap items-center gap-2 -mt-1">
                     <button
                       onClick={() => setSelecionados(recentTransactions.map(t => t.id))}
-                      className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                      className="text-xs font-medium text-brand hover:text-ink cursor-pointer"
                     >
                       Marcar os {recentTransactions.length} visíveis
                     </button>
                     {selecionados.length > 0 && (
                       <>
-                        <span className="text-neutral-700">·</span>
+                        <span className="text-ink-3">·</span>
                         <button
                           onClick={() => setSelecionados([])}
-                          className="text-xs font-semibold text-neutral-400 hover:text-white cursor-pointer"
+                          className="text-xs font-medium text-ink-2 hover:text-ink cursor-pointer"
                         >
                           Limpar seleção
                         </button>
@@ -1134,54 +1168,61 @@ export default function Dashboard() {
 
                 {subcategoriaFiltro && (
                   <div className="flex items-center gap-2 -mt-1">
-                    <span className="text-xs text-neutral-500">Mostrando apenas</span>
+                    <span className="text-xs text-ink-3">Mostrando apenas</span>
                     <button
                       onClick={() => { setSubcategoriaFiltro(null); setMostrarTodos(false); }}
-                      className="inline-flex items-center gap-1.5 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-indigo-500/25 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-brand/15 text-brand border border-brand/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-brand/25 transition-colors cursor-pointer"
                     >
                       {subcategoriaFiltro}
                       <X className="w-3 h-3" />
                     </button>
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-xs text-ink-3">
                       {listaFiltrada.length} {listaFiltrada.length === 1 ? 'compra' : 'compras'}
                     </span>
                   </div>
                 )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                    <input type="text" placeholder="Buscar gastos..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
+                    <input type="text" placeholder="Buscar gastos..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-line rounded-field py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand/60 transition-colors" />
                   </div>
                   <button 
                     onClick={() => setFilterPending(!filterPending)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors border whitespace-nowrap ${filterPending ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-black/20 text-neutral-400 border-white/10 hover:text-white'}`}
+                    className={`px-3 py-2 rounded-field text-xs font-medium transition-colors border whitespace-nowrap ${filterPending ? 'bg-warn/15 text-warn border-warn/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
                   >
                     A Vencer
                   </button>
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-0.5">
                 {recentTransactions.length === 0 ? (
-                  <p className="text-neutral-500 text-sm text-center py-4">
-                    {subcategoriaFiltro
+                  <EmptyState
+                    icon={<FileText className="h-6 w-6" />}
+                    title={subcategoriaFiltro
                       ? `Nenhuma compra em ${subcategoriaFiltro} aqui.`
                       : buscaForaDoMes
-                        ? 'Nada encontrado com esse filtro.'
-                        : `Nenhum lançamento em ${MONTHS[activeMonth]} de ${activeYear}.`}
-                  </p>
+                        ? "Nada encontrado com esse filtro."
+                        : `Nenhum lançamento em ${MONTHS[activeMonth]}.`}
+                    description={subcategoriaFiltro || buscaForaDoMes
+                      ? undefined
+                      : "Lance uma conta ou leia a fatura do cartão para começar o mês."}
+                    action={subcategoriaFiltro || buscaForaDoMes
+                      ? undefined
+                      : { label: "Lançar", onClick: handleOpenModal }}
+                  />
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={showValues ? `${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2).replace('.', ',')}` : 'R$ •••••'} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
                   ))
                 )}
 
                 {modoSelecao && selecionados.length > 0 && (
-                  <div className="sticky bottom-2 z-10 flex items-center justify-between gap-3 bg-neutral-900/95 backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-3 shadow-xl">
+                  <div className="sticky bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-white">
+                      <p className="text-sm font-semibold text-ink">
                         {selecionados.length} {selecionados.length === 1 ? 'selecionado' : 'selecionados'}
                       </p>
-                      <p className="text-[11px] text-neutral-400 truncate">
+                      <p className="text-xs text-ink-2 truncate">
                         {formatMoney(
                           allTransactions
                             .filter(t => selecionados.includes(t.id) && t.type === 'expense')
@@ -1192,7 +1233,7 @@ export default function Dashboard() {
                     </div>
                     <button
                       onClick={handleDeleteSelecionados}
-                      className="shrink-0 inline-flex items-center gap-2 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer"
+                      className="shrink-0 inline-flex items-center gap-2 bg-neg/15 hover:bg-neg/25 text-neg border border-neg/30 px-4 py-2.5 rounded-field text-sm font-semibold transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                       Apagar
@@ -1203,7 +1244,7 @@ export default function Dashboard() {
                 {ocultos > 0 && (
                   <button
                     onClick={() => setMostrarTodos(true)}
-                    className="w-full py-3 rounded-2xl border border-white/10 bg-black/20 text-sm font-semibold text-neutral-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+                    className="w-full py-3 rounded-inner border border-white/10 bg-white/5 text-sm font-semibold text-ink-2 hover:bg-white/5 hover:text-ink transition-colors cursor-pointer"
                   >
                     Ver mais {ocultos} {ocultos === 1 ? 'lançamento' : 'lançamentos'}
                   </button>
@@ -1212,7 +1253,7 @@ export default function Dashboard() {
                 {mostrarTodos && listaFiltrada.length > LIMITE_LISTA && (
                   <button
                     onClick={() => setMostrarTodos(false)}
-                    className="w-full py-2.5 text-xs font-medium text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer"
+                    className="w-full py-2.5 text-xs font-medium text-ink-3 hover:text-ink-2 transition-colors cursor-pointer"
                   >
                     Mostrar menos
                   </button>
@@ -1380,10 +1421,10 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
   // Sem custo de vida apurado não há meta confiável para oferecer.
   if (!goal && (!ideal || ideal <= 0)) {
     return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-white/5 border border-white/10 rounded-3xl p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center items-center text-center gap-2">
-        <ShieldCheck className="w-6 h-6 text-neutral-600" />
-        <h3 className="font-bold text-white text-sm">Reserva de Emergência</h3>
-        <p className="text-xs text-neutral-500 leading-relaxed max-w-xs">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-white/5 border border-white/10 rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center items-center text-center gap-2">
+        <ShieldCheck className="w-6 h-6 text-ink-3" />
+        <h3 className="font-bold text-ink text-sm">Reserva de Emergência</h3>
+        <p className="text-xs text-ink-3 leading-relaxed max-w-xs">
           Lance algumas despesas para o Nexa descobrir seu custo de vida e calcular a reserva certa para você.
         </p>
       </motion.div>
@@ -1392,22 +1433,22 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
 
   if (!goal) {
     return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center gap-4 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 bg-emerald-500"></div>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-pos/5 border border-pos/20 rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center gap-4 relative overflow-hidden">
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 bg-pos"></div>
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <div className="p-2.5 bg-pos/10 border border-pos/20 rounded-inner">
+              <ShieldCheck className="w-5 h-5 text-pos" />
             </div>
-            <h3 className="font-bold text-white text-lg">Reserva de Emergência</h3>
+            <h3 className="font-bold text-ink text-lg">Reserva de Emergência</h3>
           </div>
-          <p className="text-sm text-neutral-400 leading-relaxed mb-4">
+          <p className="text-sm text-ink-2 leading-relaxed mb-4">
             Com seu custo de vida de {showValues ? formatMoney(monthlyCost) : 'R$ •••••'} por mês, sua reserva ideal é de{' '}
-            <strong className="text-emerald-400">{showValues ? formatMoney(ideal) : 'R$ •••••'}</strong>. É o colchão que te impede de voltar pro cartão quando algo dá errado.
+            <strong className="text-pos">{showValues ? formatMoney(ideal) : 'R$ •••••'}</strong>. É o colchão que te impede de voltar pro cartão quando algo dá errado.
           </p>
           <button
             onClick={() => onCreate(ideal)}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/25 active:scale-95 cursor-pointer"
+            className="w-full bg-pos hover:bg-pos text-ink font-bold py-3 rounded-field flex items-center justify-center gap-2 transition-all shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4" /> Criar minha reserva
           </button>
@@ -1417,17 +1458,17 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-3xl p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-white/5 border-white/10'}`}>
-      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-emerald-500' : atingiuMinimo ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-pos/5 border-pos/20' : 'bg-white/5 border-white/10'}`}>
+      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-pos' : atingiuMinimo ? 'bg-brand' : 'bg-warn'}`}></div>
 
       <div className="flex items-start justify-between gap-3 mb-5 relative z-10">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2.5 rounded-2xl border shrink-0 ${completa ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : atingiuMinimo ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+          <div className={`p-2.5 rounded-inner border shrink-0 ${completa ? 'bg-pos/10 border-pos/20 text-pos' : atingiuMinimo ? 'bg-white/10 border-white/20 text-ink-2' : 'bg-warn/10 border-warn/20 text-warn'}`}>
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-white text-base leading-tight">Reserva de Emergência</h3>
-            <p className="text-[11px] text-neutral-500 mt-0.5">
+            <h3 className="font-bold text-ink text-base leading-tight">Reserva de Emergência</h3>
+            <p className="text-xs text-ink-3 mt-0.5">
               {reserveMonths > 0 ? `${reserveMonths.toFixed(1)} meses de custo cobertos` : 'Ainda sem aporte'}
             </p>
           </div>
@@ -1435,7 +1476,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
 
         <button
           onClick={() => setIsAdding(v => !v)}
-          className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl transition-colors cursor-pointer shrink-0"
+          className="p-2 bg-pos/10 hover:bg-pos/20 text-pos border border-pos/20 rounded-field transition-colors cursor-pointer shrink-0"
           title="Adicionar à reserva"
         >
           <Plus className={`w-4 h-4 transition-transform ${isAdding ? 'rotate-45' : ''}`} />
@@ -1447,7 +1488,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden relative z-10">
             <div className="flex gap-2 mb-5">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm">R$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">R$</span>
                 <input
                   type="number"
                   step="0.01"
@@ -1456,13 +1497,13 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
                   onChange={e => setValue(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
                   placeholder="0,00"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-white text-sm font-semibold placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full bg-black/30 border border-white/10 rounded-field py-2.5 pl-9 pr-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
                 />
               </div>
               <button
                 onClick={handleAdd}
                 disabled={isBusy || !value}
-                className="px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm"
+                className="px-4 bg-pos hover:bg-pos text-ink font-bold rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm"
               >
                 {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Somar'}
               </button>
@@ -1473,10 +1514,10 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
 
       <div className="mt-auto relative z-10">
         <div className="flex justify-between items-end mb-2">
-          <span className={`text-2xl font-extrabold tracking-tight ${completa ? 'text-emerald-400' : 'text-white'}`}>
+          <span className={`text-2xl font-semibold tracking-tight ${completa ? 'text-pos' : 'text-ink'}`}>
             {showValues ? formatMoney(current) : 'R$ •••••'}
           </span>
-          <span className="text-xs text-neutral-500 font-medium">
+          <span className="text-xs text-ink-3 font-medium">
             de {showValues ? formatMoney(target) : 'R$ •••••'}
           </span>
         </div>
@@ -1487,23 +1528,23 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
             initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className={`h-full rounded-full ${completa ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : atingiuMinimo ? 'bg-gradient-to-r from-blue-500 to-indigo-400' : 'bg-gradient-to-r from-amber-500 to-orange-400'}`}
+            className={`h-full rounded-full ${completa ? 'bg-gradient-to-r from-pos to-pos/60' : atingiuMinimo ? 'bg-gradient-to-r from-brand to-brand-strong' : 'bg-gradient-to-r from-warn to-warn/60'}`}
           />
           {minMarker > 0 && minMarker < 100 && (
             <div className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10" style={{ left: `${minMarker}%` }} />
           )}
         </div>
 
-        <div className="flex justify-between mt-2 text-[10px] font-medium">
-          <span className={atingiuMinimo ? 'text-emerald-400' : 'text-neutral-500'}>
+        <div className="flex justify-between mt-2 text-xs font-medium">
+          <span className={atingiuMinimo ? 'text-pos' : 'text-ink-3'}>
             {atingiuMinimo && '✓ '}Mínimo {showValues ? formatMoney(minimum) : '•••'}
           </span>
-          <span className={completa ? 'text-emerald-400' : 'text-neutral-500'}>
+          <span className={completa ? 'text-pos' : 'text-ink-3'}>
             {completa && '✓ '}Ideal {showValues ? formatMoney(target) : '•••'}
           </span>
         </div>
 
-        <p className="text-[11px] text-neutral-500 mt-3 leading-relaxed">
+        <p className="text-xs text-ink-3 mt-3 leading-relaxed">
           {completa
             ? 'Reserva completa. A partir daqui, o excedente vai para investimento de longo prazo.'
             : atingiuMinimo
@@ -1515,39 +1556,24 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
   );
 }
 
-const STAGE_PANEL: Record<string, string> = {
-  rose:    'bg-rose-500/5 border-rose-500/20',
-  amber:   'bg-amber-500/5 border-amber-500/20',
-  blue:    'bg-blue-500/5 border-blue-500/20',
-  indigo:  'bg-indigo-500/5 border-indigo-500/20',
-  emerald: 'bg-emerald-500/5 border-emerald-500/20',
+/**
+ * Etiqueta do card. Das seis cores anteriores sobraram três, e cada uma passou
+ * a significar um estado — não a identidade do card.
+ */
+const PILLAR_BADGE: Record<string, string> = {
+  rose:   'text-neg bg-neg/10',
+  amber:  'text-warn bg-warn/10',
+  padrao: 'text-ink-2 bg-white/5',
 };
 
-const STAGE_BADGE: Record<string, string> = {
-  rose:    'text-rose-400 bg-rose-400/10',
-  amber:   'text-amber-400 bg-amber-400/10',
-  blue:    'text-blue-400 bg-blue-400/10',
-  indigo:  'text-indigo-400 bg-indigo-400/10',
-  emerald: 'text-emerald-400 bg-emerald-400/10',
-};
-
-const PILLAR_ACCENTS: Record<string, { ring: string; glow: string; badge: string }> = {
-  emerald: { ring: 'border-emerald-500/20', glow: 'bg-emerald-500', badge: 'text-emerald-400 bg-emerald-400/10' },
-  blue:    { ring: 'border-blue-500/20',    glow: 'bg-blue-500',    badge: 'text-blue-400 bg-blue-400/10' },
-  purple:  { ring: 'border-purple-500/20',  glow: 'bg-purple-500',  badge: 'text-purple-400 bg-purple-400/10' },
-  amber:   { ring: 'border-amber-500/20',   glow: 'bg-amber-500',   badge: 'text-amber-400 bg-amber-400/10' },
-  indigo:  { ring: 'border-indigo-500/20',  glow: 'bg-indigo-500',  badge: 'text-indigo-400 bg-indigo-400/10' },
-  rose:    { ring: 'border-rose-500/20',    glow: 'bg-rose-500',    badge: 'text-rose-400 bg-rose-400/10' },
-};
-
-function PillarCard({ title, amount, caption, icon, accent = 'indigo', badge, highlight, delay, onEditClick, secondary, onClick }: any) {
-  const theme = PILLAR_ACCENTS[accent] ?? PILLAR_ACCENTS.indigo;
+function PillarCard({ title, value, visible = true, caption, icon, accent, badge, hero, delay, onEditClick, secondary, onClick }: any) {
+  const badgeTom = PILLAR_BADGE[accent] ?? PILLAR_BADGE.padrao;
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.26, delay, ease: [0.22, 1, 0.36, 1] }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -1556,46 +1582,59 @@ function PillarCard({ title, amount, caption, icon, accent = 'indigo', badge, hi
       onKeyDown={onClick ? (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
       } : undefined}
-      className={`h-full bg-gradient-to-br from-white/10 to-white/5 border p-6 rounded-[2rem] backdrop-blur-xl relative overflow-hidden flex flex-col transition-colors ${highlight ? theme.ring : 'border-white/10'} ${onClick ? 'cursor-pointer hover:border-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40' : ''}`}
+      className={`${hero ? 'card-hero' : 'card'} relative flex h-full flex-col overflow-hidden p-5 transition-colors ${onClick ? 'cursor-pointer hover:border-white/15' : ''}`}
     >
-      <div className={`absolute -right-6 -top-6 w-32 h-32 rounded-full blur-3xl opacity-20 ${theme.glow}`}></div>
+      {hero && <span aria-hidden className="hero-mist" />}
 
-      <div className="flex justify-between items-start mb-5 relative z-10">
-        <div className="p-3.5 bg-white/10 rounded-2xl border border-white/10 shadow-inner">{icon}</div>
+      <div className="relative mb-4 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5 text-ink-2">
+          <span className="shrink-0">{icon}</span>
+          <p className="truncate text-[13px] font-medium">{title}</p>
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {onEditClick && (
             <button
               /* Sem o stopPropagation, o clique no lápis subiria para o card e
                  abriria o modal de lançamentos junto com o de edição. */
               onClick={(e) => { e.stopPropagation(); onEditClick(); }}
-              className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-full transition-colors cursor-pointer"
+              className="cursor-pointer rounded-full bg-white/5 p-1.5 text-ink-2 transition-colors hover:text-ink"
               title="Editar receitas"
+              aria-label="Editar receitas"
             >
-              <Edit2 className="w-3.5 h-3.5" />
+              <Edit2 className="h-3.5 w-3.5" />
             </button>
           )}
           {badge && (
-            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${theme.badge}`}>{badge}</span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badgeTom}`}>{badge}</span>
           )}
+          {onClick && <ArrowUpRight className="h-4 w-4 text-ink-3" />}
         </div>
       </div>
 
-      <p className="text-neutral-400 text-sm font-medium mb-1 tracking-wide relative z-10">{title}</p>
-      <h3 className={`text-3xl font-extrabold tracking-tight relative z-10 ${amount === 'R$ 0,00' ? 'text-neutral-500' : 'text-white'}`}>{amount}</h3>
-      {caption && <p className="text-[11px] text-neutral-500 mt-2 relative z-10 leading-snug">{caption}</p>}
+      <Money
+        value={value}
+        visible={visible}
+        tom={value === 0 ? 'muted' : 'ink'}
+        className={hero ? 'text-[40px] font-semibold tracking-[-0.03em]' : 'text-[28px] font-semibold tracking-[-0.02em]'}
+      />
+
+      {caption && <p className="relative mt-1.5 text-xs leading-snug text-ink-3">{caption}</p>}
 
       {/* Linha secundária: um segundo número que pertence ao mesmo assunto,
           em vez de virar um bloco separado na página. */}
       {secondary && (
-        <div className="mt-auto pt-3 border-t border-white/10 relative z-10">
+        <div className="relative mt-auto pt-4">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[11px] text-neutral-500 font-medium">{secondary.label}</span>
-            <span className={`text-sm font-bold tracking-tight whitespace-nowrap ${secondary.positive === false ? 'text-rose-400' : secondary.positive === true ? 'text-emerald-400' : 'text-white'}`}>
-              {secondary.value}
-            </span>
+            <span className="text-xs text-ink-3">{secondary.label}</span>
+            <Money
+              value={secondary.value}
+              visible={visible}
+              tom={secondary.positive === false ? 'neg' : secondary.positive === true ? 'pos' : 'ink'}
+              className="text-[15px] font-semibold tracking-tight"
+            />
           </div>
-          {secondary.hint && <p className="text-[10px] text-neutral-600 mt-1 leading-snug">{secondary.hint}</p>}
+          {secondary.hint && <p className="mt-1 text-xs leading-snug text-ink-3">{secondary.hint}</p>}
         </div>
       )}
     </motion.div>
@@ -1622,7 +1661,7 @@ function ReceiptButton({ stored }: { stored: string }) {
       disabled={isOpening}
       aria-label="Abrir comprovante"
       title="Abrir comprovante"
-      className="p-2 text-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+      className="p-2 text-brand/50 hover:text-brand hover:bg-brand/10 rounded-field transition-colors cursor-pointer shrink-0 disabled:opacity-50"
     >
       {isOpening ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
     </button>
@@ -1661,12 +1700,12 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.55 }}
-        className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm"
+        className="bg-white/5 border border-white/10 rounded-card p-6 backdrop-blur-sm"
       >
         <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
-        <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+        <p className="text-sm text-ink-2 mt-2 leading-relaxed">
           As despesas deste mês ainda não estão separadas por onde aconteceram.
-          Um lançamento manual vira <strong className="text-neutral-300">um item só</strong> —
+          Um lançamento manual vira <strong className="text-ink-2">um item só</strong> —
           mesmo anexando a fatura em Comprovante, que apenas guarda o arquivo.
         </p>
 
@@ -1675,21 +1714,21 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
             invisível, que é pior que não sugerir nada. */}
         {AI_ENABLED && onImportar ? (
           <>
-            <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+            <p className="text-sm text-ink-2 mt-2 leading-relaxed">
               Para abrir a fatura compra por compra, envie o arquivo pela leitura por IA.
             </p>
             <button
               onClick={onImportar}
-              className="mt-4 inline-flex items-center gap-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+              className="mt-4 inline-flex items-center gap-2 bg-brand/15 hover:bg-brand/25 text-brand border border-brand/30 px-4 py-2.5 rounded-field text-sm font-semibold transition-colors cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               Ler fatura e separar as compras
             </button>
           </>
         ) : (
-          <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
+          <p className="text-sm text-ink-2 mt-2 leading-relaxed">
             Você pode classificar cada gasto no lápis do lançamento, em{' '}
-            <strong className="text-neutral-300">Onde foi o gasto</strong>.
+            <strong className="text-ink-2">Onde foi o gasto</strong>.
           </p>
         )}
       </motion.div>
@@ -1703,10 +1742,10 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.55 }}
-      className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm"
+      className="bg-white/5 border border-white/10 rounded-card p-6 backdrop-blur-sm"
     >
       <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
-      <p className="text-xs text-neutral-500 mt-1 mb-5">
+      <p className="text-xs text-ink-3 mt-1 mb-5">
         Despesas deste mês por onde você gastou. O orçamento continua por categoria.
       </p>
 
@@ -1719,24 +1758,24 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
               key={item.rotulo}
               onClick={() => onSelecionar?.(item.rotulo)}
               aria-pressed={ativo}
-              className={`text-left rounded-xl px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-indigo-500/10' : 'hover:bg-white/5'}`}
+              className={`text-left rounded-field px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-brand/10' : 'hover:bg-white/5'}`}
             >
               <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className={`text-sm font-medium truncate ${semNome ? 'text-neutral-500 italic' : ativo ? 'text-indigo-300' : 'text-neutral-200'}`}>
+                <span className={`text-sm font-medium truncate ${semNome ? 'text-ink-3 italic' : ativo ? 'text-brand' : 'text-ink-2'}`}>
                   {item.rotulo}
                 </span>
-                <span className="text-sm font-bold text-white whitespace-nowrap">
+                <span className="text-sm font-bold text-ink whitespace-nowrap">
                   {formatMoney(item.total, showValues)}
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${semNome ? 'bg-neutral-600' : 'bg-indigo-500'}`}
+                    className={`h-full rounded-full ${semNome ? 'bg-white/10' : 'bg-brand'}`}
                     style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
                   />
                 </div>
-                <span className="text-[11px] text-neutral-500 w-[4.5rem] text-right shrink-0 tabular-nums">
+                <span className="text-xs text-ink-3 w-[4.5rem] text-right shrink-0 tabular-nums">
                   {item.percentual.toFixed(0)}% · {item.itens}x
                 </span>
               </div>
@@ -1745,27 +1784,26 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
         })}
       </div>
 
-      <p className="text-[11px] text-neutral-600 mt-4">
+      <p className="text-xs text-ink-3 mt-4">
         Toque num grupo para ver as compras dele na lista abaixo.
       </p>
     </motion.div>
   );
 }
 
-function TransactionRow({ title, category, date, amount, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao }: any) {
+function TransactionRow({ title, category, date, amount, visible, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao }: any) {
   const isIncome = type === 'income';
+
   return (
     <div
       onClick={modoSelecao ? onToggleSelecao : undefined}
-      className={`flex flex-wrap items-center justify-between p-3.5 rounded-2xl border transition-colors gap-y-3 gap-x-2 overflow-hidden ${modoSelecao ? 'cursor-pointer' : ''} ${
-        selecionado
-          ? 'bg-indigo-500/10 border-indigo-500/40'
-          : isPaid === false ? 'bg-amber-500/5 border-amber-500/10' : 'bg-black/20 border-white/5 hover:bg-white/5'
+      className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-3 overflow-hidden rounded-inner px-2 py-3 transition-colors ${modoSelecao ? 'cursor-pointer' : ''} ${
+        selecionado ? 'bg-brand/10' : 'hover:bg-white/[0.03]'
       }`}
     >
 
       {/* Esquerda: Icone e Textos */}
-      <div className="flex items-center gap-3 flex-[1_1_180px] min-w-0">
+      <div className="flex min-w-0 flex-[1_1_180px] items-center gap-3">
         {modoSelecao && (
           <input
             type="checkbox"
@@ -1773,56 +1811,65 @@ function TransactionRow({ title, category, date, amount, type, isPaid, onToggleP
             onChange={onToggleSelecao}
             onClick={(e) => e.stopPropagation()}
             aria-label={`Selecionar ${title || 'lançamento'}`}
-            className="w-5 h-5 shrink-0 rounded border-white/20 bg-black/20 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-neutral-900 cursor-pointer"
+            className="h-5 w-5 shrink-0 cursor-pointer rounded border-white/20 bg-white/5 text-brand"
           />
         )}
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 ${isIncome ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400' : 'bg-rose-400/10 border-rose-400/20 text-rose-400'}`}>
-          {isIncome ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+        {/* Ícone do ASSUNTO, não da direção: a direção já está na cor do
+            valor, à direita. Trinta setas iguais numa fatura não ajudam a
+            achar nada; um carrinho e um carro, sim. */}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2">
+          <IconeSubcategoria subcategoria={subcategoria} ehReceita={isIncome} />
         </div>
-        
-        <div className="flex flex-col min-w-0 py-0.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className={`font-semibold text-sm line-clamp-2 leading-snug ${isPaid === false ? 'text-amber-100' : 'text-white'}`}>
+
+        <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {/* Pendente vira um ponto de 6px: antes era fundo âmbar na linha
+                inteira mais uma etiqueta, para dizer uma coisa só. */}
+            {isPaid === false && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" title="Pendente" />
+            )}
+            <h4 className="truncate text-[15px] font-medium leading-snug text-ink">
               {title || "Sem título"}
             </h4>
-            {isPaid === false && <span className="bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider shrink-0 mt-0.5">Pendente</span>}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-neutral-500 uppercase tracking-wide font-medium mt-1">
-            <span className="line-clamp-1">{category || "Sem Categoria"}</span>
-            {subcategoria && (
-              <>
-                <span className="w-1 h-1 bg-neutral-700 rounded-full shrink-0"></span>
-                <span className="shrink-0 text-indigo-400/80">{subcategoria}</span>
-              </>
-            )}
-            <span className="w-1 h-1 bg-neutral-700 rounded-full shrink-0"></span>
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-3">
+            <span className="truncate">{subcategoria || category || "Sem categoria"}</span>
+            <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-ink-3" />
             <span className="shrink-0">{date || "Sem data"}</span>
           </div>
         </div>
       </div>
 
       {/* Direita: Valor e Botões */}
-      <div className="flex items-center justify-end gap-1.5 shrink-0 flex-[1_1_150px]">
-        <div className={`font-bold text-sm tracking-tight whitespace-nowrap mr-auto sm:mr-1 ${isIncome ? 'text-emerald-400' : (isPaid === false ? 'text-amber-400' : 'text-white')}`}>
-          {amount}
-        </div>
+      <div className="flex shrink-0 flex-[1_1_150px] items-center justify-end gap-1">
+        <Money
+          value={amount}
+          visible={visible}
+          sinal={isIncome ? 'entrada' : 'saida'}
+          tom={isIncome ? 'pos' : 'ink'}
+          className="mr-auto whitespace-nowrap text-[15px] font-semibold tracking-tight sm:mr-1"
+        />
         {/* Em seleção a linha inteira é o alvo do toque. Manter lápis e lixeira
             aqui só cria acidente: um deles apaga um item enquanto a pessoa
             acha que está marcando. */}
         {!modoSelecao && (
           <>
             {isPaid !== undefined && (
-              <button onClick={onTogglePaid} className={`p-2 rounded-xl transition-colors cursor-pointer shrink-0 ${isPaid ? 'text-emerald-500/50 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-500/80 hover:text-amber-400 hover:bg-amber-500/10'}`}>
-                {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+              <button
+                onClick={onTogglePaid}
+                aria-label={isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
+                className={`shrink-0 cursor-pointer rounded-full p-2 transition-colors hover:bg-white/5 ${isPaid ? 'text-ink-3 hover:text-pos' : 'text-warn'}`}
+              >
+                {isPaid ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
               </button>
             )}
             {receiptUrl && <ReceiptButton stored={receiptUrl} />}
-            <button onClick={onEdit} className="p-2 text-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors cursor-pointer shrink-0"><Edit2 className="w-4 h-4" /></button>
-            <button onClick={onDelete} className="p-2 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer shrink-0"><Trash2 className="w-4 h-4" /></button>
+            <button onClick={onEdit} aria-label="Editar" className="shrink-0 cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-white/5 hover:text-ink"><Edit2 className="h-4 w-4" /></button>
+            <button onClick={onDelete} aria-label="Excluir" className="shrink-0 cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-neg/10 hover:text-neg"><Trash2 className="h-4 w-4" /></button>
           </>
         )}
       </div>
-      
+
     </div>
   );
 }

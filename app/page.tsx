@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
 import { 
@@ -350,6 +350,38 @@ export default function Dashboard() {
     // O service worker é registrado pelo InstallPrompt, que vive no layout e
     // portanto roda em todas as páginas.
     carregarPainel();
+
+    /**
+     * Busca antes do toque os modais que a pessoa abre todo dia.
+     *
+     * Carregar os 25 sob demanda derrubou o painel de 211 kB para 27,8 kB,
+     * mas transferiu o custo para o primeiro toque: no celular, "Lançar"
+     * passou a esperar o download do pedaço antes de abrir. Esse atraso é o
+     * que faz o app parecer lento mesmo estando leve.
+     *
+     * Aqui os quatro mais usados entram em cache enquanto a tela está parada,
+     * depois que o painel já desenhou. O `import()` é o mesmo que o
+     * `next/dynamic` usa, então o pedaço já está pronto quando o toque vem.
+     */
+    const aquecer = () => {
+      void import("../components/TransactionModal");
+      void import("../components/EditTransactionModal");
+      void import("../components/PillarDetailModal");
+      if (AI_ENABLED) void import("../components/AiUploadModal");
+    };
+
+    // `requestIdleCallback` não existe no Safari mais antigo.
+    const ocioso = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? (window as any).requestIdleCallback(aquecer, { timeout: 3000 })
+      : setTimeout(aquecer, 1500);
+
+    return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(ocioso);
+      } else {
+        clearTimeout(ocioso as any);
+      }
+    };
   }, []);
 
   // Recarrega apenas as transações e carteiras sem reload de página
@@ -617,26 +649,56 @@ export default function Dashboard() {
     }
   }
 
-  const visibleTransactions = activeWalletId ? allTransactions.filter(t => t.wallet_id === activeWalletId) : allTransactions;
+  /**
+   * Daqui para baixo é tudo derivado — nada vem de estado próprio.
+   *
+   * Antes rodava a cada render: dez filtros, as somas, os insights e a
+   * previsão. Como a busca é um `useState` neste mesmo componente, CADA TECLA
+   * digitada refazia a cadeia inteira sobre todos os lançamentos. Era isso que
+   * fazia o app parecer travado ao digitar ou ao abrir uma folha.
+   *
+   * As dependências são estreitas de propósito: `allTransactions` muda por
+   * referência quando a lista muda, e mês e ano são números. Nada aqui depende
+   * de busca, filtro de subcategoria ou modal aberto, que são os estados que
+   * mudam o tempo todo.
+   */
+  const visibleTransactions = useMemo(
+    () => (activeWalletId ? allTransactions.filter(t => t.wallet_id === activeWalletId) : allTransactions),
+    [allTransactions, activeWalletId],
+  );
 
-  const currentMonthTransactions = visibleTransactions.filter(t => {
+  const currentMonthTransactions = useMemo(() => visibleTransactions.filter(t => {
     if (!t.date) return false;
     const [year, month] = t.date.split('-');
     // Filtra por mês E ano — corrige bug de parcelas de outros anos
     return (parseInt(month) - 1) === activeMonth && parseInt(year) === activeYear;
-  });
+  }), [visibleTransactions, activeMonth, activeYear]);
 
-  const totalIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  const totalExpense = currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+  // Uma varredura só para o que antes eram seis.
+  const doMes = useMemo(() => {
+    let totalIncome = 0, totalExpense = 0;
+    const contasFixas: any[] = [], variaveis: any[] = [], cartoes: any[] = [];
+    const investimentos: any[] = [], receitasList: any[] = [];
+
+    for (const t of currentMonthTransactions) {
+      if (t.type === 'income') totalIncome += t.amount; else totalExpense += t.amount;
+
+      const c = t.category;
+      if (c === 'Contas Fixas') contasFixas.push(t);
+      else if (c === 'Variáveis') variaveis.push(t);
+      else if (c === 'Cartões' || c === 'Cartões de Crédito') cartoes.push(t);
+      else if (c === 'Investimentos') investimentos.push(t);
+
+      // Espelha a Renda Líquida: resgate de investimento não é receita do mês.
+      // Ele já aparece no card de Investimentos, abatendo o patrimônio.
+      if (t.type === 'income' && c !== 'Investimentos') receitasList.push(t);
+    }
+
+    return { totalIncome, totalExpense, contasFixas, variaveis, cartoes, investimentos, receitasList };
+  }, [currentMonthTransactions]);
+
+  const { totalIncome, totalExpense, contasFixas, variaveis, cartoes, investimentos, receitasList } = doMes;
   const balance = totalIncome - totalExpense;
-
-  const contasFixas = currentMonthTransactions.filter(t => t.category === 'Contas Fixas');
-  const variaveis = currentMonthTransactions.filter(t => t.category === 'Variáveis');
-  const cartoes = currentMonthTransactions.filter(t => (t.category === 'Cartões' || t.category === 'Cartões de Crédito'));
-  const investimentos = currentMonthTransactions.filter(t => t.category === 'Investimentos');
-  // Espelha a Renda Líquida: resgate de investimento não é receita do mês.
-  // Ele já aparece no card de Investimentos, abatendo o patrimônio.
-  const receitasList = currentMonthTransactions.filter(t => t.type === 'income' && t.category !== 'Investimentos');
 
   // Saída soma, entrada abate — vale para todas as categorias.
   // Investimentos tinha uma exceção que somava tudo, inclusive receitas: um
@@ -694,7 +756,11 @@ export default function Dashboard() {
 
   // Protocolo de perfil: os limites abaixo NÃO são constantes universais —
   // saem da estratégia e do tipo de renda declarados pelo usuário.
-  const insights = getProfileInsights({
+  //
+  // É o cálculo mais caro da tela — varre todo o histórico para tirar medianas
+  // por categoria e detectar cobrança recorrente. Rodava a cada render,
+  // inclusive a cada tecla da busca.
+  const insights = useMemo(() => getProfileInsights({
     profile,
     allTransactions,
     monthIncome: rendaLiquida,
@@ -703,10 +769,10 @@ export default function Dashboard() {
     reserveAmount: reservaAtual,
     positions,
     debts,
-  });
+  }), [profile, allTransactions, rendaLiquida, totalExpense, gargalo, reservaAtual, positions, debts]);
 
-  const debtSummary = summarizeDebts(debts as any);
-  const hasRegisteredDebts = debts.some(d => (d.status ?? 'ativa') === 'ativa');
+  const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);
+  const hasRegisteredDebts = useMemo(() => debts.some(d => (d.status ?? 'ativa') === 'ativa'), [debts]);
 
 
   // Semáforo de 3 faixas, com os cortes vindos do perfil.
@@ -1755,7 +1821,9 @@ function ReceiptButton({ stored }: { stored: string }) {
  * total vai em texto, ao lado.
  */
 function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, filtroAtivo }: any) {
-  const resumo = resumoPorSubcategoria(transactions);
+  // Agrupa e ordena todos os gastos do mês. Como este card vive no painel,
+  // rodava de novo a cada tecla da busca e a cada folha aberta.
+  const resumo = useMemo(() => resumoPorSubcategoria(transactions), [transactions]);
 
   // Mês sem despesa, ou base toda anterior à coluna existir: não vale ocupar
   // tela com um card vazio.

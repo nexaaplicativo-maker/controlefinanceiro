@@ -238,6 +238,15 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
                         <option value="Variáveis">Variáveis</option>
                         <option value="Contas Fixas">Contas Fixas</option>
                         <option value="Cartões">Cartões de Crédito</option>
+                        {/* Aporte é saída de conta, não receita: o dinheiro deixa
+                            o saldo e vira patrimônio. O painel já desconta esta
+                            categoria da Capacidade de Poupança e a tela de edição
+                            já a oferecia — só o formulário de criar não tinha,
+                            então dava para EDITAR um lançamento para aporte, mas
+                            não para criar um. O aviso logo abaixo até oferece
+                            "Mudar para Despesa", levando a um estado que este
+                            campo não alcançava. */}
+                        <option value="Investimentos">Investimentos</option>
                         {customCategories.filter(c => c.type === 'expense').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                       </>
                     ) : (

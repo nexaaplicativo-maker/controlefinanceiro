@@ -1,13 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { BottomNav } from "../components/BottomNav";
-import { InstallPrompt } from "../components/InstallPrompt";
 import { ToastContainer } from "../components/Toast";
 import { ConfirmDialogContainer } from "../components/ConfirmDialog";
-import { FeedbackWidget } from "../components/FeedbackWidget";
-import { IdleTimeout } from "../components/IdleTimeout";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { ChromeDoApp } from "../components/ChromeDoApp";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -42,14 +39,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-canvas text-ink antialiased selection:bg-brand/25 pb-bottom-nav md:pb-0 px-safe`}>
+      <body className={`${inter.className} bg-canvas text-ink antialiased selection:bg-brand/25 px-safe`}>
         <ErrorBoundary>{children}</ErrorBoundary>
-        <BottomNav />
-        <InstallPrompt />
+        {/* Aviso e confirmação ficam no raiz: a tela de login também mostra
+            erro de senha. O resto da moldura só existe para quem entrou. */}
         <ToastContainer />
         <ConfirmDialogContainer />
-        <FeedbackWidget />
-        <IdleTimeout />
+        <ChromeDoApp />
       </body>
     </html>
   );

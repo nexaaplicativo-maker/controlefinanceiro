@@ -63,6 +63,7 @@ import { getReceiptUrl } from "../lib/receipts";
 import { resumoPorSubcategoria, normalizarSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
 import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
+import { linhasDaMesmaFatura } from "../lib/fatura";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import type { StepId } from "../lib/onboarding";
@@ -638,11 +639,75 @@ export default function Dashboard() {
     });
   }
 
+  /**
+   * Marcar pago — e, numa fatura, marcar a fatura inteira.
+   *
+   * Uma fatura de cartão é UM pagamento. Ninguém paga a Neon separado do
+   * Fies: paga o total do cartão. Então "pago" é propriedade da fatura, não
+   * da linha, e pedir um toque por compra em 34 compras é pedir 34 toques
+   * para registrar um fato só.
+   *
+   * O RECORTE INCLUI A DATA, E ISSO É ESSENCIAL
+   * As parcelas futuras projetadas na importação carregam o MESMO
+   * `import_group` — elas nasceram da mesma leitura. Agrupar só por ele
+   * marcaria como paga a parcela 5/10 que vence em março: a dívida futura
+   * sumiria das contas a vencer e da previsão de caixa, sem aviso. Como toda
+   * linha desta fatura compartilha a data da importação e as projetadas têm
+   * datas à frente, somar a data ao recorte deixa cada uma no seu mês.
+   *
+   * SEM CONFIRMAÇÃO, COM DESFAZER
+   * Diferente do apagar. A regra do app é confirmação para o que destrói e
+   * desfazer para o que é reversível — e um diálogo a cada toque devolveria
+   * o atrito que esta mudança existe para tirar.
+   */
   async function handleTogglePaid(id: string, currentStatus: boolean) {
     const newStatus = !currentStatus;
+    const tx = allTransactions.find(t => t.id === id);
+
+    // A regra do recorte mora em lib/fatura.ts, com testes: errar nela
+    // marcaria parcela futura como paga e sumiria com dívida em silêncio.
+    const daFatura = linhasDaMesmaFatura(allTransactions, tx);
+
+    if (daFatura.length > 1) {
+      const ids = daFatura.map(t => t.id);
+      // Guarda o estado de cada uma: a fatura pode estar meio marcada, e o
+      // desfazer precisa devolver exatamente o que havia antes.
+      const antes = daFatura.map(t => ({ id: t.id, is_paid: t.is_paid }));
+
+      const { error } = await supabase.from('transactions').update({ is_paid: newStatus }).in('id', ids);
+      if (error) { toast("Erro ao atualizar status.", "error"); return; }
+
+      setAllTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, is_paid: newStatus } : t));
+
+      toastWithUndo(
+        `Fatura inteira: ${daFatura.length} lançamentos ${newStatus ? 'pagos' : 'pendentes'}.`,
+        async () => {
+          // Duas atualizações no máximo, agrupadas pelo valor anterior.
+          const eramPagas = antes.filter(a => a.is_paid === true).map(a => a.id);
+          const naoEram = antes.filter(a => a.is_paid !== true).map(a => a.id);
+
+          const erros = await Promise.all([
+            eramPagas.length
+              ? supabase.from('transactions').update({ is_paid: true }).in('id', eramPagas)
+              : Promise.resolve({ error: null }),
+            naoEram.length
+              ? supabase.from('transactions').update({ is_paid: false }).in('id', naoEram)
+              : Promise.resolve({ error: null }),
+          ]);
+
+          if (erros.some(r => r.error)) { toast("Não consegui desfazer.", "error"); return; }
+
+          const mapa = new Map(antes.map(a => [a.id, a.is_paid]));
+          setAllTransactions(prev => prev.map(t => mapa.has(t.id) ? { ...t, is_paid: mapa.get(t.id) } : t));
+          toast("Status restaurado.", "success");
+        },
+      );
+      return;
+    }
+
     const { error } = await supabase.from('transactions').update({ is_paid: newStatus }).eq('id', id);
     if (!error) {
-      setAllTransactions(prev => allTransactions.map(t => t.id === id ? { ...t, is_paid: newStatus } : t));
+      setAllTransactions(prev => prev.map(t => t.id === id ? { ...t, is_paid: newStatus } : t));
       toast(newStatus ? "Marcado como pago! ✅" : "Marcado como pendente.", "info");
     } else {
       toast("Erro ao atualizar status.", "error");

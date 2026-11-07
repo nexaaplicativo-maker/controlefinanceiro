@@ -115,6 +115,12 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             subcategoria: item.subcategoria || "Outros",
             type: item.type === "income" ? "income" : "expense",
             import_group: importGroup,
+            // Fatura se importa para planejar o pagamento, não depois de
+            // pagar. Isto estava implícito, dependendo do padrão da coluna no
+            // banco — que não está versionado em lugar nenhum. Se um dia ele
+            // virasse `true`, a fatura chegaria quitada e o valor sumiria das
+            // contas a vencer sem ninguém notar.
+            is_paid: false,
           };
 
           const parcelas = expandirParcelamento(item.description, selectedDate, item.parcela ?? null);
@@ -143,9 +149,8 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 date: parcela.data,
                 installment_group: installmentGroup,
                 installment_info: parcela.installment_info,
-                // Parcela futura nasce em aberto: é ela que precisa aparecer
-                // nas contas a vencer e na previsão de caixa.
-                ...(parcela.futura ? { is_paid: false } : {}),
+                // Atual e futuras nascem em aberto pelo mesmo motivo; o
+                // `is_paid` já vem de `comum`.
               },
             });
           }
@@ -168,7 +173,7 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         const { error } = await supabase.from('transactions').insert(transactionsToInsert);
         if (error) throw new Error("Erro ao salvar no banco: " + error.message);
 
-        const futuras = transactionsToInsert.filter((t: any) => t.is_paid === false).length;
+        const futuras = transactionsToInsert.filter((t: any) => t.date !== selectedDate).length;
         const agora = transactionsToInsert.length - futuras;
 
         toast(

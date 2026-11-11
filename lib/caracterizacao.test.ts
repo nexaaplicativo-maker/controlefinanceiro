@@ -307,12 +307,17 @@ describe('[CORRIGIDO F1] o aporte do botão Poupar não é mais contado duas vez
 // A6 — Aporte sugerido ignora a capacidade real
 // ===========================================================================
 
-describe('[DEFEITO A6] o aporte sugerido sai da renda, não do que sobra', () => {
-  it('sugere 20% da renda mesmo com o mês fechando no zero', () => {
+// CORRIGIDO em F7.
+describe('[CORRIGIDO F7] o aporte sugerido respeita o que realmente sobra', () => {
+  it('mês fechando no zero: não sugere aporte nenhum', () => {
     const insights = getProfileInsights({
       hoje: "2026-11-15",
       profile: perfil(),
       allTransactions: [
+        { type: 'income', category: 'Salário', amount: 5_000, date: '2026-08-05' },
+        { type: 'expense', category: 'Contas Fixas', amount: 5_000, date: '2026-08-06' },
+        { type: 'income', category: 'Salário', amount: 5_000, date: '2026-09-05' },
+        { type: 'expense', category: 'Contas Fixas', amount: 5_000, date: '2026-09-06' },
         { type: 'income', category: 'Salário', amount: 5_000, date: '2026-10-05' },
         { type: 'expense', category: 'Contas Fixas', amount: 5_000, date: '2026-10-06' },
       ],
@@ -322,7 +327,9 @@ describe('[DEFEITO A6] o aporte sugerido sai da renda, não do que sobra', () =>
       reserveAmount: 0,
     });
 
-    expect(insights.suggestedContribution).toBe(1_000);
+    // Antes sugeria R$ 1.000 — 20% de uma renda que não sobra nada.
+    expect(insights.poupancaTipica).toBe(0);
+    expect(insights.suggestedContribution).toBe(0);
   });
 });
 

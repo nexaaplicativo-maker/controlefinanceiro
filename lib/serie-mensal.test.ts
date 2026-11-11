@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  serieMensalFechada, getReferenceIncome, getMonthlyCost, temDeficitRecorrente,
+  serieMensalFechada, getReferenceIncome, getMonthlyCost, temDeficitRecorrente, getProfileInsights,
   type FinancialProfile,
 } from './profile';
 
@@ -262,5 +262,62 @@ describe('F5 — déficit recorrente', () => {
 
   it('sem histórico nenhum, não há déficit a declarar', () => {
     expect(temDeficitRecorrente({ transacoes: [], hoje: HOJE })).toBe(false);
+  });
+});
+
+describe('F7 — aporte sugerido e destino', () => {
+  const comMeses = (entrou: number, saiu: number) =>
+    ['2026-08', '2026-09', '2026-10'].flatMap(m => [
+      { type: 'income', category: 'Salário', amount: entrou, date: `${m}-05` },
+      { type: 'expense', category: 'Contas Fixas', amount: saiu, date: `${m}-10` },
+    ]);
+
+  const insights = (txs: any[], over: any = {}) => getProfileInsights({
+    hoje: HOJE,
+    profile: perfil({ monthly_income: 5_000 }),
+    allTransactions: txs,
+    monthIncome: 5_000,
+    monthExpense: 3_000,
+    monthGargalo: 500,
+    reserveAmount: 0,
+    ...over,
+  });
+
+  it('os três casos do relatório', () => {
+    // sobra 200 -> sugere 200 (menor que a meta de 1.000)
+    expect(insights(comMeses(5_000, 4_800)).suggestedContribution).toBe(200);
+    // sobra 1.800 -> sugere 1.000 (a meta é o teto)
+    expect(insights(comMeses(5_000, 3_200)).suggestedContribution).toBe(1_000);
+    // sobra negativa -> 0
+    expect(insights(comMeses(5_000, 5_300)).suggestedContribution).toBe(0);
+  });
+
+  it('a poupança típica pode ser negativa, e é exposta como tal', () => {
+    expect(insights(comMeses(5_000, 5_300)).poupancaTipica).toBe(-300);
+  });
+
+  it('destino em Emergência por dívida é quitar a dívida', () => {
+    const i = insights(comMeses(5_000, 3_000), {
+      profile: perfil({ monthly_income: 5_000, has_debt: true }),
+    });
+    expect(i.stage.id).toBe('emergencia');
+    expect(i.destinoDoAporte).toBe('quitar-divida');
+  });
+
+  it('destino em Emergência por déficit é ajustar gastos', () => {
+    const i = insights(comMeses(5_000, 5_300));
+    expect(i.stage.id).toBe('emergencia');
+    expect(i.destinoDoAporte).toBe('ajustar-gastos');
+  });
+
+  it('destino sem reserva formada é a reserva', () => {
+    expect(insights(comMeses(5_000, 3_000)).destinoDoAporte).toBe('reserva');
+  });
+
+  it('destino com reserva completa é investimento', () => {
+    // 50.000 passa do ideal (6 × 3.000) sem chegar aos 300× da independência.
+    const i = insights(comMeses(5_000, 3_000), { reserveAmount: 50_000 });
+    expect(i.stage.id).toBe('acumulacao');
+    expect(i.destinoDoAporte).toBe('investimentos');
   });
 });

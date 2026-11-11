@@ -224,7 +224,12 @@ describe('getProfileInsights', () => {
     getProfileInsights({
       hoje: "2026-11-15",
       profile: perfilBase,
-      allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      // Receita entra no fixture a partir do F7: sem ela nao ha poupanca
+      // tipica, e o aporte sugerido seria sempre zero.
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      ],
       monthIncome: 5000,
       monthExpense: 3000,
       monthGargalo: 1000,
@@ -238,9 +243,32 @@ describe('getProfileInsights', () => {
     expect(i.shouldSuggestContribution).toBe(false);
   });
 
-  it('sugere aporte conforme a estratégia', () => {
-    // 50/30/20 sobre renda de referência 5.000 = 1.000
+  // ATUALIZADO em F7: a meta da estratégia passou a ser um TETO. O sugerido
+  // é o menor entre ela e o que realmente sobra.
+  it('sugere o menor entre a meta da estratégia e a sobra real', () => {
+    // Sobra típica 2.000; meta 20% de 5.000 = 1.000. Vence a meta.
     expect(chamar().suggestedContribution).toBe(1000);
+  });
+
+  it('quando sobra menos que a meta, sugere o que sobra', () => {
+    const i = chamar({
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 4800 }),
+      ],
+    });
+    expect(i.poupancaTipica).toBe(200);
+    expect(i.suggestedContribution).toBe(200);
+  });
+
+  it('fechando no vermelho, não sugere aporte nenhum', () => {
+    const i = chamar({
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 5300 }),
+      ],
+    });
+    expect(i.suggestedContribution).toBe(0);
   });
 
   it('prefere o valor de mercado das posições à soma dos aportes', () => {
@@ -289,7 +317,12 @@ describe('transição has_debt -> tabela debts', () => {
     getProfileInsights({
       hoje: "2026-11-15",
       profile,
-      allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      // Receita entra no fixture a partir do F7: sem ela nao ha poupanca
+      // tipica, e o aporte sugerido seria sempre zero.
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      ],
       monthIncome: 5000,
       monthExpense: 3000,
       monthGargalo: 500,
@@ -341,7 +374,12 @@ describe('getStageLadder', () => {
     const insights = getProfileInsights({
       hoje: "2026-11-15",
       profile: perfilBase,
-      allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      // Receita entra no fixture a partir do F7: sem ela nao ha poupanca
+      // tipica, e o aporte sugerido seria sempre zero.
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      ],
       monthIncome: 5000,
       monthExpense: 3000,
       monthGargalo: 500,

@@ -90,6 +90,10 @@ export interface ProfileInsights {
   suggestedContribution: number;
   /** Se false, o app NÃO deve sugerir aporte (dívida cara vem antes) */
   shouldSuggestContribution: boolean;
+  /** Mediana do que sobrou nos últimos 3 meses fechados. Pode ser negativa. */
+  poupancaTipica: number;
+  /** Para onde o dinheiro deve ir neste estágio. */
+  destinoDoAporte: DestinoDoAporte;
   /** Reserva + investido, sem contar o mesmo dinheiro duas vezes. */
   patrimonio: number;
   /** De onde saiu a renda de referência: do histórico ou do que foi declarado. */
@@ -484,6 +488,60 @@ export function temDeficitRecorrente(params: {
   return noVermelho >= minimoDeMesesNoVermelho;
 }
 
+/**
+ * Poupança típica do mês: o que REALMENTE sobra, pela mediana dos meses
+ * fechados.
+ *
+ * O aporte sugerido saía de `renda × fatia da estratégia`. Num mês em que a
+ * pessoa fecha no zero, o app mandava guardar 20% da renda — conselho que só
+ * pode ser seguido com cartão ou cheque especial, ou seja, piorando a
+ * situação que ele pretendia melhorar.
+ *
+ * Investimentos fica fora dos dois lados: aporte é destino da poupança, não
+ * consumo, e descontá-lo faria a sobra parecer menor a cada vez que a pessoa
+ * acerta.
+ */
+export function poupancaTipicaMensal(params: {
+  transacoes: Tx[];
+  hoje: string;
+  meses?: number;
+}): number {
+  const { transacoes, hoje, meses = 3 } = params;
+
+  const receitas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: meses,
+  });
+
+  const despesas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: meses,
+  });
+
+  // Mês sem receita lançada é dado faltando, não poupança negativa — a mesma
+  // regra que o déficit recorrente usa.
+  const sobras: number[] = [];
+  for (let i = 0; i < receitas.valores.length; i++) {
+    const entrou = receitas.valores[i];
+    if (entrou <= 0) continue;
+    sobras.push(entrou - (despesas.valores[i] ?? 0));
+  }
+
+  return sobras.length ? median(sobras) : 0;
+}
+
+/** Para onde o dinheiro guardado deve ir, dado o estágio. */
+export type DestinoDoAporte =
+  | 'quitar-divida'
+  | 'ajustar-gastos'
+  | 'reserva'
+  | 'investimentos'
+  | 'manutencao';
+
 export function computeStage(params: {
   profile: FinancialProfile | null;
   referenceIncome: number;
@@ -721,8 +779,28 @@ export function getProfileInsights(params: {
     deficitRecorrente: temDeficitRecorrente({ transacoes: allTransactions, hoje }),
   });
 
+
   const strategyId = profile?.strategy ?? DEFAULT_STRATEGY;
   const suggestedSavingsRate = (STRATEGIES[strategyId] ?? STRATEGIES[DEFAULT_STRATEGY]).save;
+
+  // O menor entre a META da estratégia e o que REALMENTE sobra. Sugerir 20%
+  // da renda a quem fecha o mês no zero é mandar guardar no cartão.
+  const poupancaTipica = poupancaTipicaMensal({ transacoes: allTransactions, hoje });
+  const metaDeAporte = referenceIncome * suggestedSavingsRate;
+  const aporteViavel = Math.min(metaDeAporte, Math.max(0, poupancaTipica));
+
+  // Qual dos dois gatilhos do Estágio 1 disparou muda o conselho: quitar
+  // dívida e cortar gasto são coisas diferentes, e antes o app dizia só
+  // "não aporte" para os dois.
+  const deficitRecorrente = temDeficitRecorrente({ transacoes: allTransactions, hoje });
+  const destinoDoAporte: DestinoDoAporte =
+    stage.id === 'emergencia'
+      ? (deficitRecorrente ? 'ajustar-gastos' : 'quitar-divida')
+      : stage.id === 'independencia'
+        ? 'manutencao'
+        : stage.id === 'acumulacao'
+          ? 'investimentos'
+          : 'reserva';
 
   // Em Modo Emergência o app NÃO sugere aporte: guardar a 1% ao mês enquanto
   // se paga 15% de rotativo destrói patrimônio. Primeiro quita, depois guarda.
@@ -743,7 +821,9 @@ export function getProfileInsights(params: {
     positionsValue,
     positionsReturn,
     suggestedSavingsRate,
-    suggestedContribution: Math.max(0, Math.round(referenceIncome * suggestedSavingsRate)),
+    suggestedContribution: Math.round(aporteViavel),
+    poupancaTipica: Math.round(poupancaTipica * 100) / 100,
+    destinoDoAporte,
     shouldSuggestContribution,
     // Sem custo de vida conhecido não há alvo: devolver 0 faria qualquer
     // patrimônio parecer completo, e dividir por ele daria Infinity.

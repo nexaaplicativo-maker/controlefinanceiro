@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { hojeEmSaoPaulo } from './data';
 
 /**
  * Exportação de dados — portabilidade da LGPD.
@@ -43,7 +44,7 @@ export async function exportAllDataAsJson(userId: string): Promise<ExportResult>
   }
 
   return {
-    filename: `nexa-meus-dados-${new Date().toISOString().slice(0, 10)}.json`,
+    filename: `nexa-meus-dados-${hojeEmSaoPaulo()}.json`,
     content: JSON.stringify(dump, null, 2),
     mime: 'application/json',
   };
@@ -74,7 +75,7 @@ export async function exportTransactionsAsCsv(userId: string): Promise<ExportRes
     .join('\r\n');
 
   return {
-    filename: `nexa-lancamentos-${new Date().toISOString().slice(0, 10)}.csv`,
+    filename: `nexa-lancamentos-${hojeEmSaoPaulo()}.csv`,
     // BOM no início: sem ele o Excel abre acentuação quebrada.
     content: '﻿' + csv,
     mime: 'text/csv;charset=utf-8',

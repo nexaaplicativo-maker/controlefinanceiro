@@ -4,13 +4,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Bell, TrendingUp, TrendingDown, AlertTriangle, Clock } from "lucide-react";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 import { formatMoney } from "../lib/format";
+import { hojeEmSaoPaulo } from "../lib/data";
 
 export function ActivityModal({ isOpen, onClose, transactions, dueBills = [] }: { isOpen: boolean, onClose: () => void, transactions: any[], dueBills?: any[] }) {
   const a11yRef = useModalA11y(isOpen, onClose);
   if (!isOpen) return null;
 
   const recentActivities = transactions.slice(0, 15);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = hojeEmSaoPaulo();
 
   return (
     <AnimatePresence>

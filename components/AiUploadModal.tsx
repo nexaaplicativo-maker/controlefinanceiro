@@ -9,6 +9,7 @@ import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 import { reduzirImagem } from "../lib/imagem";
 import { expandirParcelamento, tituloBase, chaveParcela } from "../lib/parcelas";
+import { hojeEmSaoPaulo } from "../lib/data";
 
 interface Candidato {
   /** Chave da cobrança parcelada, para não lançar a mesma parcela duas vezes.
@@ -57,7 +58,7 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [isUploading, setIsUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => hojeEmSaoPaulo());
 
   if (!isOpen) return null;
 

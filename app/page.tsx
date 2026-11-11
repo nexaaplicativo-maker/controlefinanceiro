@@ -64,6 +64,7 @@ import { resumoPorSubcategoria, normalizarSubcategoria, NAO_CLASSIFICADO } from 
 import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
 import { linhasDaMesmaFatura } from "../lib/fatura";
+import { hojeEmSaoPaulo } from "../lib/data";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import type { StepId } from "../lib/onboarding";
@@ -935,7 +936,7 @@ export default function Dashboard() {
    */
   const pronto = !isLoading && !erroCarregamento;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = hojeEmSaoPaulo();
   const threeDaysFromNow = new Date();
   threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
   const threeDaysStr = threeDaysFromNow.toISOString().split('T')[0];

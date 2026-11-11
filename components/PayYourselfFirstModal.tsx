@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { toast } from "./Toast";
 import type { ProfileInsights } from "../lib/profile";
 import { formatMoney } from "../lib/format";
+import { hojeEmSaoPaulo } from "../lib/data";
 import { TITULO_APORTE_RESERVA } from "../lib/constantes-financeiras";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
@@ -71,7 +72,7 @@ export function PayYourselfFirstModal({
         amount: value,
         type: 'expense',
         category: 'Investimentos',
-        date: new Date().toISOString().split('T')[0],
+        date: hojeEmSaoPaulo(),
         is_paid: true,
       }]);
 

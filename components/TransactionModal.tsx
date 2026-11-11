@@ -10,6 +10,7 @@ import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 import { SUBCATEGORIAS, subcategoriaSugerida } from "../lib/subcategorias";
 import { AI_ENABLED } from "../lib/features";
+import { hojeEmSaoPaulo } from "../lib/data";
 
 export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: { isOpen: boolean, onClose: () => void, onSave?: () => void, onImportarFatura?: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
@@ -38,7 +39,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
 
   useEffect(() => {
     if (isOpen) {
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(hojeEmSaoPaulo());
       fetchData();
     }
   }, [isOpen]);
@@ -166,7 +167,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
       setIsSplit(false);
       setIsPaid(true);
       setReceiptFile(null);
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(hojeEmSaoPaulo());
       
       onClose();
       if (onSave) onSave();

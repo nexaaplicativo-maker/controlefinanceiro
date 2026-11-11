@@ -442,7 +442,7 @@ describe('[CARACTERIZAÇÃO B3] previsão de caixa', () => {
   });
 
   it('contas a vencer ignoram is_paid nulo — só "=== false" entra', () => {
-    const hoje = new Date('2026-11-10T12:00:00Z');
+    const hoje = '2026-11-10';
     const txs = [
       { type: 'expense', category: 'Contas Fixas', amount: 100, date: '2026-11-20', is_paid: false, title: 'Luz' },
       { type: 'expense', category: 'Contas Fixas', amount: 200, date: '2026-11-21', title: 'Água' }, // is_paid ausente
@@ -452,7 +452,7 @@ describe('[CARACTERIZAÇÃO B3] previsão de caixa', () => {
   });
 
   it('contas vencidas ENTRAM na mesma lista, marcadas como atrasadas', () => {
-    const hoje = new Date('2026-11-10T12:00:00Z');
+    const hoje = '2026-11-10';
     const txs = [
       { type: 'expense', category: 'Contas Fixas', amount: 100, date: '2026-10-02', is_paid: false, title: 'Antiga' },
     ];

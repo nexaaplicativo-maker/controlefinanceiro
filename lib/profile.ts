@@ -19,7 +19,7 @@
  */
 
 import { EXPENSIVE_DEBT_RATE } from "./debt";
-import { MESES_PARA_INDEPENDENCIA, TAXA_RETIRADA_SEGURA } from "./constantes-financeiras";
+import { MESES_PARA_INDEPENDENCIA, TAXA_RETIRADA_SEGURA, ehAporteDeReserva } from "./constantes-financeiras";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -89,6 +89,8 @@ export interface ProfileInsights {
   suggestedContribution: number;
   /** Se false, o app NÃO deve sugerir aporte (dívida cara vem antes) */
   shouldSuggestContribution: boolean;
+  /** Reserva + investido, sem contar o mesmo dinheiro duas vezes. */
+  patrimonio: number;
   /** Patrimônio necessário para a independência. null sem custo conhecido. */
   independenciaAlvo: number | null;
   /** 0 a 1. null sem custo conhecido. */
@@ -181,6 +183,8 @@ type Tx = {
   category?: string;
   amount?: number;
   date?: string;
+  /** Usado só para separar o aporte da reserva dos demais investimentos. */
+  title?: string | null;
 };
 
 /** 'YYYY-MM' de uma data ISO, sem construir Date (evita o bug de fuso). */
@@ -476,8 +480,14 @@ export function getProfileInsights(params: {
   // aportes, então uma venda de ativo não reduzia o patrimônio — e ainda por
   // cima inflava a renda. O mesmo lançamento contava duas vezes, das duas
   // formas erradas.
+  //
+  // O aporte à RESERVA fica de fora: ele já é contado em `reserveAmount`,
+  // que vem de goals.current_amount. O botão "Poupar" grava as duas coisas —
+  // a despesa, que derruba o saldo em conta, e a soma na meta — e as duas
+  // estão certas isoladamente. Somá-las no patrimônio é que contava o mesmo
+  // dinheiro duas vezes: cinco aportes de R$ 1.000 viravam R$ 10.000.
   const contributedTotal = allTransactions
-    .filter(t => t.category === INVESTMENT_CATEGORY)
+    .filter(t => t.category === INVESTMENT_CATEGORY && !ehAporteDeReserva(t.title))
     .reduce((acc, t) => acc + (t.type === 'expense' ? (t.amount ?? 0) : -(t.amount ?? 0)), 0);
 
   // Valor de mercado vence soma de aportes: quem tem posição cadastrada sabe
@@ -534,6 +544,7 @@ export function getProfileInsights(params: {
     shouldSuggestContribution,
     // Sem custo de vida conhecido não há alvo: devolver 0 faria qualquer
     // patrimônio parecer completo, e dividir por ele daria Infinity.
+    patrimonio: reserveAmount + investedTotal,
     independenciaAlvo: monthlyCost > 0 ? Math.round(monthlyCost * MESES_PARA_INDEPENDENCIA) : null,
     independenciaProgresso: monthlyCost > 0
       ? Math.min(1, (reserveAmount + investedTotal) / (monthlyCost * MESES_PARA_INDEPENDENCIA))

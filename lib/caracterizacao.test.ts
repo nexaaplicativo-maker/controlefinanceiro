@@ -223,15 +223,21 @@ describe('[DEFEITO B8] "tenho dívida" declarado prende em Emergência', () => {
 // B4 — Aporte na reserva contado duas vezes no patrimônio
 // ===========================================================================
 
-describe('[DEFEITO B4] o aporte feito pelo botão Poupar entra duas vezes', () => {
-  it('a mesma transação de Investimentos vira reserva E investido', () => {
+// CORRIGIDO em F1.
+//
+// O teste original aqui estava INCOMPLETO: criava a transação sem título, e
+// o app grava `title: 'Aporte - Reserva de Emergência'`. Sem o título ele não
+// reproduzia o caso real e teria continuado passando depois da correção —
+// uma rede de segurança com um buraco exatamente onde o defeito morava.
+describe('[CORRIGIDO F1] o aporte do botão Poupar não é mais contado duas vezes', () => {
+  it('a transação marcada como aporte de reserva fica fora do investido', () => {
     // É exatamente o que PayYourselfFirstModal grava: uma despesa em
-    // Investimentos mais a soma na meta "Reserva de Emergência".
+    // Investimentos COM o título marcador, mais a soma na meta.
     const insights = getProfileInsights({
       profile: perfil(),
       allTransactions: [
         { type: 'income', category: 'Salário', amount: 5_000, date: '2026-10-05' },
-        { type: 'expense', category: 'Investimentos', amount: 1_000, date: '2026-10-06' },
+        { type: 'expense', category: 'Investimentos', amount: 1_000, date: '2026-10-06', title: 'Aporte - Reserva de Emergência' },
       ],
       monthIncome: 5_000,
       monthExpense: 1_000,
@@ -239,10 +245,25 @@ describe('[DEFEITO B4] o aporte feito pelo botão Poupar entra duas vezes', () =
       reserveAmount: 1_000,     // a meta, atualizada pelo mesmo aporte
     });
 
-    expect(insights.contributedTotal).toBe(1_000);
-    expect(insights.investedTotal).toBe(1_000);
+    expect(insights.contributedTotal).toBe(0);
+    expect(insights.investedTotal).toBe(0);
     expect(insights.reserveAmount).toBe(1_000);
-    // O patrimônio usado pelo estágio soma os dois: R$ 2.000 de R$ 1.000.
+    expect(insights.patrimonio).toBe(1_000);   // era 2.000
+  });
+
+  it('transação de Investimentos SEM o marcador continua contando', () => {
+    const insights = getProfileInsights({
+      profile: perfil(),
+      allTransactions: [
+        { type: 'expense', category: 'Investimentos', amount: 1_000, date: '2026-10-06', title: 'Tesouro Selic' },
+      ],
+      monthIncome: 0,
+      monthExpense: 1_000,
+      monthGargalo: 0,
+      reserveAmount: 0,
+    });
+
+    expect(insights.contributedTotal).toBe(1_000);
   });
 
   it('posição cadastrada substitui os aportes, sem somar', () => {

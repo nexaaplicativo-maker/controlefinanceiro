@@ -71,6 +71,28 @@ export { EXPENSIVE_DEBT_RATE as TAXA_DIVIDA_CARA } from './debt';
 // ---------------------------------------------------------------------------
 
 /**
+ * Título que o botão "Poupar" grava na transação do aporte à reserva.
+ *
+ * É um MARCADOR, não um rótulo: quem grava e quem lê precisam concordar, ou
+ * o mesmo dinheiro volta a ser contado duas vezes (uma na reserva, outra no
+ * investido). Por isso mora aqui, e não solto dentro do componente.
+ *
+ * LIMITAÇÃO CONHECIDA: casar por título é frágil. O certo seria uma coluna
+ * `goal_id` em `transactions`, ligando a transação à meta que ela alimenta.
+ * Isso exige migração de schema e está proposto à parte — enquanto não
+ * existir, este marcador é o que o app já escreve e o que dá para ler.
+ */
+export const TITULO_APORTE_RESERVA = 'Aporte - Reserva de Emergência';
+
+/** Compara títulos ignorando acento, caixa e espaço repetido. */
+export function ehAporteDeReserva(titulo: string | null | undefined): boolean {
+  if (!titulo) return false;
+  const achatar = (s: string) =>
+    s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return achatar(titulo) === achatar(TITULO_APORTE_RESERVA);
+}
+
+/**
  * Meses de CUSTO DE VIDA (não de renda) na reserva.
  *
  * FONTE: recomendação corrente de planejamento financeiro, 3 a 6 meses para

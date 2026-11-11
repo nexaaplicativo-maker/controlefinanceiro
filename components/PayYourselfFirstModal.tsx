@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { toast } from "./Toast";
 import type { ProfileInsights } from "../lib/profile";
 import { formatMoney } from "../lib/format";
+import { TITULO_APORTE_RESERVA } from "../lib/constantes-financeiras";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 
@@ -63,7 +64,10 @@ export function PayYourselfFirstModal({
 
       const { error } = await supabase.from('transactions').insert([{
         user_id: userId,
-        title: 'Aporte - Reserva de Emergência',
+        // Marcador compartilhado: lib/profile.ts usa este título para NÃO
+        // contar o mesmo dinheiro duas vezes no patrimônio. Mudar a string
+        // aqui sem mudar lá traz o defeito de volta, em silêncio.
+        title: TITULO_APORTE_RESERVA,
         amount: value,
         type: 'expense',
         category: 'Investimentos',

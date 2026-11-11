@@ -51,6 +51,7 @@ describe('[CORRIGIDO F2] independência agora exige 300x o custo mensal', () => 
     monthIncome: 10_000,
     monthExpense: 5_000,
     gargaloPercent: 10,
+    deficitRecorrente: false,
     reserveIdeal: 24_000,
     hasRegisteredDebts: false,
   };
@@ -176,31 +177,32 @@ describe('[DEFEITO B5] renda variável afrouxa o limite em vez de estabilizar a 
 // A3 — Gargalo fixo em 50% no estágio, e mês corrente parcial
 // ===========================================================================
 
-describe('[DEFEITO A3] o estágio usa 50% fixo, não o crítico do perfil', () => {
+// CORRIGIDO em F5. O gargalo saiu do estágio e virou só alerta; o déficit
+// passou a ser medido em meses FECHADOS.
+describe('[CORRIGIDO F5] gargalo não classifica mais Emergência', () => {
   const base = {
     profile: perfil({ strategy: '40_20_40' }),   // crítico do perfil = 40
     referenceIncome: 10_000,
     monthlyCost: 4_000,
-    monthIncome: 10_000,
-    monthExpense: 5_000,
+    deficitRecorrente: false,
     reserveAmount: 50_000,
     investedTotal: 0,
     reserveIdeal: 24_000,
     hasRegisteredDebts: false,
   };
 
-  it('gargalo de 45% é crítico pelo perfil, mas NÃO leva a Emergência', () => {
-    expect(computeStage({ ...base, gargaloPercent: 45 }).id).toBe('acumulacao');
+  it('gargalo de 45% não leva a Emergência — é alerta, não insolvência', () => {
+    expect(computeStage({ ...base }).id).toBe('acumulacao');
   });
 
-  it('gargalo de 51% leva a Emergência, independentemente do perfil', () => {
-    expect(computeStage({ ...base, gargaloPercent: 51 }).id).toBe('emergencia');
+  it('gargalo de 51% também não leva mais a Emergência', () => {
+    // Antes caía em Emergência e perdia a sugestão de aporte, mesmo fechando
+    // o mês no azul. O alerta continua, em gargaloWarn e gargaloCritical.
+    expect(computeStage({ ...base }).id).toBe('acumulacao');
   });
 
-  it('um único mês com despesa >= receita já leva a Emergência', () => {
-    // Sem olhar histórico: basta o mês em andamento estar assim.
-    const stage = computeStage({ ...base, gargaloPercent: 10, monthIncome: 1_000, monthExpense: 1_000 });
-    expect(stage.id).toBe('emergencia');
+  it('déficit recorrente, sim, leva a Emergência', () => {
+    expect(computeStage({ ...base, deficitRecorrente: true }).id).toBe('emergencia');
   });
 });
 
@@ -216,6 +218,7 @@ describe('[DEFEITO B8] "tenho dívida" declarado prende em Emergência', () => {
     monthIncome: 10_000,
     monthExpense: 5_000,
     gargaloPercent: 10,
+    deficitRecorrente: false,
     reserveAmount: 50_000,
     investedTotal: 0,
     reserveIdeal: 24_000,

@@ -43,6 +43,7 @@ describe('computeStage: alvo da independência', () => {
     monthIncome: 10_000,
     monthExpense: 5_000,
     gargaloPercent: 10,
+    deficitRecorrente: false,
     reserveIdeal: 24_000,
     hasRegisteredDebts: false,
     investedTotal: 0,

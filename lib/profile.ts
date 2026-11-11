@@ -430,13 +430,66 @@ export function getReserveTargets(profile: FinancialProfile | null, monthlyCost:
  * adianta parabenizar quem tem reserva formada mas está pagando 15% ao mês de
  * rotativo — esse dinheiro está sendo destruído, não construído.
  */
+/**
+ * Déficit recorrente: gastou mais do que ganhou, e não foi uma vez só.
+ *
+ * Um mês ruim acontece — conserto de carro, dentista, matrícula de escola.
+ * O que caracteriza emergência é o padrão, não o episódio. Por isso exige
+ * pelo menos 2 dos últimos 3 meses FECHADOS no vermelho.
+ *
+ * Meses fechados, e não o corrente: no dia 3, com o aluguel pago e o salário
+ * ainda não creditado, todo mundo parece estar gastando mais do que ganha.
+ *
+ * Investimentos ficam de fora dos DOIS lados, simetricamente: aporte não é
+ * consumo, e resgate não é renda. Contar só de um lado inventaria déficit em
+ * quem aportou, ou esconderia o déficit de quem resgatou para cobrir o rombo.
+ */
+export function temDeficitRecorrente(params: {
+  transacoes: Tx[];
+  hoje: string;
+  mesesParaOlhar?: number;
+  minimoDeMesesNoVermelho?: number;
+}): boolean {
+  const { transacoes, hoje, mesesParaOlhar = 3, minimoDeMesesNoVermelho = 2 } = params;
+
+  const receitas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: mesesParaOlhar,
+  });
+
+  const despesas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: mesesParaOlhar,
+  });
+
+  // As duas séries vêm dos mesmos meses ativos, então os índices casam.
+  let noVermelho = 0;
+  for (let i = 0; i < receitas.valores.length; i++) {
+    const entrou = receitas.valores[i];
+    const saiu = despesas.valores[i] ?? 0;
+
+    // Mês sem NENHUMA receita lançada não prova déficit — prova que a pessoa
+    // não lança receita. Muita gente usa o app só para acompanhar gasto, e
+    // tratar isso como "gastou mais do que ganhou" prenderia essas pessoas no
+    // Modo Emergência para sempre, sem caminho de saída.
+    if (entrou <= 0) continue;
+
+    if (saiu >= entrou) noVermelho++;
+  }
+
+  return noVermelho >= minimoDeMesesNoVermelho;
+}
+
 export function computeStage(params: {
   profile: FinancialProfile | null;
   referenceIncome: number;
   monthlyCost: number;
-  monthIncome: number;
-  monthExpense: number;
-  gargaloPercent: number;
+  /** Despesas >= receitas em pelo menos 2 dos últimos 3 meses FECHADOS. */
+  deficitRecorrente: boolean;
   reserveAmount: number;
   investedTotal: number;
   reserveIdeal: number;
@@ -449,8 +502,8 @@ export function computeStage(params: {
   custoEhEstimado?: boolean;
 }): Stage {
   const {
-    profile, monthlyCost, monthIncome, monthExpense,
-    gargaloPercent, reserveAmount, investedTotal, reserveIdeal,
+    profile, monthlyCost, deficitRecorrente,
+    reserveAmount, investedTotal, reserveIdeal,
   } = params;
 
   // Dívida cara: a tabela `debts` manda quando existir pelo menos uma dívida
@@ -462,11 +515,23 @@ export function computeStage(params: {
     ? (params.expensiveDebtTotal ?? 0) > 0
     : profile?.has_debt === true;
 
-  const spendingMoreThanEarning = monthIncome > 0 && monthExpense >= monthIncome;
   const patrimonio = reserveAmount + investedTotal;
 
-  // 1. Emergência — está cavando o buraco ou pagando juros caros.
-  if (hasDebt || spendingMoreThanEarning || gargaloPercent > 50) {
+  // 1. Emergência — insolvência ou iliquidez, nada além disso.
+  //
+  // SAIU DAQUI: `gargaloPercent > 50`.
+  // Gastar demais em cartão e variáveis com a poupança positiva é problema de
+  // COMPORTAMENTO, não emergência financeira. Como o Estágio 1 bloqueia a
+  // sugestão de aporte, quem consumia muito mas fechava o mês no azul era
+  // impedido de guardar dinheiro — a punição não tinha relação com o
+  // problema. O gargalo continua existindo, como ALERTA, em gargaloWarn e
+  // gargaloCritical.
+  //
+  // MUDOU: o déficit era medido no mês CORRENTE, que está pela metade. No dia
+  // 3, com o aluguel pago e o salário ainda não creditado, qualquer pessoa
+  // caía em Modo Emergência. Agora é déficit RECORRENTE, medido em meses
+  // fechados.
+  if (hasDebt || deficitRecorrente) {
     return STAGES.emergencia;
   }
 
@@ -649,10 +714,11 @@ export function getProfileInsights(params: {
     .reduce((acc, d) => acc + (d.current_balance ?? 0), 0);
 
   const stage = computeStage({
-    profile, referenceIncome, monthlyCost, monthIncome, monthExpense,
-    gargaloPercent, reserveAmount, investedTotal, reserveIdeal: ideal,
+    profile, referenceIncome, monthlyCost,
+    reserveAmount, investedTotal, reserveIdeal: ideal,
     hasRegisteredDebts, expensiveDebtTotal,
     custoEhEstimado: custo.fonte === 'estimado',
+    deficitRecorrente: temDeficitRecorrente({ transacoes: allTransactions, hoje }),
   });
 
   const strategyId = profile?.strategy ?? DEFAULT_STRATEGY;

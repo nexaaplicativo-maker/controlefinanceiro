@@ -156,6 +156,7 @@ describe('computeStage', () => {
     monthIncome: 5000,
     monthExpense: 3000,
     gargaloPercent: 20,
+    deficitRecorrente: false,
     reserveAmount: 0,
     investedTotal: 0,
     reserveIdeal: 18000,
@@ -171,12 +172,18 @@ describe('computeStage', () => {
     expect(stage.id).toBe('emergencia');
   });
 
-  it('entra em emergência gastando mais do que ganha', () => {
-    expect(computeStage({ ...base, monthExpense: 5000 }).id).toBe('emergencia');
+  // ATUALIZADO em F5: o gatilho deixou de ser o mês corrente e passou a ser
+  // déficit RECORRENTE, medido em meses fechados. No dia 3, com o aluguel
+  // pago e o salário ainda não creditado, o teste antigo pegava todo mundo.
+  it('entra em emergência com déficit recorrente', () => {
+    expect(computeStage({ ...base, deficitRecorrente: true }).id).toBe('emergencia');
   });
 
-  it('entra em emergência com gargalo acima de 50%', () => {
-    expect(computeStage({ ...base, gargaloPercent: 51 }).id).toBe('emergencia');
+  // ATUALIZADO em F5: gargalo alto com poupança positiva é comportamento, não
+  // insolvência — e o Estágio 1 bloqueia a sugestão de aporte, punindo quem
+  // fechava o mês no azul. Virou alerta, em gargaloWarn e gargaloCritical.
+  it('gargalo alto NÃO leva mais a emergência', () => {
+    expect(computeStage({ ...base }).id).not.toBe('emergencia');
   });
 
   it('estabilidade quando falta o primeiro mês de colchão', () => {

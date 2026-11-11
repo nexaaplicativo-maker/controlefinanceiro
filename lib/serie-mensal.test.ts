@@ -7,7 +7,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { serieMensalFechada, getReferenceIncome, getMonthlyCost, type FinancialProfile } from './profile';
+import {
+  serieMensalFechada, getReferenceIncome, getMonthlyCost, temDeficitRecorrente,
+  type FinancialProfile,
+} from './profile';
 
 const HOJE = '2026-11-15';
 const receita = (t: { type?: string; category?: string }) =>
@@ -202,5 +205,62 @@ describe('F6 — cascata do custo de vida e a trava do estágio 5', () => {
 
   it('sem perfil, assume a estratégia padrão', () => {
     expect(getMonthlyCost([], 5_000, HOJE).valor).toBe(4_000);
+  });
+});
+
+describe('F5 — déficit recorrente', () => {
+  /** Monta meses com receita e despesa dadas. */
+  const meses = (pares: Array<[string, number, number]>) =>
+    pares.flatMap(([mes, entrou, saiu]) => [
+      ...(entrou > 0 ? [{ type: 'income', category: 'Salário', amount: entrou, date: `${mes}-05` }] : []),
+      ...(saiu > 0 ? [{ type: 'expense', category: 'Variáveis', amount: saiu, date: `${mes}-10` }] : []),
+    ]);
+
+  it('dois dos três últimos meses no vermelho é déficit recorrente', () => {
+    const txs = meses([['2026-08', 3_000, 3_500], ['2026-09', 3_000, 3_200], ['2026-10', 3_000, 2_000]]);
+    expect(temDeficitRecorrente({ transacoes: txs, hoje: HOJE })).toBe(true);
+  });
+
+  it('um mês ruim só não é déficit recorrente', () => {
+    // Conserto de carro, dentista, matrícula. Acontece.
+    const txs = meses([['2026-08', 3_000, 1_000], ['2026-09', 3_000, 5_000], ['2026-10', 3_000, 1_000]]);
+    expect(temDeficitRecorrente({ transacoes: txs, hoje: HOJE })).toBe(false);
+  });
+
+  it('o mês corrente não entra na conta', () => {
+    // No dia 3, com aluguel pago e salário ainda não creditado, todo mundo
+    // parece estar gastando mais do que ganha.
+    const txs = [
+      ...meses([['2026-09', 3_000, 1_000], ['2026-10', 3_000, 1_000]]),
+      { type: 'expense', category: 'Contas Fixas', amount: 2_500, date: '2026-11-03' },
+    ];
+    expect(temDeficitRecorrente({ transacoes: txs, hoje: HOJE })).toBe(false);
+  });
+
+  it('quem só lança despesa NÃO é dado como deficitário', () => {
+    // Mês sem receita lançada é dado faltando, não prova de déficit. Tratar
+    // como vermelho prenderia no Modo Emergência quem usa o app só para
+    // acompanhar gasto — sem caminho de saída.
+    const txs = meses([['2026-08', 0, 3_000], ['2026-09', 0, 3_000], ['2026-10', 0, 3_000]]);
+    expect(temDeficitRecorrente({ transacoes: txs, hoje: HOJE })).toBe(false);
+  });
+
+  it('empate conta como vermelho: gastou tudo o que ganhou', () => {
+    const txs = meses([['2026-09', 3_000, 3_000], ['2026-10', 3_000, 3_000]]);
+    expect(temDeficitRecorrente({ transacoes: txs, hoje: HOJE })).toBe(true);
+  });
+
+  it('aporte não inventa déficit, resgate não esconde', () => {
+    // Investimentos sai dos dois lados, simetricamente.
+    const txs = [
+      ...meses([['2026-09', 3_000, 1_000], ['2026-10', 3_000, 1_000]]),
+      { type: 'expense', category: 'Investimentos', amount: 5_000, date: '2026-09-20' },
+      { type: 'income', category: 'Investimentos', amount: 9_000, date: '2026-10-20' },
+    ];
+    expect(temDeficitRecorrente({ transacoes: txs, hoje: HOJE })).toBe(false);
+  });
+
+  it('sem histórico nenhum, não há déficit a declarar', () => {
+    expect(temDeficitRecorrente({ transacoes: [], hoje: HOJE })).toBe(false);
   });
 });

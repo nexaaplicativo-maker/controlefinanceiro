@@ -101,6 +101,46 @@ export function payoffMonths(balance: number, monthlyRate: number, payment: numb
   return Math.ceil(n);
 }
 
+/**
+ * Taxa efetiva ANUAL equivalente a uma taxa mensal.
+ *
+ *   (1 + r)^12 − 1
+ *
+ * Existe porque "3% ao mês" não assusta ninguém e 42,58% ao ano assusta. É o
+ * mesmo número dito de um jeito que a pessoa consegue comparar com o que ela
+ * conhece: poupança, CDI, financiamento imobiliário.
+ *
+ * 3% a.m. = 42,58% a.a.  |  15% a.m. = 435,03% a.a.
+ */
+export function taxaAnualEquivalente(taxaMensal: number): number {
+  if (!Number.isFinite(taxaMensal) || taxaMensal <= 0) return 0;
+  return Math.round(((1 + taxaMensal) ** 12 - 1) * 10000) / 10000;
+}
+
+/**
+ * Parcela necessária para quitar em exatamente `n` meses.
+ *
+ *   P = r·B / (1 − (1 + r)^−n)
+ *
+ * É a pergunta inversa de `payoffMonths`: em vez de "quanto tempo com esta
+ * parcela", responde "quanto por mês para acabar nesta data".
+ */
+export function pagamentoParaQuitarEm(balance: number, monthlyRate: number, meses: number): number | null {
+  if (balance <= 0) return 0;
+  if (!Number.isFinite(meses) || meses <= 0) return null;
+
+  // Arredonda para CIMA, ao centavo. Arredondar para baixo deixa um resíduo de
+  // centavos que empurra a quitação para um mês a mais — a resposta seria
+  // "pague isto por 12 meses" e a dívida terminaria em 13. Para "quanto
+  // preciso pagar", errar para cima custa centavos; errar para baixo custa um
+  // mês inteiro de juros.
+  const aoCentavoAcima = (n: number) => Math.ceil(n * 100) / 100;
+
+  if (monthlyRate <= 0) return aoCentavoAcima(balance / meses);
+
+  return aoCentavoAcima((monthlyRate * balance) / (1 - (1 + monthlyRate) ** -meses));
+}
+
 export interface PayoffPoint {
   month: number;
   balance: number;

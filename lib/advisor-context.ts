@@ -53,7 +53,8 @@ export interface AdvisorContext {
     atual: number;
     minima: number;
     ideal: number;
-    mesesCobertos: number;
+    /** null quando nao ha custo de vida conhecido para dividir. */
+    mesesCobertos: number | null;
     faltaParaMinima: number;
   };
   dividas: {
@@ -170,7 +171,9 @@ export function buildAdvisorContext(params: {
       atual: round2(reserveAmount),
       minima: insights.reserveMinimum,
       ideal: insights.reserveIdeal,
-      mesesCobertos: round2(insights.reserveMonths),
+      // null quando nao ha custo de vida conhecido: a IA precisa saber a
+      // diferenca entre "nao tem reserva" e "nao da para medir".
+      mesesCobertos: insights.reserveMonths === null ? null : round2(insights.reserveMonths),
       faltaParaMinima: round2(Math.max(0, insights.reserveMinimum - reserveAmount)),
     },
     dividas: temDivida ? {

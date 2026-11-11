@@ -431,3 +431,62 @@ describe('F11 — renda variável mede contra a mediana, não contra o mês', ()
     expect(r.percentualDoAlerta).toBe(25);
   });
 });
+
+describe('F13 e F14 — marco da reserva mínima e divisão honesta', () => {
+  const base = {
+    hoje: HOJE,
+    profile: perfil({ monthly_income: 5_000 }),
+    monthIncome: 5_000,
+    monthExpense: 3_000,
+    monthGargalo: 500,
+  };
+
+  /** Seis meses com custo de 3.000: mínimo 9.000, ideal 18.000. */
+  const historico = ['2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'].flatMap(m => [
+    { type: 'income', category: 'Salário', amount: 5_000, date: `${m}-05` },
+    { type: 'expense', category: 'Contas Fixas', amount: 3_000, date: `${m}-10` },
+  ]);
+
+  it('a reserva mínima vira um marco alcançável, e não só um número', () => {
+    const r = getProfileInsights({ ...base, allTransactions: historico, reserveAmount: 9_000 });
+    expect(r.reserveMinimum).toBe(9_000);
+    expect(r.reservaMinimaConcluida).toBe(true);
+    // Ainda não é a ideal: o estágio continua em "construindo reserva".
+    expect(r.stage.id).toBe('reserva');
+  });
+
+  it('um real abaixo do mínimo ainda não é marco', () => {
+    const r = getProfileInsights({ ...base, allTransactions: historico, reserveAmount: 8_999 });
+    expect(r.reservaMinimaConcluida).toBe(false);
+  });
+
+  it('sem custo NEM renda, meses cobertos é null — não zero', () => {
+    // Zero afirmaria "não tem nada guardado". É diferente de "não sei medir".
+    //
+    // Depois do F6 este caso ficou raro: com renda declarada, o custo é
+    // estimado pela estratégia e passa a existir. Só sobra null quando não há
+    // histórico NEM renda declarada — conta recém-criada, sem nada.
+    const r = getProfileInsights({
+      ...base,
+      profile: perfil({ monthly_income: null }),
+      allTransactions: [],
+      monthIncome: 0,
+      reserveAmount: 20_000,
+    });
+    expect(r.reserveMonths).toBeNull();
+    expect(r.reservaMinimaConcluida).toBe(false);
+  });
+
+  it('com renda declarada e sem histórico, o custo é estimado e os meses saem dele', () => {
+    // 5.000 x 80% = 4.000 de custo estimado; 20.000 / 4.000 = 5 meses.
+    // O número existe, mas fonteDoCusto avisa que é palpite.
+    const r = getProfileInsights({ ...base, allTransactions: [], reserveAmount: 20_000 });
+    expect(r.reserveMonths).toBe(5);
+    expect(r.fonteDoCusto).toBe('estimado');
+  });
+
+  it('com custo conhecido, meses cobertos é o número de verdade', () => {
+    const r = getProfileInsights({ ...base, allTransactions: historico, reserveAmount: 6_000 });
+    expect(r.reserveMonths).toBe(2);
+  });
+});

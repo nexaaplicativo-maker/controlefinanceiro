@@ -171,7 +171,7 @@ export function PayYourselfFirstModal({
                     <p className="text-xs text-ink-2 leading-relaxed">
                       Sua estratégia prevê guardar <strong className="text-ink">{(insights.suggestedSavingsRate * 100).toFixed(0)}%</strong> da renda.
                       {insights.reserveIdeal > 0 && (
-                        <> Sua reserva ideal é <strong className="text-ink">{formatMoney(insights.reserveIdeal)}</strong> — {insights.reserveMonths.toFixed(1)} de {(insights.reserveIdeal / Math.max(1, insights.monthlyCost)).toFixed(0)} meses já garantidos.</>
+                        <> Sua reserva ideal é <strong className="text-ink">{formatMoney(insights.reserveIdeal)}</strong> — {(insights.reserveMonths ?? 0).toFixed(1)} de {(insights.reserveIdeal / Math.max(1, insights.monthlyCost)).toFixed(0)} meses já garantidos.</>
                       )}
                     </p>
                   </div>

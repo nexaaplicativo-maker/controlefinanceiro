@@ -77,8 +77,14 @@ export interface ProfileInsights {
   /** Metas de reserva de emergência em R$ */
   reserveMinimum: number;
   reserveIdeal: number;
-  /** Quantos meses de custo de vida o usuário já tem guardado */
-  reserveMonths: number;
+  /** true quando a reserva já passou do MÍNIMO (3 ou 6 meses de custo).
+   *  É um marco de verdade — é quando uma emergência deixa de virar dívida —
+   *  e o número era calculado sem nunca ser usado em lugar nenhum. */
+  reservaMinimaConcluida: boolean;
+  /** Quantos meses de custo de vida o usuário já tem guardado.
+   *  null quando não há custo conhecido — zero diria "não tem nada
+   *  guardado", que é uma afirmação diferente de "não sei medir". */
+  reserveMonths: number | null;
   /** Quanto há hoje na reserva, em R$ */
   reserveAmount: number;
   /** Patrimônio investido considerado: valor de mercado das posições quando
@@ -880,7 +886,8 @@ export function getProfileInsights(params: {
     nivelDeAlerta,
     reserveMinimum: minimum,
     reserveIdeal: ideal,
-    reserveMonths: monthlyCost > 0 ? reserveAmount / monthlyCost : 0,
+    reservaMinimaConcluida: minimum > 0 && reserveAmount >= minimum,
+    reserveMonths: monthlyCost > 0 ? reserveAmount / monthlyCost : null,
     reserveAmount,
     investedTotal,
     contributedTotal,

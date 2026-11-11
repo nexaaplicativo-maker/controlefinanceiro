@@ -45,25 +45,48 @@ describe('getReferenceIncome', () => {
       { type: 'income', category: 'Salário', amount: 5000, date: '2026-08-05' },
       { type: 'income', category: 'Salário', amount: 11000, date: '2026-09-05' },
     ];
-    expect(getReferenceIncome(perfilBase, tx, "2026-11-15")).toBe(5000);
+    expect(getReferenceIncome(perfilBase, tx, "2026-11-15").valor).toBe(5000);
   });
 
   it('exclui resgate de investimento da renda', () => {
     // Venda de ativo é patrimônio mudando de lugar, não renda recorrente.
     // Incluí-la inflava o denominador de todos os percentuais do app.
+    //
+    // ATUALIZADO em F6: três meses, não um. Com menos de três meses fechados
+    // a renda declarada passa a vencer a amostra, então um mês só não
+    // conseguiria mais provar o que este teste quer provar.
     const tx = [
+      { type: 'income', category: 'Salário', amount: 3000, date: '2026-07-05' },
+      { type: 'income', category: 'Salário', amount: 3000, date: '2026-08-05' },
       { type: 'income', category: 'Salário', amount: 3000, date: '2026-09-05' },
       { type: 'income', category: 'Investimentos', amount: 50000, date: '2026-09-06' },
     ];
-    expect(getReferenceIncome(perfilBase, tx, "2026-11-15")).toBe(3000);
+    expect(getReferenceIncome(perfilBase, tx, "2026-11-15").valor).toBe(3000);
+  });
+
+  it('com 1 ou 2 meses fechados, a renda declarada vence a amostra curta', () => {
+    // Uma amostra de um mês pode ter pego justo o mês atípico. O que a pessoa
+    // declarou descreve melhor a renda típica dela.
+    const tx = [{ type: 'income', category: 'Salário', amount: 1200, date: '2026-09-05' }];
+    const r = getReferenceIncome(perfilBase, tx, "2026-11-15");
+    expect(r.valor).toBe(5000);
+    expect(r.fonte).toBe('declarado');
+  });
+
+  it('sem nada declarado, a amostra curta ainda vence o zero', () => {
+    const semDeclarado = { ...perfilBase, monthly_income: null };
+    const tx = [{ type: 'income', category: 'Salário', amount: 1200, date: '2026-09-05' }];
+    const r = getReferenceIncome(semDeclarado, tx, "2026-11-15");
+    expect(r.valor).toBe(1200);
+    expect(r.fonte).toBe('parcial');
   });
 
   it('cai no valor declarado quando não há histórico', () => {
-    expect(getReferenceIncome(perfilBase, [], "2026-11-15")).toBe(5000);
+    expect(getReferenceIncome(perfilBase, [], "2026-11-15").valor).toBe(5000);
   });
 
   it('devolve 0 sem histórico e sem perfil', () => {
-    expect(getReferenceIncome(null, [], "2026-11-15")).toBe(0);
+    expect(getReferenceIncome(null, [], "2026-11-15").valor).toBe(0);
   });
 });
 
@@ -75,11 +98,15 @@ describe('getMonthlyCost', () => {
       { type: 'expense', category: 'Contas Fixas', amount: 2000, date: '2026-09-05' },
       { type: 'expense', category: 'Investimentos', amount: 8000, date: '2026-09-06' },
     ];
-    expect(getMonthlyCost(tx, 5000, "2026-11-15")).toBe(2000);
+    expect(getMonthlyCost(tx, 5000, "2026-11-15").valor).toBe(2000);
   });
 
-  it('estima 70% da renda quando não há despesa lançada', () => {
-    expect(getMonthlyCost([], 5000, "2026-11-15")).toBe(3500);
+  // ATUALIZADO em F6: o 0,7 era um número sem origem. Sem histórico, o custo
+  // passa a sair do consumo planejado da estratégia — 80% no 50/30/20.
+  it('sem despesa lançada, estima pelo consumo planejado da estratégia', () => {
+    const r = getMonthlyCost([], 5000, "2026-11-15", perfilBase);
+    expect(r.valor).toBe(4000);
+    expect(r.fonte).toBe('estimado');
   });
 });
 

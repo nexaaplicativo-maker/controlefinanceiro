@@ -117,3 +117,36 @@ describe('progresso e renda passiva', () => {
     expect(r.independenciaProgresso).toBeNull();
   });
 });
+
+describe('F6 — custo estimado não pode declarar independência', () => {
+  const comumSemHistorico = {
+    hoje: '2026-11-15',
+    profile: perfil({ monthly_income: 4_000 }),
+    allTransactions: [],
+    monthIncome: 0,
+    monthExpense: 0,
+    monthGargalo: 0,
+  };
+
+  it('patrimônio gigante com custo estimado NÃO é independência', () => {
+    // O alvo sairia de um palpite (renda declarada x fatia da estratégia).
+    // Declarar independência em cima disso seria irresponsável.
+    const r = getProfileInsights({ ...comumSemHistorico, reserveAmount: 50_000_000 });
+    expect(r.fonteDoCusto).toBe('estimado');
+    expect(r.stage.id).not.toBe('independencia');
+  });
+
+  it('com custo observado, o mesmo patrimônio é independência', () => {
+    const historico = Array.from({ length: 4 }, (_, i) => ({
+      type: 'expense', category: 'Contas Fixas', amount: 3_000,
+      date: `2026-0${i + 6}-10`,
+    }));
+    const r = getProfileInsights({
+      ...comumSemHistorico,
+      allTransactions: historico,
+      reserveAmount: 50_000_000,
+    });
+    expect(r.fonteDoCusto).toBe('historico');
+    expect(r.stage.id).toBe('independencia');
+  });
+});

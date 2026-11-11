@@ -158,7 +158,7 @@ describe('volatilidade da renda', () => {
 
 describe('renda e custo de referência usam a série', () => {
   it('renda cai no declarado quando não há mês fechado', () => {
-    expect(getReferenceIncome(perfil({ monthly_income: 4_200 }), [], HOJE)).toBe(4_200);
+    expect(getReferenceIncome(perfil({ monthly_income: 4_200 }), [], HOJE).valor).toBe(4_200);
   });
 
   it('resgate de investimento continua fora da renda', () => {
@@ -167,7 +167,7 @@ describe('renda e custo de referência usam a série', () => {
       { type: 'income', category: 'Salário', amount: 3_000, date: '2026-10-10' },
       { type: 'income', category: 'Investimentos', amount: 50_000, date: '2026-10-11' },
     ];
-    expect(getReferenceIncome(perfil(), txs, HOJE)).toBe(3_000);
+    expect(getReferenceIncome(perfil(), txs, HOJE).valor).toBe(3_000);
   });
 
   it('o custo também ignora o mês corrente', () => {
@@ -176,6 +176,31 @@ describe('renda e custo de referência usam a série', () => {
       { type: 'expense', category: 'Contas Fixas', amount: 2_000, date: '2026-10-10' },
       { type: 'expense', category: 'Contas Fixas', amount: 50, date: '2026-11-02' },
     ];
-    expect(getMonthlyCost(txs, 5_000, HOJE)).toBe(2_000);
+    expect(getMonthlyCost(txs, 5_000, HOJE).valor).toBe(2_000);
+  });
+});
+
+describe('F6 — cascata do custo de vida e a trava do estágio 5', () => {
+  const doisMeses = [
+    { type: 'expense', category: 'Contas Fixas', amount: 2_000, date: '2026-09-10' },
+    { type: 'expense', category: 'Contas Fixas', amount: 2_000, date: '2026-10-10' },
+  ];
+
+  it('1 ou 2 meses de despesa já valem como observação parcial', () => {
+    const r = getMonthlyCost(doisMeses, 9_999, HOJE, perfil());
+    expect(r.valor).toBe(2_000);
+    expect(r.fonte).toBe('parcial');
+  });
+
+  it('sem nenhuma despesa, estima pela estratégia', () => {
+    expect(getMonthlyCost([], 5_000, HOJE, perfil()).fonte).toBe('estimado');
+  });
+
+  it('a estratégia simplista também planeja consumir 80%', () => {
+    expect(getMonthlyCost([], 5_000, HOJE, perfil({ strategy: '80_20' })).valor).toBe(4_000);
+  });
+
+  it('sem perfil, assume a estratégia padrão', () => {
+    expect(getMonthlyCost([], 5_000, HOJE).valor).toBe(4_000);
   });
 });

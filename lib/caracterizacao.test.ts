@@ -91,7 +91,7 @@ describe('[CORRIGIDO F4] a mediana conta como zero o mês ativo sem receita', ()
 
     // Antes: [3000, 4000, 5000, 3500] -> 3.750, porque junho sumia.
     // Agora: [3000, 0, 4000, 5000, 3500] -> ordenado [0, 3000, 3500, 4000, 5000] -> 3.500.
-    expect(getReferenceIncome(perfil(), txs, "2026-11-15")).toBe(3_500);
+    expect(getReferenceIncome(perfil(), txs, "2026-11-15").valor).toBe(3_500);
   });
 
   it('o mês corrente parcial NÃO entra mais na mediana', () => {
@@ -103,7 +103,7 @@ describe('[CORRIGIDO F4] a mediana conta como zero o mês ativo sem receita', ()
     ];
     // A série é [4000, 4000] dos meses FECHADOS. Os 500 de novembro não
     // puxam o número para baixo enquanto o mês não termina.
-    expect(getReferenceIncome(perfil(), txs, "2026-11-15")).toBe(4_000);
+    expect(getReferenceIncome(perfil(), txs, "2026-11-15").valor).toBe(4_000);
   });
 
   it('resgate de investimento não conta como renda', () => {
@@ -111,7 +111,7 @@ describe('[CORRIGIDO F4] a mediana conta como zero o mês ativo sem receita', ()
       { type: 'income', category: 'Salário', amount: 3_000, date: '2026-10-10' },
       { type: 'income', category: 'Investimentos', amount: 50_000, date: '2026-10-11' },
     ];
-    expect(getReferenceIncome(perfil(), txs, "2026-11-15")).toBe(3_000);
+    expect(getReferenceIncome(perfil(), txs, "2026-11-15").valor).toBe(3_000);
   });
 });
 
@@ -119,14 +119,23 @@ describe('[CORRIGIDO F4] a mediana conta como zero o mês ativo sem receita', ()
 // A8 — Fallback de 70% no custo de vida
 // ===========================================================================
 
-describe('[DEFEITO A8] sem histórico, o custo de vida é chutado em 70% da renda', () => {
-  it('renda declarada de 5.000 vira custo de 3.500', () => {
-    expect(getMonthlyCost([], 5_000, "2026-11-15")).toBe(3_500);
+// CORRIGIDO em F6: o 0,7 nao tinha origem nenhuma. Sem historico, o custo
+// passa a ser o consumo PLANEJADO da estrategia escolhida — e no 50/30/20
+// isso da 80%, mais conservador que os 70% de antes.
+describe('[CORRIGIDO F6] sem histórico, o custo sai da estratégia escolhida', () => {
+  it('no 50/30/20, renda de 5.000 estima custo de 4.000 (80%)', () => {
+    const r = getMonthlyCost([], 5_000, "2026-11-15", perfil({ strategy: '50_30_20' }));
+    expect(r.valor).toBe(4_000);
+    expect(r.fonte).toBe('estimado');
   });
 
-  it('a meta de reserva herda o chute', () => {
-    const custo = getMonthlyCost([], 5_000, "2026-11-15");
-    expect(getReserveTargets(perfil(), custo)).toEqual({ minimum: 10_500, ideal: 21_000 });
+  it('no FIRE, que planeja guardar 40%, o custo estimado é 60% da renda', () => {
+    expect(getMonthlyCost([], 5_000, "2026-11-15", perfil({ strategy: '40_20_40' })).valor).toBe(3_000);
+  });
+
+  it('a meta de reserva acompanha, e fica MAIOR que antes', () => {
+    const custo = getMonthlyCost([], 5_000, "2026-11-15", perfil()).valor;
+    expect(getReserveTargets(perfil(), custo)).toEqual({ minimum: 12_000, ideal: 24_000 });
   });
 });
 

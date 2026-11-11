@@ -94,6 +94,8 @@ export interface ProfileInsights {
   patrimonio: number;
   /** De onde saiu a renda de referência: do histórico ou do que foi declarado. */
   fonteDaRenda: FonteDoNumero;
+  /** De onde saiu o custo de vida. 'estimado' impede classificar independência. */
+  fonteDoCusto: FonteDoNumero;
   /** Quantos meses fechados sustentam a renda de referência. */
   mesesNaBase: number;
   /** Oscilação da renda: desvio padrão sobre a média. null sem base. */
@@ -213,6 +215,13 @@ function median(values: number[]): number {
 /** De onde saiu um número que o app exibe. */
 export type FonteDoNumero = 'historico' | 'parcial' | 'estimado' | 'declarado';
 
+export interface ValorComFonte {
+  valor: number;
+  fonte: FonteDoNumero;
+  /** Quantos meses fechados sustentam o número. 0 quando é estimado. */
+  mesesNaBase: number;
+}
+
 export interface SerieMensal {
   /** Totais por mês, em ordem cronológica. */
   valores: number[];
@@ -303,7 +312,7 @@ export function getReferenceIncome(
   profile: FinancialProfile | null,
   transactions: Tx[],
   hoje: string,
-): number {
+): ValorComFonte {
   // Exclui Investimentos: venda ou resgate de ativo é patrimônio mudando de
   // lugar, não renda recorrente. Incluir distorceria a mediana e, com ela, a
   // meta de reserva, o aporte sugerido e todos os limites de alerta.
@@ -313,28 +322,63 @@ export function getReferenceIncome(
     hoje,
   });
 
-  if (serie.fonte !== 'vazio' && serie.mediana > 0) return serie.mediana;
-  return profile?.monthly_income ?? 0;
+  const declarada = profile?.monthly_income ?? 0;
+
+  // Três meses fechados bastam para a mediana significar alguma coisa.
+  if (serie.fonte === 'historico' && serie.mediana > 0) {
+    return { valor: serie.mediana, fonte: 'historico', mesesNaBase: serie.mesesNaBase };
+  }
+
+  // Com um ou dois meses, o que a pessoa DECLAROU costuma descrever melhor a
+  // renda típica do que uma amostra que pode ter pegado justo o mês atípico.
+  // Sem nada declarado, a amostra curta ainda é melhor que zero.
+  if (declarada > 0) {
+    return { valor: declarada, fonte: 'declarado', mesesNaBase: serie.mesesNaBase };
+  }
+  if (serie.mediana > 0) {
+    return { valor: serie.mediana, fonte: 'parcial', mesesNaBase: serie.mesesNaBase };
+  }
+
+  return { valor: 0, fonte: 'declarado', mesesNaBase: 0 };
 }
 
 /**
  * Custo de vida mensal: despesas recorrentes, excluindo aportes.
- * Se não houver histórico, estima em 70% da renda — conservador o bastante
- * para não prometer uma reserva pequena demais.
+ *
+ * CASCATA, do mais confiável ao menos:
+ *   1. historico  — mediana de 3+ meses fechados
+ *   2. parcial    — mediana de 1 ou 2 meses; é pouco, mas é observação real
+ *   3. estimado   — o consumo PLANEJADO da estratégia escolhida
+ *
+ * O passo 3 substitui um `renda × 0,7` que não tinha origem nenhuma. A
+ * estratégia já diz quanto a pessoa pretende consumir: no 50/30/20 são 80%
+ * da renda (50 de fixo + 30 de variável), no FIRE 60%. Usar o que ela mesma
+ * escolheu é mais honesto do que um número redondo — e, no 50/30/20, também
+ * é mais conservador: 80% contra os 70% de antes.
+ *
+ * Importa quem é a fonte: com `estimado`, o app não deve classificar
+ * independência financeira nem tratar a meta de reserva como fato.
  */
 export function getMonthlyCost(
   transactions: Tx[],
   referenceIncome: number,
   hoje: string,
-): number {
+  profile?: FinancialProfile | null,
+): ValorComFonte {
   const serie = serieMensalFechada({
     transacoes: transactions,
     predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
     hoje,
   });
 
-  if (serie.fonte !== 'vazio' && serie.mediana > 0) return serie.mediana;
-  return referenceIncome * 0.7;
+  if (serie.mediana > 0 && serie.fonte !== 'vazio') {
+    return { valor: serie.mediana, fonte: serie.fonte, mesesNaBase: serie.mesesNaBase };
+  }
+
+  const estrategia = STRATEGIES[profile?.strategy ?? DEFAULT_STRATEGY] ?? STRATEGIES[DEFAULT_STRATEGY];
+  const consumoPlanejado = 1 - estrategia.save;
+
+  return { valor: referenceIncome * consumoPlanejado, fonte: 'estimado', mesesNaBase: 0 };
 }
 
 /**
@@ -400,6 +444,9 @@ export function computeStage(params: {
   hasRegisteredDebts?: boolean;
   /** Soma dos saldos de dívidas CARAS (taxa >= 3% a.m.) */
   expensiveDebtTotal?: number;
+  /** true quando o custo de vida é palpite, não observação. Bloqueia o
+   *  Estágio 5: ninguém deve ser declarado independente com base num chute. */
+  custoEhEstimado?: boolean;
 }): Stage {
   const {
     profile, monthlyCost, monthIncome, monthExpense,
@@ -425,11 +472,15 @@ export function computeStage(params: {
 
   // 5. Independência — patrimônio cobre 300 meses (25 anos) de custo de vida.
   //
+  // Exige custo OBSERVADO. Com custo estimado, o alvo é derivado de outro
+  // palpite — a renda declarada vezes a fatia da estratégia — e declarar
+  // independência financeira em cima disso seria irresponsável.
+  //
   // Era 92, com este mesmo comentário citando a regra dos 4%. Mas 4% ao ano
   // sobre o patrimônio pede 12/0,04 = 300 meses de despesa; 92 meses
   // equivalem a sacar 13% ao ano. O app declarava independência a quem tinha
   // menos de um terço do necessário.
-  if (monthlyCost > 0 && patrimonio >= monthlyCost * MESES_PARA_INDEPENDENCIA) {
+  if (!params.custoEhEstimado && monthlyCost > 0 && patrimonio >= monthlyCost * MESES_PARA_INDEPENDENCIA) {
     return STAGES.independencia;
   }
 
@@ -548,8 +599,10 @@ export function getProfileInsights(params: {
     hoje,
   });
 
-  const referenceIncome = getReferenceIncome(profile, allTransactions, hoje);
-  const monthlyCost = getMonthlyCost(allTransactions, referenceIncome, hoje);
+  const renda = getReferenceIncome(profile, allTransactions, hoje);
+  const custo = getMonthlyCost(allTransactions, renda.valor, hoje, profile);
+  const referenceIncome = renda.valor;
+  const monthlyCost = custo.valor;
 
   const { warn, critical } = getGargaloThresholds(profile);
   const { minimum, ideal } = getReserveTargets(profile, monthlyCost);
@@ -599,6 +652,7 @@ export function getProfileInsights(params: {
     profile, referenceIncome, monthlyCost, monthIncome, monthExpense,
     gargaloPercent, reserveAmount, investedTotal, reserveIdeal: ideal,
     hasRegisteredDebts, expensiveDebtTotal,
+    custoEhEstimado: custo.fonte === 'estimado',
   });
 
   const strategyId = profile?.strategy ?? DEFAULT_STRATEGY;
@@ -628,8 +682,9 @@ export function getProfileInsights(params: {
     // Sem custo de vida conhecido não há alvo: devolver 0 faria qualquer
     // patrimônio parecer completo, e dividir por ele daria Infinity.
     patrimonio: reserveAmount + investedTotal,
-    fonteDaRenda: serieRenda.fonte === 'vazio' ? 'declarado' : serieRenda.fonte,
-    mesesNaBase: serieRenda.mesesNaBase,
+    fonteDaRenda: renda.fonte,
+    fonteDoCusto: custo.fonte,
+    mesesNaBase: renda.mesesNaBase,
     volatilidadeDaRenda: serieRenda.coeficienteDeVariacao,
     independenciaAlvo: monthlyCost > 0 ? Math.round(monthlyCost * MESES_PARA_INDEPENDENCIA) : null,
     independenciaProgresso: monthlyCost > 0

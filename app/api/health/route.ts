@@ -26,6 +26,18 @@ export async function GET() {
     {
       status: healthy ? 'ok' : 'degraded',
       checks,
+      // Qual codigo esta realmente servindo este endereco.
+      //
+      // Sem isto, "o deploy saiu?" so se responde cacando uma string dentro
+      // dos pacotes JavaScript minificados — foi o que precisei fazer hoje
+      // para descobrir que dois enderecos serviam o mesmo commit.
+      //
+      // A Vercel preenche estas variaveis sozinha. Local, viram null.
+      versao: {
+        commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+        branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+        ambiente: process.env.VERCEL_ENV ?? 'local',
+      },
       // Recursos de IA ausentes não derrubam o app: é informação, não falha.
       ai: Boolean(process.env.GEMINI_API_KEY),
       at: new Date().toISOString(),

@@ -68,6 +68,12 @@ export interface ProfileInsights {
   /** Limites de alerta do gargalo, adaptados ao perfil */
   gargaloWarn: number;
   gargaloCritical: number;
+  /** O que esses limites medem: só o gargalo, ou o consumo total. */
+  baseDoAlerta: BaseDoAlerta;
+  /** O percentual efetivamente comparado com os limites. null sem renda. */
+  percentualDoAlerta: number | null;
+  /** Resultado pronto da comparação, para a tela não recalcular. */
+  nivelDeAlerta: 'ok' | 'atencao' | 'critico';
   /** Metas de reserva de emergência em R$ */
   reserveMinimum: number;
   reserveIdeal: number;
@@ -385,28 +391,56 @@ export function getMonthlyCost(
   return { valor: referenceIncome * consumoPlanejado, fonte: 'estimado', mesesNaBase: 0 };
 }
 
+/** O que o alerta mede: só o consumo discricionário, ou o consumo todo. */
+export type BaseDoAlerta = 'gargalo' | 'consumo';
+
+export interface LimitesDeAlerta {
+  warn: number;
+  critical: number;
+  /** 'gargalo' = cartões + variáveis; 'consumo' = fixos + gargalo. */
+  base: BaseDoAlerta;
+}
+
 /**
- * Limites de alerta do gargalo (cartões + variáveis), como % da renda.
+ * Limites de alerta, como % da renda.
  *
- * A base é a própria estratégia escolhida: quem optou pelo FIRE aceitou um
- * teto de consumo menor, então merece ser avisado antes. Renda variável ganha
- * folga porque o mês ruim é estrutural, não descuido.
+ * O QUE ESTAVA ERRADO
+ * A base saía de `strategy.variable`, com um fallback de 0,40 quando o valor
+ * fosse zero. Só que zero não significava "sem dado": no 80/20 significa que
+ * a estratégia NÃO TEM teto de variável por desenho — a regra dela é guardar
+ * 20% e gastar o resto como quiser.
+ *
+ * O resultado era o oposto do pretendido: quem escolheu "não quero
+ * microgerenciar categorias" recebia teto de 40%, mais FOLGADO que os 30% do
+ * Equilibrado. A estratégia mais permissiva virava a mais vigiada ao
+ * contrário.
+ *
+ * COMO FICOU
+ * Estratégia sem teto de variável não alerta por gargalo. Ela alerta pelo
+ * CONSUMO TOTAL — fixos mais gargalo — que é o único limite que ela de fato
+ * estabelece: se o plano é guardar 20%, consumir mais de 80% fura o plano.
  */
-export function getGargaloThresholds(profile: FinancialProfile | null): { warn: number; critical: number } {
+export function getGargaloThresholds(profile: FinancialProfile | null): LimitesDeAlerta {
   const strategyId = profile?.strategy ?? DEFAULT_STRATEGY;
   const strategy = STRATEGIES[strategyId] ?? STRATEGIES[DEFAULT_STRATEGY];
+  const ehVariavel = profile?.income_type === 'variavel';
 
-  // O teto natural de consumo da estratégia é o que sobra fora do aporte,
-  // descontando as contas fixas. Ex.: 50/30/20 -> 30% de variáveis.
-  const base = strategy.variable > 0 ? strategy.variable : 0.4;
+  // Sem teto de variável: o alerta passa a ser sobre o consumo todo.
+  if (strategy.variable <= 0) {
+    const warn = Math.round((1 - strategy.save) * 100);   // 80 no 80/20
+    // HEURÍSTICA: acima de 95% de consumo a poupança é praticamente zero.
+    return { warn, critical: 95, base: 'consumo' };
+  }
 
-  const warn = base * 100;
+  const warn = strategy.variable * 100;
   const critical = Math.min(warn + 20, 70);
 
-  if (profile?.income_type === 'variavel') {
-    return { warn: warn + 5, critical: Math.min(critical + 5, 75) };
+  // Renda variável ganha folga porque o mês ruim é estrutural, não descuido.
+  // (F11 propõe trocar isto por estabilizar o denominador; ainda não feito.)
+  if (ehVariavel) {
+    return { warn: warn + 5, critical: Math.min(critical + 5, 75), base: 'gargalo' };
   }
-  return { warn, critical };
+  return { warn, critical, base: 'gargalo' };
 }
 
 /**
@@ -710,11 +744,14 @@ export function getProfileInsights(params: {
   positions?: Array<{ invested_amount?: number; current_value?: number }>;
   /** Dívidas ativas. Quando houver, substituem o booleano has_debt. */
   debts?: Array<{ current_balance?: number; monthly_rate?: number; status?: string }>;
+  /** Contas fixas do mês. Necessário quando o alerta é sobre consumo TOTAL
+   *  (estratégias sem teto de variável, como a 80/20). */
+  monthFixos?: number;
   /** Hoje, 'AAAA-MM-DD' no fuso do usuário. Obrigatório: nenhuma regra deste
    *  arquivo pode ter relógio escondido dentro dela. */
   hoje: string;
 }): ProfileInsights {
-  const { profile, allTransactions, monthIncome, monthExpense, monthGargalo, reserveAmount, positions, debts, hoje } = params;
+  const { profile, allTransactions, monthIncome, monthExpense, monthGargalo, monthFixos = 0, reserveAmount, positions, debts, hoje } = params;
 
   const serieRenda = serieMensalFechada({
     transacoes: allTransactions,
@@ -727,13 +764,23 @@ export function getProfileInsights(params: {
   const referenceIncome = renda.valor;
   const monthlyCost = custo.valor;
 
-  const { warn, critical } = getGargaloThresholds(profile);
+  const { warn, critical, base: warn_base } = getGargaloThresholds(profile);
   const { minimum, ideal } = getReserveTargets(profile, monthlyCost);
 
   // O gargalo é medido contra a renda DO MÊS quando ela existe; se o mês ainda
   // está vazio, usa a renda de referência para não exibir 0% enganoso.
   const incomeBase = monthIncome > 0 ? monthIncome : referenceIncome;
   const gargaloPercent = incomeBase > 0 ? (monthGargalo / incomeBase) * 100 : 0;
+
+  // O numerador depende do que a estratégia escolhida de fato limita.
+  const valorMedido = warn_base === 'consumo' ? monthGargalo + monthFixos : monthGargalo;
+  const percentualMedido = incomeBase > 0 ? (valorMedido / incomeBase) * 100 : null;
+
+  const nivelDeAlerta: 'ok' | 'atencao' | 'critico' =
+    percentualMedido === null ? 'ok'
+      : percentualMedido > critical ? 'critico'
+        : percentualMedido > warn ? 'atencao'
+          : 'ok';
 
   // Patrimônio investido LÍQUIDO: aportes menos resgates. Antes contava só
   // aportes, então uma venda de ativo não reduzia o patrimônio — e ainda por
@@ -812,6 +859,9 @@ export function getProfileInsights(params: {
     monthlyCost,
     gargaloWarn: warn,
     gargaloCritical: critical,
+    baseDoAlerta: warn_base,
+    percentualDoAlerta: percentualMedido === null ? null : Math.round(percentualMedido * 100) / 100,
+    nivelDeAlerta,
     reserveMinimum: minimum,
     reserveIdeal: ideal,
     reserveMonths: monthlyCost > 0 ? reserveAmount / monthlyCost : 0,

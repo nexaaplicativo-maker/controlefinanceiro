@@ -144,17 +144,21 @@ describe('[CORRIGIDO F6] sem histórico, o custo sai da estratégia escolhida', 
 // A4 — A estratégia 80/20 recebe o teto mais frouxo
 // ===========================================================================
 
-describe('[DEFEITO A4] 80/20 ganha teto de consumo maior que o Equilibrado', () => {
-  it('80_20 cai no fallback de 40%', () => {
-    expect(getGargaloThresholds(perfil({ strategy: '80_20' }))).toEqual({ warn: 40, critical: 60 });
+// CORRIGIDO em F8.
+describe('[CORRIGIDO F8] 80/20 alerta pelo consumo total, não pelo gargalo', () => {
+  it('o fallback de 40% sumiu; o limite passa a ser 80% de consumo', () => {
+    expect(getGargaloThresholds(perfil({ strategy: '80_20' })))
+      .toEqual({ warn: 80, critical: 95, base: 'consumo' });
   });
 
-  it('o Equilibrado, mais folgado por desenho, recebe teto MENOR', () => {
-    expect(getGargaloThresholds(perfil({ strategy: '50_30_20' }))).toEqual({ warn: 30, critical: 50 });
+  it('o Equilibrado segue medindo só o gargalo, em 30%', () => {
+    expect(getGargaloThresholds(perfil({ strategy: '50_30_20' })))
+      .toEqual({ warn: 30, critical: 50, base: 'gargalo' });
   });
 
-  it('FIRE recebe o teto mais apertado', () => {
-    expect(getGargaloThresholds(perfil({ strategy: '40_20_40' }))).toEqual({ warn: 20, critical: 40 });
+  it('FIRE segue com o teto mais apertado', () => {
+    expect(getGargaloThresholds(perfil({ strategy: '40_20_40' })))
+      .toEqual({ warn: 20, critical: 40, base: 'gargalo' });
   });
 });
 
@@ -164,7 +168,8 @@ describe('[DEFEITO A4] 80/20 ganha teto de consumo maior que o Equilibrado', () 
 
 describe('[DEFEITO B5] renda variável afrouxa o limite em vez de estabilizar a base', () => {
   it('soma 5 pontos ao aviso e ao crítico', () => {
-    expect(getGargaloThresholds(perfil({ income_type: 'variavel' }))).toEqual({ warn: 35, critical: 55 });
+    expect(getGargaloThresholds(perfil({ income_type: 'variavel' })))
+      .toEqual({ warn: 35, critical: 55, base: 'gargalo' });
   });
 
   it('a reserva exigida dobra — esta parte está correta', () => {

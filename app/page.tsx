@@ -869,10 +869,11 @@ export default function Dashboard() {
     monthIncome: rendaLiquida,
     monthExpense: totalExpense,
     monthGargalo: gargalo,
+    monthFixos: custosFixos,
     reserveAmount: reservaAtual,
     positions,
     debts,
-  }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, reservaAtual, positions, debts]);
+  }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, custosFixos, reservaAtual, positions, debts]);
 
   const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);
   const hasRegisteredDebts = useMemo(() => debts.some(d => (d.status ?? 'ativa') === 'ativa'), [debts]);

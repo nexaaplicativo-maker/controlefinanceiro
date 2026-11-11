@@ -321,3 +321,66 @@ describe('F7 — aporte sugerido e destino', () => {
     expect(i.destinoDoAporte).toBe('investimentos');
   });
 });
+
+describe('F8 — alerta da estratégia 80/20 mede consumo total', () => {
+  const comHistorico = ['2026-08', '2026-09', '2026-10'].flatMap(m => [
+    { type: 'income', category: 'Salário', amount: 10_000, date: `${m}-05` },
+    { type: 'expense', category: 'Contas Fixas', amount: 2_000, date: `${m}-10` },
+  ]);
+
+  const avaliar = (fixos: number, gargaloMes: number) => getProfileInsights({
+    hoje: HOJE,
+    profile: perfil({ strategy: '80_20', monthly_income: 10_000 }),
+    allTransactions: comHistorico,
+    monthIncome: 10_000,
+    monthExpense: fixos + gargaloMes,
+    monthGargalo: gargaloMes,
+    monthFixos: fixos,
+    reserveAmount: 0,
+  });
+
+  it('os três casos do relatório', () => {
+    // fixos 20% + gargalo 45% = 65% de consumo -> sem alerta
+    expect(avaliar(2_000, 4_500).nivelDeAlerta).toBe('ok');
+    // 85% de consumo -> aviso
+    expect(avaliar(2_000, 6_500).nivelDeAlerta).toBe('atencao');
+    // 96% -> crítico
+    expect(avaliar(2_000, 7_600).nivelDeAlerta).toBe('critico');
+  });
+
+  it('o gargalo de 45% sozinho não alerta mais nesta estratégia', () => {
+    const i = avaliar(2_000, 4_500);
+    expect(i.baseDoAlerta).toBe('consumo');
+    expect(i.percentualDoAlerta).toBe(65);
+  });
+
+  it('no Equilibrado, o mesmo gargalo de 45% É crítico', () => {
+    const i = getProfileInsights({
+      hoje: HOJE,
+      profile: perfil({ strategy: '50_30_20', monthly_income: 10_000 }),
+      allTransactions: comHistorico,
+      monthIncome: 10_000,
+      monthExpense: 6_500,
+      monthGargalo: 4_500,
+      monthFixos: 2_000,
+      reserveAmount: 0,
+    });
+    expect(i.baseDoAlerta).toBe('gargalo');
+    expect(i.percentualDoAlerta).toBe(45);
+    expect(i.nivelDeAlerta).toBe('atencao');
+  });
+
+  it('sem renda, o alerta não inventa percentual', () => {
+    const i = getProfileInsights({
+      hoje: HOJE,
+      profile: perfil({ strategy: '50_30_20', monthly_income: null }),
+      allTransactions: [],
+      monthIncome: 0,
+      monthExpense: 500,
+      monthGargalo: 500,
+      reserveAmount: 0,
+    });
+    expect(i.percentualDoAlerta).toBeNull();
+    expect(i.nivelDeAlerta).toBe('ok');
+  });
+});

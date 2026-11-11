@@ -64,6 +64,7 @@ import { resumoPorSubcategoria, normalizarSubcategoria, NAO_CLASSIFICADO } from 
 import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
 import { linhasDaMesmaFatura } from "../lib/fatura";
+import { moverNaMeta } from "../lib/aporte-meta";
 import { hojeEmSaoPaulo } from "../lib/data";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
@@ -114,7 +115,7 @@ const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Jul
  * reinsere a linha que estava em memória, e coluna ausente aqui some na
  * restauração.
  */
-const COLUNAS_TX = 'id, user_id, title, amount, category, subcategoria, type, date, is_paid, is_split, installment_group, installment_info, import_group, receipt_url, wallet_id';
+const COLUNAS_TX = 'id, user_id, title, amount, category, subcategoria, type, date, is_paid, is_split, installment_group, installment_info, import_group, receipt_url, wallet_id, goal_id';
 
 const TX_WINDOW = (() => {
   const from = new Date();
@@ -443,20 +444,51 @@ export default function Dashboard() {
     toast("🛡️ Reserva de Emergência criada. Agora é só alimentar.", "success");
   }
 
+  /**
+   * Guardar na reserva pelo "+" do card.
+   *
+   * Antes isto só somava em `goals.current_amount`. O dinheiro subia na
+   * reserva sem sair da conta: o mesmo real aparecia como saldo disponível E
+   * como reserva formada, e o saldo do mês nunca refletia o que foi guardado.
+   *
+   * Agora grava o par — a despesa, com `goal_id` apontando para a meta, e o
+   * novo saldo dela. O `goal_id` é o que impede o patrimônio de contar esse
+   * dinheiro duas vezes.
+   */
   async function handleAddToReserve(value: number) {
     if (!reservaGoal) return;
-    const novoValor = Number(reservaGoal.current_amount ?? 0) + value;
 
-    const { error } = await supabase
+    const uid = await getUserId();
+    if (!uid) return;
+
+    const r = moverNaMeta({
+      userId: uid,
+      goalId: reservaGoal.id,
+      tituloDaMeta: reservaGoal.title ?? 'Reserva de Emergência',
+      valor: value,
+      sentido: 'guardar',
+      saldoAtualDaMeta: Number(reservaGoal.current_amount ?? 0),
+      data: hojeEmSaoPaulo(),
+    });
+
+    if (!r.ok) { toast(r.erro, "warning"); return; }
+
+    const { data: nova, error } = await supabase
+      .from('transactions')
+      .insert([r.movimento.transacao])
+      .select(COLUNAS_TX);
+
+    if (error) { toast("Erro ao registrar o aporte: " + error.message, "error"); return; }
+
+    const { error: erroMeta } = await supabase
       .from('goals')
-      .update({ current_amount: novoValor })
+      .update({ current_amount: r.movimento.novoSaldoDaMeta })
       .eq('id', reservaGoal.id);
 
-    if (error) {
-      toast("Erro ao atualizar a reserva: " + error.message, "error");
-      return;
-    }
-    setGoals(prev => prev.map(g => g.id === reservaGoal.id ? { ...g, current_amount: novoValor } : g));
+    if (erroMeta) { toast("Erro ao atualizar a reserva: " + erroMeta.message, "error"); return; }
+
+    if (nova?.length) setAllTransactions(prev => [...nova, ...prev]);
+    setGoals(prev => prev.map(g => g.id === reservaGoal.id ? { ...g, current_amount: r.movimento.novoSaldoDaMeta } : g));
     toast(`+${formatMoney(value)} na sua reserva. 🛡️`, "success");
   }
 
@@ -1516,7 +1548,7 @@ export default function Dashboard() {
       <ActivityModal isOpen={isActivityOpen} onClose={() => setIsActivityOpen(false)} transactions={allTransactions} dueBills={dueBills} />
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userEmail={userEmail} userRole={userRole} />
       <CoupleModal isOpen={isCoupleOpen} onClose={() => setIsCoupleOpen(false)} />
-      <GoalsModal isOpen={isGoalsOpen} onClose={() => setIsGoalsOpen(false)} />
+      <GoalsModal isOpen={isGoalsOpen} onClose={() => setIsGoalsOpen(false)} onSaved={refreshTransactions} />
       <CategoryManagerModal isOpen={isCategoryOpen} onClose={() => setIsCategoryOpen(false)} />
       <WalletsModal isOpen={isWalletsOpen} onClose={() => setIsWalletsOpen(false)} userId={userId} />
       <FinancialCalendarModal isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} transactions={allTransactions} />

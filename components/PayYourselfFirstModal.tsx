@@ -8,7 +8,7 @@ import { toast } from "./Toast";
 import type { ProfileInsights } from "../lib/profile";
 import { formatMoney } from "../lib/format";
 import { hojeEmSaoPaulo } from "../lib/data";
-import { TITULO_APORTE_RESERVA } from "../lib/constantes-financeiras";
+import { moverNaMeta } from "../lib/aporte-meta";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 
@@ -63,36 +63,42 @@ export function PayYourselfFirstModal({
         return;
       }
 
-      const { error } = await supabase.from('transactions').insert([{
-        user_id: userId,
-        // Marcador compartilhado: lib/profile.ts usa este título para NÃO
-        // contar o mesmo dinheiro duas vezes no patrimônio. Mudar a string
-        // aqui sem mudar lá traz o defeito de volta, em silêncio.
-        title: TITULO_APORTE_RESERVA,
-        amount: value,
-        type: 'expense',
-        category: 'Investimentos',
-        date: hojeEmSaoPaulo(),
-        is_paid: true,
-      }]);
-
-      if (error) throw error;
-
-      // Espelha o aporte na meta "Reserva de Emergência", se ela existir,
-      // para a barra de progresso do dashboard andar junto.
+      // A meta vem PRIMEIRO: sem ela não há `goal_id`, e gravar a transação
+      // solta devolveria a contagem dupla que o F1 corrigiu.
       const { data: goal } = await supabase
         .from('goals')
-        .select('id, current_amount')
+        .select('id, title, current_amount')
         .eq('user_id', userId)
         .eq('title', 'Reserva de Emergência')
         .maybeSingle();
 
-      if (goal) {
-        await supabase
-          .from('goals')
-          .update({ current_amount: Number(goal.current_amount ?? 0) + value })
-          .eq('id', goal.id);
+      if (!goal) {
+        toast("Crie a Reserva de Emergência no painel antes de guardar aqui.", "warning");
+        return;
       }
+
+      const r = moverNaMeta({
+        userId,
+        goalId: goal.id,
+        tituloDaMeta: goal.title,
+        valor: value,
+        sentido: 'guardar',
+        saldoAtualDaMeta: Number(goal.current_amount ?? 0),
+        data: hojeEmSaoPaulo(),
+      });
+
+      if (!r.ok) {
+        toast(r.erro, "warning");
+        return;
+      }
+
+      const { error } = await supabase.from('transactions').insert([r.movimento.transacao]);
+      if (error) throw error;
+
+      await supabase
+        .from('goals')
+        .update({ current_amount: r.movimento.novoSaldoDaMeta })
+        .eq('id', goal.id);
 
       toast(`💪 ${formatMoney(value)} pagos a você mesmo. Esse é o dinheiro que vira patrimônio.`, "success");
       setAmount("");

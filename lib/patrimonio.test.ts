@@ -126,3 +126,42 @@ describe('aporte à reserva no patrimônio', () => {
     expect(r.patrimonio).toBe(15_000);   // reserva + valor de mercado
   });
 });
+
+describe('goal_id tem precedência sobre o título', () => {
+  it('transação com goal_id fica fora do investido, qualquer que seja o título', () => {
+    const r = chamar({
+      allTransactions: [
+        { type: 'expense', category: 'Investimentos', amount: 800, date: '2026-10-06', title: 'Qualquer coisa', goal_id: 'g1' },
+      ],
+      reserveAmount: 800,
+    });
+
+    expect(r.contributedTotal).toBe(0);
+    expect(r.patrimonio).toBe(800);
+  });
+
+  it('retirada de meta também não mexe no investido', () => {
+    const r = chamar({
+      allTransactions: [
+        { type: 'income', category: 'Investimentos', amount: 300, date: '2026-10-07', title: 'Retirado de: Viagem', goal_id: 'g2' },
+      ],
+      reserveAmount: 0,
+    });
+
+    expect(r.contributedTotal).toBe(0);
+  });
+
+  it('aporte antigo, sem goal_id, continua reconhecido pelo título', () => {
+    // Sem isso, toda linha gravada antes da coluna voltaria a ser contada
+    // em dobro no dia em que a coluna chegou.
+    const r = chamar({
+      allTransactions: [
+        { type: 'expense', category: 'Investimentos', amount: 500, date: '2026-01-06', title: 'Aporte - Reserva de Emergência' },
+      ],
+      reserveAmount: 500,
+    });
+
+    expect(r.contributedTotal).toBe(0);
+    expect(r.patrimonio).toBe(500);
+  });
+});

@@ -19,7 +19,8 @@
  */
 
 import { EXPENSIVE_DEBT_RATE } from "./debt";
-import { MESES_PARA_INDEPENDENCIA, TAXA_RETIRADA_SEGURA, ehAporteDeReserva } from "./constantes-financeiras";
+import { MESES_PARA_INDEPENDENCIA, TAXA_RETIRADA_SEGURA } from "./constantes-financeiras";
+import { ehMovimentoDeMeta } from "./aporte-meta";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -189,8 +190,10 @@ type Tx = {
   category?: string;
   amount?: number;
   date?: string;
-  /** Usado só para separar o aporte da reserva dos demais investimentos. */
+  /** Usado só para separar movimento de meta dos demais investimentos. */
   title?: string | null;
+  /** Meta que este lançamento alimenta. Preenchido = não entra no investido. */
+  goal_id?: string | null;
 };
 
 /** 'YYYY-MM' de uma data ISO, sem construir Date (evita o bug de fuso). */
@@ -567,7 +570,7 @@ export function getProfileInsights(params: {
   // estão certas isoladamente. Somá-las no patrimônio é que contava o mesmo
   // dinheiro duas vezes: cinco aportes de R$ 1.000 viravam R$ 10.000.
   const contributedTotal = allTransactions
-    .filter(t => t.category === INVESTMENT_CATEGORY && !ehAporteDeReserva(t.title))
+    .filter(t => t.category === INVESTMENT_CATEGORY && !ehMovimentoDeMeta(t))
     .reduce((acc, t) => acc + (t.type === 'expense' ? (t.amount ?? 0) : -(t.amount ?? 0)), 0);
 
   // Valor de mercado vence soma de aportes: quem tem posição cadastrada sabe

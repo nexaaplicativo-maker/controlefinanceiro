@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { toast } from "./Toast";
 import { formatMoney } from "../lib/format";
+import { hojeEmSaoPaulo } from "../lib/data";
 import { EmptyState } from "./ui/Surface";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 
@@ -162,7 +163,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `extrato_nexa_${periodLabel.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `extrato_nexa_${periodLabel.replace(' ', '_')}_${hojeEmSaoPaulo()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -260,7 +261,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
       doc.setFontSize(8);
       doc.text('Gerado pelo Nexa — Controle Financeiro Inteligente', pageWidth / 2, 290, { align: 'center' });
 
-      doc.save(`relatorio_nexa_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`relatorio_nexa_${hojeEmSaoPaulo()}.pdf`);
       toast("📄 PDF exportado com sucesso!", "success");
     } catch (err) {
       console.error(err);

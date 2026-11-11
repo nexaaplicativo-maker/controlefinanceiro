@@ -105,8 +105,18 @@ describe('detectAnomalies', () => {
     expect(a).toHaveLength(0);
   });
 
-  it('ignora quem não tem histórico', () => {
-    expect(detectAnomalies([{ ...base, variationPercent: null }])).toHaveLength(0);
+  // ATUALIZADO em F15: gasto NOVO passou a gerar alerta próprio. Antes a
+  // ausência de mediana descartava a categoria inteira, e uma viagem de
+  // R$ 8.000 estreando no mês não dizia nada.
+  it('gasto novo acima do piso vira alerta de severidade "novo"', () => {
+    const r = detectAnomalies([{ ...base, variationPercent: null }]);
+    expect(r).toHaveLength(1);
+    expect(r[0].severity).toBe('novo');
+    expect(r[0].variationPercent).toBeNull();
+  });
+
+  it('gasto novo abaixo do piso continua sem alertar', () => {
+    expect(detectAnomalies([{ ...base, amount: 10, variationPercent: null }])).toHaveLength(0);
   });
 
   it('gasto abaixo do normal não é anomalia', () => {

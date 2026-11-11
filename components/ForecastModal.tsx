@@ -9,6 +9,7 @@ import {
   whatIfCut, whatIfIncomeDrop, projectGoal,
   type Tx,
 } from "../lib/forecast";
+import { hojeEmSaoPaulo } from "../lib/data";
 import type { ProfileInsights } from "../lib/profile";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 
@@ -57,7 +58,7 @@ export function ForecastModal({
       medianIncome: insights.referenceIncome,
       months: 3,
     });
-    const bills = upcomingBills(allTransactions);
+    const bills = upcomingBills(allTransactions, hojeEmSaoPaulo());
     return { forecast, bills, apertadas: tightWeeks(bills, insights.referenceIncome * 0.25) };
   }, [isOpen, allTransactions, fromPeriod, insights.monthlyCost, insights.referenceIncome]);
 

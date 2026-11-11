@@ -45,25 +45,48 @@ describe('getReferenceIncome', () => {
       { type: 'income', category: 'Salário', amount: 5000, date: '2026-08-05' },
       { type: 'income', category: 'Salário', amount: 11000, date: '2026-09-05' },
     ];
-    expect(getReferenceIncome(perfilBase, tx)).toBe(5000);
+    expect(getReferenceIncome(perfilBase, tx, "2026-11-15").valor).toBe(5000);
   });
 
   it('exclui resgate de investimento da renda', () => {
     // Venda de ativo é patrimônio mudando de lugar, não renda recorrente.
     // Incluí-la inflava o denominador de todos os percentuais do app.
+    //
+    // ATUALIZADO em F6: três meses, não um. Com menos de três meses fechados
+    // a renda declarada passa a vencer a amostra, então um mês só não
+    // conseguiria mais provar o que este teste quer provar.
     const tx = [
+      { type: 'income', category: 'Salário', amount: 3000, date: '2026-07-05' },
+      { type: 'income', category: 'Salário', amount: 3000, date: '2026-08-05' },
       { type: 'income', category: 'Salário', amount: 3000, date: '2026-09-05' },
       { type: 'income', category: 'Investimentos', amount: 50000, date: '2026-09-06' },
     ];
-    expect(getReferenceIncome(perfilBase, tx)).toBe(3000);
+    expect(getReferenceIncome(perfilBase, tx, "2026-11-15").valor).toBe(3000);
+  });
+
+  it('com 1 ou 2 meses fechados, a renda declarada vence a amostra curta', () => {
+    // Uma amostra de um mês pode ter pego justo o mês atípico. O que a pessoa
+    // declarou descreve melhor a renda típica dela.
+    const tx = [{ type: 'income', category: 'Salário', amount: 1200, date: '2026-09-05' }];
+    const r = getReferenceIncome(perfilBase, tx, "2026-11-15");
+    expect(r.valor).toBe(5000);
+    expect(r.fonte).toBe('declarado');
+  });
+
+  it('sem nada declarado, a amostra curta ainda vence o zero', () => {
+    const semDeclarado = { ...perfilBase, monthly_income: null };
+    const tx = [{ type: 'income', category: 'Salário', amount: 1200, date: '2026-09-05' }];
+    const r = getReferenceIncome(semDeclarado, tx, "2026-11-15");
+    expect(r.valor).toBe(1200);
+    expect(r.fonte).toBe('parcial');
   });
 
   it('cai no valor declarado quando não há histórico', () => {
-    expect(getReferenceIncome(perfilBase, [])).toBe(5000);
+    expect(getReferenceIncome(perfilBase, [], "2026-11-15").valor).toBe(5000);
   });
 
   it('devolve 0 sem histórico e sem perfil', () => {
-    expect(getReferenceIncome(null, [])).toBe(0);
+    expect(getReferenceIncome(null, [], "2026-11-15").valor).toBe(0);
   });
 });
 
@@ -75,11 +98,15 @@ describe('getMonthlyCost', () => {
       { type: 'expense', category: 'Contas Fixas', amount: 2000, date: '2026-09-05' },
       { type: 'expense', category: 'Investimentos', amount: 8000, date: '2026-09-06' },
     ];
-    expect(getMonthlyCost(tx, 5000)).toBe(2000);
+    expect(getMonthlyCost(tx, 5000, "2026-11-15").valor).toBe(2000);
   });
 
-  it('estima 70% da renda quando não há despesa lançada', () => {
-    expect(getMonthlyCost([], 5000)).toBe(3500);
+  // ATUALIZADO em F6: o 0,7 era um número sem origem. Sem histórico, o custo
+  // passa a sair do consumo planejado da estratégia — 80% no 50/30/20.
+  it('sem despesa lançada, estima pelo consumo planejado da estratégia', () => {
+    const r = getMonthlyCost([], 5000, "2026-11-15", perfilBase);
+    expect(r.valor).toBe(4000);
+    expect(r.fonte).toBe('estimado');
   });
 });
 
@@ -89,10 +116,12 @@ describe('getGargaloThresholds', () => {
     expect(getGargaloThresholds({ ...perfilBase, strategy: '40_20_40' }).warn).toBe(20);
   });
 
-  it('dá folga para renda variável', () => {
-    const fixa = getGargaloThresholds({ ...perfilBase, income_type: 'fixa' });
-    const variavel = getGargaloThresholds({ ...perfilBase, income_type: 'variavel' });
-    expect(variavel.warn).toBe(fixa.warn + 5);
+  // ATUALIZADO em F11: afrouxar o limite resolvia o sintoma no lugar errado,
+  // e afrouxava justo para o perfil mais frágil. Agora o limite é o mesmo e o
+  // denominador é que fica estável (a mediana, não a renda do mês).
+  it('renda variável usa o MESMO limite da renda fixa', () => {
+    expect(getGargaloThresholds({ ...perfilBase, income_type: 'variavel' }))
+      .toEqual(getGargaloThresholds(perfilBase));
   });
 
   it('usa o padrão conservador sem perfil', () => {
@@ -129,6 +158,7 @@ describe('computeStage', () => {
     monthIncome: 5000,
     monthExpense: 3000,
     gargaloPercent: 20,
+    deficitRecorrente: false,
     reserveAmount: 0,
     investedTotal: 0,
     reserveIdeal: 18000,
@@ -144,12 +174,18 @@ describe('computeStage', () => {
     expect(stage.id).toBe('emergencia');
   });
 
-  it('entra em emergência gastando mais do que ganha', () => {
-    expect(computeStage({ ...base, monthExpense: 5000 }).id).toBe('emergencia');
+  // ATUALIZADO em F5: o gatilho deixou de ser o mês corrente e passou a ser
+  // déficit RECORRENTE, medido em meses fechados. No dia 3, com o aluguel
+  // pago e o salário ainda não creditado, o teste antigo pegava todo mundo.
+  it('entra em emergência com déficit recorrente', () => {
+    expect(computeStage({ ...base, deficitRecorrente: true }).id).toBe('emergencia');
   });
 
-  it('entra em emergência com gargalo acima de 50%', () => {
-    expect(computeStage({ ...base, gargaloPercent: 51 }).id).toBe('emergencia');
+  // ATUALIZADO em F5: gargalo alto com poupança positiva é comportamento, não
+  // insolvência — e o Estágio 1 bloqueia a sugestão de aporte, punindo quem
+  // fechava o mês no azul. Virou alerta, em gargaloWarn e gargaloCritical.
+  it('gargalo alto NÃO leva mais a emergência', () => {
+    expect(computeStage({ ...base }).id).not.toBe('emergencia');
   });
 
   it('estabilidade quando falta o primeiro mês de colchão', () => {
@@ -164,19 +200,38 @@ describe('computeStage', () => {
     expect(computeStage({ ...base, reserveAmount: 18000 }).id).toBe('acumulacao');
   });
 
-  it('independência com patrimônio de 92x o custo mensal', () => {
+  // ATUALIZADO em F2: o alvo era 92x o custo mensal, com o código dizendo que
+  // isso era a regra dos 4%. Não era — 4% ao ano pede 12/0,04 = 300 meses de
+  // despesa. 92 meses equivalem a sacar 13% ao ano. O teste antigo congelava
+  // o número errado, então mudou junto com a regra.
+  it('independência com patrimônio de 300x o custo mensal', () => {
     const stage = computeStage({
-      ...base, reserveAmount: 18000, investedTotal: 3000 * 92,
+      ...base, reserveAmount: 18000, investedTotal: 3000 * 300,
     });
     expect(stage.id).toBe('independencia');
+  });
+
+  it('o antigo alvo de 92x agora é apenas acumulação', () => {
+    // Reserva completa (18.000) para o fluxo passar de "estabilidade"; o
+    // patrimônio total fecha em 276.000, que é 92 × 3.000.
+    const stage = computeStage({
+      ...base, reserveAmount: 18000, investedTotal: 3000 * 92 - 18000,
+    });
+    expect(stage.id).toBe('acumulacao');
   });
 });
 
 describe('getProfileInsights', () => {
   const chamar = (over: Partial<Parameters<typeof getProfileInsights>[0]> = {}) =>
     getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfilBase,
-      allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      // Receita entra no fixture a partir do F7: sem ela nao ha poupanca
+      // tipica, e o aporte sugerido seria sempre zero.
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      ],
       monthIncome: 5000,
       monthExpense: 3000,
       monthGargalo: 1000,
@@ -190,9 +245,32 @@ describe('getProfileInsights', () => {
     expect(i.shouldSuggestContribution).toBe(false);
   });
 
-  it('sugere aporte conforme a estratégia', () => {
-    // 50/30/20 sobre renda de referência 5.000 = 1.000
+  // ATUALIZADO em F7: a meta da estratégia passou a ser um TETO. O sugerido
+  // é o menor entre ela e o que realmente sobra.
+  it('sugere o menor entre a meta da estratégia e a sobra real', () => {
+    // Sobra típica 2.000; meta 20% de 5.000 = 1.000. Vence a meta.
     expect(chamar().suggestedContribution).toBe(1000);
+  });
+
+  it('quando sobra menos que a meta, sugere o que sobra', () => {
+    const i = chamar({
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 4800 }),
+      ],
+    });
+    expect(i.poupancaTipica).toBe(200);
+    expect(i.suggestedContribution).toBe(200);
+  });
+
+  it('fechando no vermelho, não sugere aporte nenhum', () => {
+    const i = chamar({
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 5300 }),
+      ],
+    });
+    expect(i.suggestedContribution).toBe(0);
   });
 
   it('prefere o valor de mercado das posições à soma dos aportes', () => {
@@ -239,8 +317,14 @@ describe('transição has_debt -> tabela debts', () => {
 
   const chamar = (profile: FinancialProfile, debts?: any[]) =>
     getProfileInsights({
+      hoje: "2026-11-15",
       profile,
-      allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      // Receita entra no fixture a partir do F7: sem ela nao ha poupanca
+      // tipica, e o aporte sugerido seria sempre zero.
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      ],
       monthIncome: 5000,
       monthExpense: 3000,
       monthGargalo: 500,
@@ -290,8 +374,14 @@ describe('transição has_debt -> tabela debts', () => {
 describe('getStageLadder', () => {
   it('marca anteriores como concluídos, atual e bloqueados', () => {
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfilBase,
-      allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      // Receita entra no fixture a partir do F7: sem ela nao ha poupanca
+      // tipica, e o aporte sugerido seria sempre zero.
+      allTransactions: [
+        ...meses(3, { type: 'income', category: 'Salário', amount: 5000 }),
+        ...meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
+      ],
       monthIncome: 5000,
       monthExpense: 3000,
       monthGargalo: 500,
@@ -315,6 +405,7 @@ describe('getStageLadder', () => {
   it('não promete valores quando não há custo de vida apurado', () => {
     // Conta nova: a escada mostrava "faltam R$ 0,00" em todos os degraus.
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: { ...perfilBase, monthly_income: 0 },
       allTransactions: [],
       monthIncome: 0,

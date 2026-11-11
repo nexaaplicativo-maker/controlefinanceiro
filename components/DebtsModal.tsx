@@ -10,10 +10,11 @@ import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/session";
 import { toast } from "./Toast";
 import { formatMoney as fmtMoney } from "../lib/format";
+import { validateMoney, validateMonthlyRate, validateText, firstError } from "../lib/validation";
 import {
   DEBT_KINDS, EXPENSIVE_DEBT_RATE,
   isExpensive, monthlyInterestCost, minimumViablePayment,
-  simulatePayoff, compareStrategies, summarizeDebts,
+  simulatePayoff, compareStrategies, summarizeDebts, taxaAnualEquivalente,
   type Debt, type DebtKind,
 } from "../lib/debt";
 import { useModalA11y } from "../hooks/use-modal-a11y";
@@ -109,24 +110,28 @@ export function DebtsModal({
   };
 
   const handleSubmit = async () => {
-    const balanceNum = parseFloat(balance);
-    const rateNum = parseFloat(ratePercent);
-    const minNum = parseFloat(minPayment) || 0;
+    // Antes isto reimplementava, com `parseFloat` cru, a mesma conversão que
+    // `lib/validation.ts` já fazia. Duas cópias da mesma regra é como elas
+    // divergem — e `parseFloat` não entende a vírgula decimal, então
+    // "1.500,00" virava 1,5 em vez de mil e quinhentos.
+    const saldo = validateMoney(balance, 'saldo devedor', { allowZero: true });
+    const taxa = validateMonthlyRate(ratePercent);
+    const minimo = validateMoney(minPayment || '0', 'pagamento mínimo', { allowZero: true });
+    const nome = validateText(name, 'nome da dívida');
 
-    if (!name.trim()) { toast("Dê um nome à dívida.", "warning"); return; }
-    if (isNaN(balanceNum) || balanceNum < 0) { toast("Informe o saldo devedor.", "warning"); return; }
-    if (isNaN(rateNum) || rateNum < 0) { toast("Informe a taxa de juros ao mês.", "warning"); return; }
-    if (rateNum > 200) { toast("Taxa acima de 200% ao mês — confira o valor.", "warning"); return; }
+    const erro = firstError(nome, saldo, taxa, minimo);
+    if (erro) { toast(erro, "warning"); return; }
 
     setIsSaving(true);
     const payload = {
       user_id: userId,
-      name: name.trim(),
+      name: nome.value as string,
       creditor: creditor.trim() || null,
       kind,
-      current_balance: balanceNum,
-      monthly_rate: rateNum / 100,
-      minimum_payment: minNum,
+      current_balance: saldo.value as number,
+      // `validateMonthlyRate` já devolve a fração ao mês: 14 -> 0,14.
+      monthly_rate: taxa.value as number,
+      minimum_payment: minimo.value as number,
       status: 'ativa' as const,
     };
 
@@ -333,7 +338,12 @@ export function DebtsModal({
                                   {quitada && <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-pos/15 text-pos shrink-0">Quitada</span>}
                                 </div>
                                 <p className="text-xs text-ink-3 mt-0.5">
+                                  {/* A taxa anual ao lado da mensal: "15% a.m." não
+                                      assusta ninguém, 435% a.a. assusta — e é o mesmo
+                                      número, dito de um jeito que dá para comparar com
+                                      poupança e financiamento. */}
                                   {DEBT_KINDS[d.kind]} · {(d.monthly_rate * 100).toFixed(1)}% a.m.
+                                  {d.monthly_rate > 0 && ` (${(taxaAnualEquivalente(d.monthly_rate) * 100).toFixed(0)}% a.a.)`}
                                   {d.creditor ? ` · ${d.creditor}` : ''}
                                 </p>
                               </div>

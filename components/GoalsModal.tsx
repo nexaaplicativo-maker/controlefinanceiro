@@ -7,10 +7,13 @@ import { supabase } from "../lib/supabase";
 import { toast } from "./Toast";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
+import { moverNaMeta } from "../lib/aporte-meta";
+import { hojeEmSaoPaulo } from "../lib/data";
+import { parseMoney } from "../lib/validation";
 import { formatMoney } from "../lib/format";
 import { confirmDialog } from "./ConfirmDialog";
 
-export function GoalsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export function GoalsModal({ isOpen, onClose, onSaved }: { isOpen: boolean, onClose: () => void, onSaved?: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
   const [goals, setGoals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,19 +75,46 @@ export function GoalsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =
     e.preventDefault();
     if (!transactionAmount || !activeGoal) return;
 
-    const amount = parseFloat(transactionAmount.replace(',', '.'));
-    const newAmount = transactionType === 'add' ? activeGoal.current_amount + amount : activeGoal.current_amount - amount;
+    // `parseMoney` em vez de `parseFloat`: "1.500,00" virava 1,5 no segundo.
+    const amount = parseMoney(transactionAmount);
+    if (amount === null) { toast("Informe um valor válido.", "warning"); return; }
 
-    const { error } = await supabase.from('goals').update({ current_amount: newAmount }).eq('id', activeGoal.id);
-    
-    if (error) {
+    const userId = await getUserId();
+    if (!userId) { toast("Sessão expirada. Faça login novamente.", "error"); return; }
+
+    // Guardar numa meta é dinheiro saindo da conta; retirar é voltando. Antes
+    // só a meta era atualizada, então o mesmo real aparecia como saldo
+    // disponível E como meta cumprida.
+    const r = moverNaMeta({
+      userId,
+      goalId: activeGoal.id,
+      tituloDaMeta: activeGoal.title,
+      valor: amount,
+      sentido: transactionType === 'add' ? 'guardar' : 'retirar',
+      saldoAtualDaMeta: Number(activeGoal.current_amount ?? 0),
+      data: hojeEmSaoPaulo(),
+    });
+
+    if (!r.ok) { toast(r.erro, "warning"); return; }
+
+    const { error } = await supabase.from('transactions').insert([r.movimento.transacao]);
+    if (error) { toast("Erro ao registrar o lançamento: " + error.message, "error"); return; }
+
+    const { error: erroMeta } = await supabase
+      .from('goals')
+      .update({ current_amount: r.movimento.novoSaldoDaMeta })
+      .eq('id', activeGoal.id);
+
+    if (erroMeta) {
       toast("Erro ao atualizar meta.", "error");
-    } else {
-      setGoals(goals.map(g => g.id === activeGoal.id ? { ...g, current_amount: newAmount } : g));
-      setActiveGoal(null);
-      setTransactionAmount("");
-      toast(transactionType === 'add' ? "Valor adicionado à meta! 💰" : "Valor removido da meta.", "info");
+      return;
     }
+
+    setGoals(goals.map(g => g.id === activeGoal.id ? { ...g, current_amount: r.movimento.novoSaldoDaMeta } : g));
+    setActiveGoal(null);
+    setTransactionAmount("");
+    toast(transactionType === 'add' ? "Valor guardado na meta! 💰" : "Valor retirado da meta.", "info");
+    onSaved?.();
   };
 
   const handleDelete = async (id: string) => {

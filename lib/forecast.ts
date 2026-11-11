@@ -20,6 +20,8 @@ export type Tx = {
   installment_info?: string | null;
 };
 
+import { somarDias, diasEntre, domingoDaSemana } from './data';
+
 const INVESTMENT = 'Investimentos';
 
 function round2(n: number): number {
@@ -104,16 +106,20 @@ export interface UpcomingBill {
   installmentInfo?: string | null;
 }
 
-/** Contas a vencer, em ordem de data. */
+/**
+ * Contas a vencer, em ordem de data.
+ *
+ * `hoje` entra como string AAAA-MM-DD, já no fuso do usuário: a função não
+ * pode ter relógio escondido dentro dela. Antes recebia um `Date` e chamava
+ * `toISOString()`, o que à noite no Brasil já apontava para o dia seguinte.
+ */
 export function upcomingBills(
   allTransactions: Tx[],
-  today: Date = new Date(),
+  hoje: string,
   daysAhead = 45,
 ): UpcomingBill[] {
-  const todayStr = today.toISOString().slice(0, 10);
-  const limit = new Date(today);
-  limit.setDate(limit.getDate() + daysAhead);
-  const limitStr = limit.toISOString().slice(0, 10);
+  const todayStr = hoje.slice(0, 10);
+  const limitStr = somarDias(todayStr, daysAhead);
 
   return allTransactions
     .filter(t =>
@@ -123,10 +129,7 @@ export function upcomingBills(
       t.date && t.date <= limitStr,
     )
     .map(t => {
-      const days = Math.round(
-        (new Date(t.date! + 'T12:00:00Z').getTime() - new Date(todayStr + 'T12:00:00Z').getTime())
-        / 86400000,
-      );
+      const days = diasEntre(todayStr, t.date!);
       return {
         title: t.title ?? 'Sem título',
         amount: round2(t.amount ?? 0),
@@ -151,9 +154,7 @@ export function tightWeeks(bills: UpcomingBill[], threshold: number): TightWeek[
   const byWeek = new Map<string, { total: number; count: number }>();
 
   for (const b of bills) {
-    const d = new Date(b.date + 'T12:00:00Z');
-    d.setUTCDate(d.getUTCDate() - d.getUTCDay()); // domingo da semana
-    const key = d.toISOString().slice(0, 10);
+    const key = domingoDaSemana(b.date);
     const cur = byWeek.get(key) ?? { total: 0, count: 0 };
     byWeek.set(key, { total: cur.total + b.amount, count: cur.count + 1 });
   }

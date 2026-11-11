@@ -19,6 +19,8 @@
  */
 
 import { EXPENSIVE_DEBT_RATE } from "./debt";
+import { MESES_PARA_INDEPENDENCIA, TAXA_RETIRADA_SEGURA } from "./constantes-financeiras";
+import { ehMovimentoDeMeta } from "./aporte-meta";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -66,11 +68,23 @@ export interface ProfileInsights {
   /** Limites de alerta do gargalo, adaptados ao perfil */
   gargaloWarn: number;
   gargaloCritical: number;
+  /** O que esses limites medem: só o gargalo, ou o consumo total. */
+  baseDoAlerta: BaseDoAlerta;
+  /** O percentual efetivamente comparado com os limites. null sem renda. */
+  percentualDoAlerta: number | null;
+  /** Resultado pronto da comparação, para a tela não recalcular. */
+  nivelDeAlerta: 'ok' | 'atencao' | 'critico';
   /** Metas de reserva de emergência em R$ */
   reserveMinimum: number;
   reserveIdeal: number;
-  /** Quantos meses de custo de vida o usuário já tem guardado */
-  reserveMonths: number;
+  /** true quando a reserva já passou do MÍNIMO (3 ou 6 meses de custo).
+   *  É um marco de verdade — é quando uma emergência deixa de virar dívida —
+   *  e o número era calculado sem nunca ser usado em lugar nenhum. */
+  reservaMinimaConcluida: boolean;
+  /** Quantos meses de custo de vida o usuário já tem guardado.
+   *  null quando não há custo conhecido — zero diria "não tem nada
+   *  guardado", que é uma afirmação diferente de "não sei medir". */
+  reserveMonths: number | null;
   /** Quanto há hoje na reserva, em R$ */
   reserveAmount: number;
   /** Patrimônio investido considerado: valor de mercado das posições quando
@@ -88,6 +102,26 @@ export interface ProfileInsights {
   suggestedContribution: number;
   /** Se false, o app NÃO deve sugerir aporte (dívida cara vem antes) */
   shouldSuggestContribution: boolean;
+  /** Mediana do que sobrou nos últimos 3 meses fechados. Pode ser negativa. */
+  poupancaTipica: number;
+  /** Para onde o dinheiro deve ir neste estágio. */
+  destinoDoAporte: DestinoDoAporte;
+  /** Reserva + investido, sem contar o mesmo dinheiro duas vezes. */
+  patrimonio: number;
+  /** De onde saiu a renda de referência: do histórico ou do que foi declarado. */
+  fonteDaRenda: FonteDoNumero;
+  /** De onde saiu o custo de vida. 'estimado' impede classificar independência. */
+  fonteDoCusto: FonteDoNumero;
+  /** Quantos meses fechados sustentam a renda de referência. */
+  mesesNaBase: number;
+  /** Oscilação da renda: desvio padrão sobre a média. null sem base. */
+  volatilidadeDaRenda: number | null;
+  /** Patrimônio necessário para a independência. null sem custo conhecido. */
+  independenciaAlvo: number | null;
+  /** 0 a 1. null sem custo conhecido. */
+  independenciaProgresso: number | null;
+  /** Quanto o patrimônio de hoje renderia por mês a 4% ao ano. ESTIMATIVA. */
+  rendaPassivaEstimada: number;
   /** true enquanto o usuário não respondeu o onboarding */
   needsOnboarding: boolean;
 }
@@ -174,6 +208,10 @@ type Tx = {
   category?: string;
   amount?: number;
   date?: string;
+  /** Usado só para separar movimento de meta dos demais investimentos. */
+  title?: string | null;
+  /** Meta que este lançamento alimenta. Preenchido = não entra no investido. */
+  goal_id?: string | null;
 };
 
 /** 'YYYY-MM' de uma data ISO, sem construir Date (evita o bug de fuso). */
@@ -190,31 +228,91 @@ function median(values: number[]): number {
     : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/** De onde saiu um número que o app exibe. */
+export type FonteDoNumero = 'historico' | 'parcial' | 'estimado' | 'declarado';
+
+export interface ValorComFonte {
+  valor: number;
+  fonte: FonteDoNumero;
+  /** Quantos meses fechados sustentam o número. 0 quando é estimado. */
+  mesesNaBase: number;
+}
+
+export interface SerieMensal {
+  /** Totais por mês, em ordem cronológica. */
+  valores: number[];
+  meses: string[];
+  mediana: number;
+  mesesNaBase: number;
+  /** 3+ meses = histórico; 1 a 2 = parcial; nenhum = vazio. */
+  fonte: 'historico' | 'parcial' | 'vazio';
+  /** Desvio padrão sobre a média. Mede o quanto o número oscila. null sem base. */
+  coeficienteDeVariacao: number | null;
+}
+
 /**
- * Mediana mensal de um subconjunto de transações, nos últimos `months` meses
- * que tenham movimento.
+ * Série mensal de um subconjunto de transações, nos últimos meses FECHADOS.
+ *
+ * DUAS CORREÇÕES EM RELAÇÃO À VERSÃO ANTERIOR
+ *
+ * 1. Mês ativo sem o valor procurado conta ZERO, em vez de sumir.
+ *    Antes a série só tinha os meses em que o predicado casou. Para quem
+ *    recebeu em 3 de 6 meses, a mediana saía desses 3 — e o app concluía que
+ *    a renda recorrente era bem maior do que é. Justamente o perfil de renda
+ *    variável, que o resto do arquivo trata com mais cuidado.
+ *
+ *    "Mês ativo" é mês com QUALQUER lançamento. Mês em que a pessoa não usou
+ *    o app não é mês sem renda: é mês sem dado, e entra como nada.
+ *
+ * 2. O mês corrente fica de fora.
+ *    Ele está pela metade. No dia 3, com o aluguel pago e o salário ainda não
+ *    recebido, ele puxaria a mediana para baixo e mudaria todo dia.
  *
  * Mediana e não média: um 13º salário ou uma compra grande de uma vez só
- * distorceria a média e faria o app superestimar a renda recorrente (ou o
- * custo recorrente) do usuário.
+ * distorceria a média.
  */
-function monthlyMedian(transactions: Tx[], predicate: (t: Tx) => boolean, months = 6): number {
-  const totals = new Map<string, number>();
+export function serieMensalFechada(params: {
+  transacoes: Tx[];
+  predicado: (t: Tx) => boolean;
+  /** 'AAAA-MM-DD', já no fuso do usuário. */
+  hoje: string;
+  maxMeses?: number;
+}): SerieMensal {
+  const { transacoes, predicado, hoje, maxMeses = 6 } = params;
+  const mesCorrente = hoje.slice(0, 7);
 
-  for (const t of transactions) {
-    if (!t.date || !predicate(t)) continue;
-    const key = monthKey(t.date);
-    totals.set(key, (totals.get(key) ?? 0) + (t.amount ?? 0));
+  const ativos = new Set<string>();
+  const somas = new Map<string, number>();
+
+  for (const t of transacoes) {
+    if (!t.date) continue;
+    const mes = monthKey(t.date);
+    if (mes >= mesCorrente) continue;        // mês em andamento e futuros ficam fora
+
+    ativos.add(mes);
+    if (predicado(t)) somas.set(mes, (somas.get(mes) ?? 0) + (t.amount ?? 0));
   }
 
-  if (totals.size === 0) return 0;
+  const meses = [...ativos].sort().slice(-maxMeses);
+  const valores = meses.map(m => somas.get(m) ?? 0);
 
-  const recent = [...totals.entries()]
-    .sort((a, b) => b[0].localeCompare(a[0]))  // mês mais recente primeiro
-    .slice(0, months)
-    .map(([, total]) => total);
+  return {
+    valores,
+    meses,
+    mediana: median(valores),
+    mesesNaBase: meses.length,
+    fonte: meses.length >= 3 ? 'historico' : meses.length > 0 ? 'parcial' : 'vazio',
+    coeficienteDeVariacao: coefVariacao(valores),
+  };
+}
 
-  return median(recent);
+/** Desvio padrão sobre a média. Null quando não há base ou a média é zero. */
+function coefVariacao(valores: number[]): number | null {
+  if (valores.length < 2) return null;
+  const media = valores.reduce((a, v) => a + v, 0) / valores.length;
+  if (media <= 0) return null;
+  const variancia = valores.reduce((a, v) => a + (v - media) ** 2, 0) / valores.length;
+  return Math.round((Math.sqrt(variancia) / media) * 1000) / 1000;
 }
 
 // ---------------------------------------------------------------------------
@@ -226,54 +324,136 @@ function monthlyMedian(transactions: Tx[], predicate: (t: Tx) => boolean, months
  * Prioriza o observado (mediana das receitas reais); cai no declarado apenas
  * enquanto não houver histórico.
  */
-export function getReferenceIncome(profile: FinancialProfile | null, transactions: Tx[]): number {
+export function getReferenceIncome(
+  profile: FinancialProfile | null,
+  transactions: Tx[],
+  hoje: string,
+): ValorComFonte {
   // Exclui Investimentos: venda ou resgate de ativo é patrimônio mudando de
   // lugar, não renda recorrente. Incluir distorceria a mediana e, com ela, a
   // meta de reserva, o aporte sugerido e todos os limites de alerta.
-  const observed = monthlyMedian(
-    transactions,
-    t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
-  );
-  if (observed > 0) return observed;
-  return profile?.monthly_income ?? 0;
+  const serie = serieMensalFechada({
+    transacoes: transactions,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+  });
+
+  const declarada = profile?.monthly_income ?? 0;
+
+  // Três meses fechados bastam para a mediana significar alguma coisa.
+  if (serie.fonte === 'historico' && serie.mediana > 0) {
+    return { valor: serie.mediana, fonte: 'historico', mesesNaBase: serie.mesesNaBase };
+  }
+
+  // Com um ou dois meses, o que a pessoa DECLAROU costuma descrever melhor a
+  // renda típica do que uma amostra que pode ter pegado justo o mês atípico.
+  // Sem nada declarado, a amostra curta ainda é melhor que zero.
+  if (declarada > 0) {
+    return { valor: declarada, fonte: 'declarado', mesesNaBase: serie.mesesNaBase };
+  }
+  if (serie.mediana > 0) {
+    return { valor: serie.mediana, fonte: 'parcial', mesesNaBase: serie.mesesNaBase };
+  }
+
+  return { valor: 0, fonte: 'declarado', mesesNaBase: 0 };
 }
 
 /**
  * Custo de vida mensal: despesas recorrentes, excluindo aportes.
- * Se não houver histórico, estima em 70% da renda — conservador o bastante
- * para não prometer uma reserva pequena demais.
+ *
+ * CASCATA, do mais confiável ao menos:
+ *   1. historico  — mediana de 3+ meses fechados
+ *   2. parcial    — mediana de 1 ou 2 meses; é pouco, mas é observação real
+ *   3. estimado   — o consumo PLANEJADO da estratégia escolhida
+ *
+ * O passo 3 substitui um `renda × 0,7` que não tinha origem nenhuma. A
+ * estratégia já diz quanto a pessoa pretende consumir: no 50/30/20 são 80%
+ * da renda (50 de fixo + 30 de variável), no FIRE 60%. Usar o que ela mesma
+ * escolheu é mais honesto do que um número redondo — e, no 50/30/20, também
+ * é mais conservador: 80% contra os 70% de antes.
+ *
+ * Importa quem é a fonte: com `estimado`, o app não deve classificar
+ * independência financeira nem tratar a meta de reserva como fato.
  */
-export function getMonthlyCost(transactions: Tx[], referenceIncome: number): number {
-  const observed = monthlyMedian(
-    transactions,
-    t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
-  );
-  if (observed > 0) return observed;
-  return referenceIncome * 0.7;
+export function getMonthlyCost(
+  transactions: Tx[],
+  referenceIncome: number,
+  hoje: string,
+  profile?: FinancialProfile | null,
+): ValorComFonte {
+  const serie = serieMensalFechada({
+    transacoes: transactions,
+    predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+  });
+
+  if (serie.mediana > 0 && serie.fonte !== 'vazio') {
+    return { valor: serie.mediana, fonte: serie.fonte, mesesNaBase: serie.mesesNaBase };
+  }
+
+  const estrategia = STRATEGIES[profile?.strategy ?? DEFAULT_STRATEGY] ?? STRATEGIES[DEFAULT_STRATEGY];
+  const consumoPlanejado = 1 - estrategia.save;
+
+  return { valor: referenceIncome * consumoPlanejado, fonte: 'estimado', mesesNaBase: 0 };
+}
+
+/** O que o alerta mede: só o consumo discricionário, ou o consumo todo. */
+export type BaseDoAlerta = 'gargalo' | 'consumo';
+
+export interface LimitesDeAlerta {
+  warn: number;
+  critical: number;
+  /** 'gargalo' = cartões + variáveis; 'consumo' = fixos + gargalo. */
+  base: BaseDoAlerta;
 }
 
 /**
- * Limites de alerta do gargalo (cartões + variáveis), como % da renda.
+ * Limites de alerta, como % da renda.
  *
- * A base é a própria estratégia escolhida: quem optou pelo FIRE aceitou um
- * teto de consumo menor, então merece ser avisado antes. Renda variável ganha
- * folga porque o mês ruim é estrutural, não descuido.
+ * O QUE ESTAVA ERRADO
+ * A base saía de `strategy.variable`, com um fallback de 0,40 quando o valor
+ * fosse zero. Só que zero não significava "sem dado": no 80/20 significa que
+ * a estratégia NÃO TEM teto de variável por desenho — a regra dela é guardar
+ * 20% e gastar o resto como quiser.
+ *
+ * O resultado era o oposto do pretendido: quem escolheu "não quero
+ * microgerenciar categorias" recebia teto de 40%, mais FOLGADO que os 30% do
+ * Equilibrado. A estratégia mais permissiva virava a mais vigiada ao
+ * contrário.
+ *
+ * COMO FICOU
+ * Estratégia sem teto de variável não alerta por gargalo. Ela alerta pelo
+ * CONSUMO TOTAL — fixos mais gargalo — que é o único limite que ela de fato
+ * estabelece: se o plano é guardar 20%, consumir mais de 80% fura o plano.
  */
-export function getGargaloThresholds(profile: FinancialProfile | null): { warn: number; critical: number } {
+export function getGargaloThresholds(profile: FinancialProfile | null): LimitesDeAlerta {
   const strategyId = profile?.strategy ?? DEFAULT_STRATEGY;
   const strategy = STRATEGIES[strategyId] ?? STRATEGIES[DEFAULT_STRATEGY];
+  const ehVariavel = profile?.income_type === 'variavel';
 
-  // O teto natural de consumo da estratégia é o que sobra fora do aporte,
-  // descontando as contas fixas. Ex.: 50/30/20 -> 30% de variáveis.
-  const base = strategy.variable > 0 ? strategy.variable : 0.4;
+  // Sem teto de variável: o alerta passa a ser sobre o consumo todo.
+  if (strategy.variable <= 0) {
+    const warn = Math.round((1 - strategy.save) * 100);   // 80 no 80/20
+    // HEURÍSTICA: acima de 95% de consumo a poupança é praticamente zero.
+    return { warn, critical: 95, base: 'consumo' };
+  }
 
-  const warn = base * 100;
+  const warn = strategy.variable * 100;
   const critical = Math.min(warn + 20, 70);
 
-  if (profile?.income_type === 'variavel') {
-    return { warn: warn + 5, critical: Math.min(critical + 5, 75) };
-  }
-  return { warn, critical };
+  // Renda variável NÃO ganha mais limite mais frouxo.
+  //
+  // A intenção original era evitar falso alarme no mês de faturamento baixo:
+  // o mesmo gasto, dividido por uma renda menor, estoura o teto sem que nada
+  // tenha mudado no comportamento. Mas afrouxar o LIMITE resolve o sintoma no
+  // lugar errado — e afrouxa justamente para o perfil mais frágil, que é o
+  // que mais precisa de reserva e de aviso cedo.
+  //
+  // O remédio certo é estabilizar o DENOMINADOR: medir contra a renda de
+  // referência (mediana dos meses fechados) em vez da renda do mês. Isso está
+  // feito em getProfileInsights, logo abaixo. Aqui os limites voltam a ser
+  // iguais para todo mundo.
+  return { warn, critical, base: 'gargalo' };
 }
 
 /**
@@ -301,13 +481,120 @@ export function getReserveTargets(profile: FinancialProfile | null, monthlyCost:
  * adianta parabenizar quem tem reserva formada mas está pagando 15% ao mês de
  * rotativo — esse dinheiro está sendo destruído, não construído.
  */
+/**
+ * Déficit recorrente: gastou mais do que ganhou, e não foi uma vez só.
+ *
+ * Um mês ruim acontece — conserto de carro, dentista, matrícula de escola.
+ * O que caracteriza emergência é o padrão, não o episódio. Por isso exige
+ * pelo menos 2 dos últimos 3 meses FECHADOS no vermelho.
+ *
+ * Meses fechados, e não o corrente: no dia 3, com o aluguel pago e o salário
+ * ainda não creditado, todo mundo parece estar gastando mais do que ganha.
+ *
+ * Investimentos ficam de fora dos DOIS lados, simetricamente: aporte não é
+ * consumo, e resgate não é renda. Contar só de um lado inventaria déficit em
+ * quem aportou, ou esconderia o déficit de quem resgatou para cobrir o rombo.
+ */
+export function temDeficitRecorrente(params: {
+  transacoes: Tx[];
+  hoje: string;
+  mesesParaOlhar?: number;
+  minimoDeMesesNoVermelho?: number;
+}): boolean {
+  const { transacoes, hoje, mesesParaOlhar = 3, minimoDeMesesNoVermelho = 2 } = params;
+
+  const receitas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: mesesParaOlhar,
+  });
+
+  const despesas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: mesesParaOlhar,
+  });
+
+  // As duas séries vêm dos mesmos meses ativos, então os índices casam.
+  let noVermelho = 0;
+  for (let i = 0; i < receitas.valores.length; i++) {
+    const entrou = receitas.valores[i];
+    const saiu = despesas.valores[i] ?? 0;
+
+    // Mês sem NENHUMA receita lançada não prova déficit — prova que a pessoa
+    // não lança receita. Muita gente usa o app só para acompanhar gasto, e
+    // tratar isso como "gastou mais do que ganhou" prenderia essas pessoas no
+    // Modo Emergência para sempre, sem caminho de saída.
+    if (entrou <= 0) continue;
+
+    if (saiu >= entrou) noVermelho++;
+  }
+
+  return noVermelho >= minimoDeMesesNoVermelho;
+}
+
+/**
+ * Poupança típica do mês: o que REALMENTE sobra, pela mediana dos meses
+ * fechados.
+ *
+ * O aporte sugerido saía de `renda × fatia da estratégia`. Num mês em que a
+ * pessoa fecha no zero, o app mandava guardar 20% da renda — conselho que só
+ * pode ser seguido com cartão ou cheque especial, ou seja, piorando a
+ * situação que ele pretendia melhorar.
+ *
+ * Investimentos fica fora dos dois lados: aporte é destino da poupança, não
+ * consumo, e descontá-lo faria a sobra parecer menor a cada vez que a pessoa
+ * acerta.
+ */
+export function poupancaTipicaMensal(params: {
+  transacoes: Tx[];
+  hoje: string;
+  meses?: number;
+}): number {
+  const { transacoes, hoje, meses = 3 } = params;
+
+  const receitas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: meses,
+  });
+
+  const despesas = serieMensalFechada({
+    transacoes,
+    predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+    maxMeses: meses,
+  });
+
+  // Mês sem receita lançada é dado faltando, não poupança negativa — a mesma
+  // regra que o déficit recorrente usa.
+  const sobras: number[] = [];
+  for (let i = 0; i < receitas.valores.length; i++) {
+    const entrou = receitas.valores[i];
+    if (entrou <= 0) continue;
+    sobras.push(entrou - (despesas.valores[i] ?? 0));
+  }
+
+  return sobras.length ? median(sobras) : 0;
+}
+
+/** Para onde o dinheiro guardado deve ir, dado o estágio. */
+export type DestinoDoAporte =
+  | 'quitar-divida'
+  | 'ajustar-gastos'
+  | 'reserva'
+  | 'investimentos'
+  | 'manutencao';
+
 export function computeStage(params: {
   profile: FinancialProfile | null;
   referenceIncome: number;
   monthlyCost: number;
-  monthIncome: number;
-  monthExpense: number;
-  gargaloPercent: number;
+  /** Despesas >= receitas em pelo menos 2 dos últimos 3 meses FECHADOS. */
+  deficitRecorrente: boolean;
   reserveAmount: number;
   investedTotal: number;
   reserveIdeal: number;
@@ -315,10 +602,13 @@ export function computeStage(params: {
   hasRegisteredDebts?: boolean;
   /** Soma dos saldos de dívidas CARAS (taxa >= 3% a.m.) */
   expensiveDebtTotal?: number;
+  /** true quando o custo de vida é palpite, não observação. Bloqueia o
+   *  Estágio 5: ninguém deve ser declarado independente com base num chute. */
+  custoEhEstimado?: boolean;
 }): Stage {
   const {
-    profile, monthlyCost, monthIncome, monthExpense,
-    gargaloPercent, reserveAmount, investedTotal, reserveIdeal,
+    profile, monthlyCost, deficitRecorrente,
+    reserveAmount, investedTotal, reserveIdeal,
   } = params;
 
   // Dívida cara: a tabela `debts` manda quando existir pelo menos uma dívida
@@ -330,16 +620,37 @@ export function computeStage(params: {
     ? (params.expensiveDebtTotal ?? 0) > 0
     : profile?.has_debt === true;
 
-  const spendingMoreThanEarning = monthIncome > 0 && monthExpense >= monthIncome;
   const patrimonio = reserveAmount + investedTotal;
 
-  // 1. Emergência — está cavando o buraco ou pagando juros caros.
-  if (hasDebt || spendingMoreThanEarning || gargaloPercent > 50) {
+  // 1. Emergência — insolvência ou iliquidez, nada além disso.
+  //
+  // SAIU DAQUI: `gargaloPercent > 50`.
+  // Gastar demais em cartão e variáveis com a poupança positiva é problema de
+  // COMPORTAMENTO, não emergência financeira. Como o Estágio 1 bloqueia a
+  // sugestão de aporte, quem consumia muito mas fechava o mês no azul era
+  // impedido de guardar dinheiro — a punição não tinha relação com o
+  // problema. O gargalo continua existindo, como ALERTA, em gargaloWarn e
+  // gargaloCritical.
+  //
+  // MUDOU: o déficit era medido no mês CORRENTE, que está pela metade. No dia
+  // 3, com o aluguel pago e o salário ainda não creditado, qualquer pessoa
+  // caía em Modo Emergência. Agora é déficit RECORRENTE, medido em meses
+  // fechados.
+  if (hasDebt || deficitRecorrente) {
     return STAGES.emergencia;
   }
 
-  // 5. Independência — patrimônio cobre ~92 meses de custo de vida (regra dos 4%).
-  if (monthlyCost > 0 && patrimonio >= monthlyCost * 92) {
+  // 5. Independência — patrimônio cobre 300 meses (25 anos) de custo de vida.
+  //
+  // Exige custo OBSERVADO. Com custo estimado, o alvo é derivado de outro
+  // palpite — a renda declarada vezes a fatia da estratégia — e declarar
+  // independência financeira em cima disso seria irresponsável.
+  //
+  // Era 92, com este mesmo comentário citando a regra dos 4%. Mas 4% ao ano
+  // sobre o patrimônio pede 12/0,04 = 300 meses de despesa; 92 meses
+  // equivalem a sacar 13% ao ano. O app declarava independência a quem tinha
+  // menos de um terço do necessário.
+  if (!params.custoEhEstimado && monthlyCost > 0 && patrimonio >= monthlyCost * MESES_PARA_INDEPENDENCIA) {
     return STAGES.independencia;
   }
 
@@ -380,7 +691,7 @@ export function getStageLadder(insights: ProfileInsights): StageStep[] {
   const { stage, monthlyCost, reserveAmount, reserveIdeal, investedTotal, gargaloCritical } = insights;
 
   const patrimonio = reserveAmount + investedTotal;
-  const independenceTarget = monthlyCost * 92;
+  const independenceTarget = monthlyCost * MESES_PARA_INDEPENDENCIA;
 
   const defs: Array<{ id: StageId; goal: string; target: number | null; current: number }> = [
     {
@@ -403,7 +714,7 @@ export function getStageLadder(insights: ProfileInsights): StageStep[] {
     },
     {
       id: 'acumulacao',
-      goal: 'Acumular patrimônio de 92× seu custo mensal.',
+      goal: `Acumular patrimônio de ${MESES_PARA_INDEPENDENCIA}× seu custo mensal — 25 anos de despesa.`,
       target: independenceTarget > 0 ? independenceTarget : null,
       current: patrimonio,
     },
@@ -446,26 +757,65 @@ export function getProfileInsights(params: {
   positions?: Array<{ invested_amount?: number; current_value?: number }>;
   /** Dívidas ativas. Quando houver, substituem o booleano has_debt. */
   debts?: Array<{ current_balance?: number; monthly_rate?: number; status?: string }>;
+  /** Contas fixas do mês. Necessário quando o alerta é sobre consumo TOTAL
+   *  (estratégias sem teto de variável, como a 80/20). */
+  monthFixos?: number;
+  /** Hoje, 'AAAA-MM-DD' no fuso do usuário. Obrigatório: nenhuma regra deste
+   *  arquivo pode ter relógio escondido dentro dela. */
+  hoje: string;
 }): ProfileInsights {
-  const { profile, allTransactions, monthIncome, monthExpense, monthGargalo, reserveAmount, positions, debts } = params;
+  const { profile, allTransactions, monthIncome, monthExpense, monthGargalo, monthFixos = 0, reserveAmount, positions, debts, hoje } = params;
 
-  const referenceIncome = getReferenceIncome(profile, allTransactions);
-  const monthlyCost = getMonthlyCost(allTransactions, referenceIncome);
+  const serieRenda = serieMensalFechada({
+    transacoes: allTransactions,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+  });
 
-  const { warn, critical } = getGargaloThresholds(profile);
+  const renda = getReferenceIncome(profile, allTransactions, hoje);
+  const custo = getMonthlyCost(allTransactions, renda.valor, hoje, profile);
+  const referenceIncome = renda.valor;
+  const monthlyCost = custo.valor;
+
+  const { warn, critical, base: warn_base } = getGargaloThresholds(profile);
   const { minimum, ideal } = getReserveTargets(profile, monthlyCost);
 
   // O gargalo é medido contra a renda DO MÊS quando ela existe; se o mês ainda
   // está vazio, usa a renda de referência para não exibir 0% enganoso.
-  const incomeBase = monthIncome > 0 ? monthIncome : referenceIncome;
+  // Renda variável mede contra a MEDIANA, não contra o mês.
+  //
+  // Num mês de faturamento baixo, o mesmo gasto de sempre viraria alerta
+  // crítico; num mês excepcional, gastança nenhuma acenderia a luz. Os dois
+  // são leitura errada do mesmo comportamento. A mediana descreve a renda
+  // típica e não oscila com o mês.
+  const ehRendaVariavel = profile?.income_type === 'variavel';
+  const incomeBase = ehRendaVariavel && referenceIncome > 0
+    ? referenceIncome
+    : (monthIncome > 0 ? monthIncome : referenceIncome);
   const gargaloPercent = incomeBase > 0 ? (monthGargalo / incomeBase) * 100 : 0;
+
+  // O numerador depende do que a estratégia escolhida de fato limita.
+  const valorMedido = warn_base === 'consumo' ? monthGargalo + monthFixos : monthGargalo;
+  const percentualMedido = incomeBase > 0 ? (valorMedido / incomeBase) * 100 : null;
+
+  const nivelDeAlerta: 'ok' | 'atencao' | 'critico' =
+    percentualMedido === null ? 'ok'
+      : percentualMedido > critical ? 'critico'
+        : percentualMedido > warn ? 'atencao'
+          : 'ok';
 
   // Patrimônio investido LÍQUIDO: aportes menos resgates. Antes contava só
   // aportes, então uma venda de ativo não reduzia o patrimônio — e ainda por
   // cima inflava a renda. O mesmo lançamento contava duas vezes, das duas
   // formas erradas.
+  //
+  // O aporte à RESERVA fica de fora: ele já é contado em `reserveAmount`,
+  // que vem de goals.current_amount. O botão "Poupar" grava as duas coisas —
+  // a despesa, que derruba o saldo em conta, e a soma na meta — e as duas
+  // estão certas isoladamente. Somá-las no patrimônio é que contava o mesmo
+  // dinheiro duas vezes: cinco aportes de R$ 1.000 viravam R$ 10.000.
   const contributedTotal = allTransactions
-    .filter(t => t.category === INVESTMENT_CATEGORY)
+    .filter(t => t.category === INVESTMENT_CATEGORY && !ehMovimentoDeMeta(t))
     .reduce((acc, t) => acc + (t.type === 'expense' ? (t.amount ?? 0) : -(t.amount ?? 0)), 0);
 
   // Valor de mercado vence soma de aportes: quem tem posição cadastrada sabe
@@ -491,13 +841,35 @@ export function getProfileInsights(params: {
     .reduce((acc, d) => acc + (d.current_balance ?? 0), 0);
 
   const stage = computeStage({
-    profile, referenceIncome, monthlyCost, monthIncome, monthExpense,
-    gargaloPercent, reserveAmount, investedTotal, reserveIdeal: ideal,
+    profile, referenceIncome, monthlyCost,
+    reserveAmount, investedTotal, reserveIdeal: ideal,
     hasRegisteredDebts, expensiveDebtTotal,
+    custoEhEstimado: custo.fonte === 'estimado',
+    deficitRecorrente: temDeficitRecorrente({ transacoes: allTransactions, hoje }),
   });
+
 
   const strategyId = profile?.strategy ?? DEFAULT_STRATEGY;
   const suggestedSavingsRate = (STRATEGIES[strategyId] ?? STRATEGIES[DEFAULT_STRATEGY]).save;
+
+  // O menor entre a META da estratégia e o que REALMENTE sobra. Sugerir 20%
+  // da renda a quem fecha o mês no zero é mandar guardar no cartão.
+  const poupancaTipica = poupancaTipicaMensal({ transacoes: allTransactions, hoje });
+  const metaDeAporte = referenceIncome * suggestedSavingsRate;
+  const aporteViavel = Math.min(metaDeAporte, Math.max(0, poupancaTipica));
+
+  // Qual dos dois gatilhos do Estágio 1 disparou muda o conselho: quitar
+  // dívida e cortar gasto são coisas diferentes, e antes o app dizia só
+  // "não aporte" para os dois.
+  const deficitRecorrente = temDeficitRecorrente({ transacoes: allTransactions, hoje });
+  const destinoDoAporte: DestinoDoAporte =
+    stage.id === 'emergencia'
+      ? (deficitRecorrente ? 'ajustar-gastos' : 'quitar-divida')
+      : stage.id === 'independencia'
+        ? 'manutencao'
+        : stage.id === 'acumulacao'
+          ? 'investimentos'
+          : 'reserva';
 
   // Em Modo Emergência o app NÃO sugere aporte: guardar a 1% ao mês enquanto
   // se paga 15% de rotativo destrói patrimônio. Primeiro quita, depois guarda.
@@ -509,17 +881,37 @@ export function getProfileInsights(params: {
     monthlyCost,
     gargaloWarn: warn,
     gargaloCritical: critical,
+    baseDoAlerta: warn_base,
+    percentualDoAlerta: percentualMedido === null ? null : Math.round(percentualMedido * 100) / 100,
+    nivelDeAlerta,
     reserveMinimum: minimum,
     reserveIdeal: ideal,
-    reserveMonths: monthlyCost > 0 ? reserveAmount / monthlyCost : 0,
+    reservaMinimaConcluida: minimum > 0 && reserveAmount >= minimum,
+    reserveMonths: monthlyCost > 0 ? reserveAmount / monthlyCost : null,
     reserveAmount,
     investedTotal,
     contributedTotal,
     positionsValue,
     positionsReturn,
     suggestedSavingsRate,
-    suggestedContribution: Math.max(0, Math.round(referenceIncome * suggestedSavingsRate)),
+    suggestedContribution: Math.round(aporteViavel),
+    poupancaTipica: Math.round(poupancaTipica * 100) / 100,
+    destinoDoAporte,
     shouldSuggestContribution,
+    // Sem custo de vida conhecido não há alvo: devolver 0 faria qualquer
+    // patrimônio parecer completo, e dividir por ele daria Infinity.
+    patrimonio: reserveAmount + investedTotal,
+    fonteDaRenda: renda.fonte,
+    fonteDoCusto: custo.fonte,
+    mesesNaBase: renda.mesesNaBase,
+    volatilidadeDaRenda: serieRenda.coeficienteDeVariacao,
+    independenciaAlvo: monthlyCost > 0 ? Math.round(monthlyCost * MESES_PARA_INDEPENDENCIA) : null,
+    independenciaProgresso: monthlyCost > 0
+      ? Math.min(1, (reserveAmount + investedTotal) / (monthlyCost * MESES_PARA_INDEPENDENCIA))
+      : null,
+    // ESTIMATIVA, não promessa: é quanto o patrimônio de hoje renderia por mês
+    // se a taxa de retirada segura se confirmasse.
+    rendaPassivaEstimada: ((reserveAmount + investedTotal) * TAXA_RETIRADA_SEGURA) / 12,
     needsOnboarding: !profile?.onboarded_at,
   };
 }

@@ -59,7 +59,10 @@ export function SpendingInsightsModal({
     const recurring = detectRecurring(allTransactions);
     return {
       breakdown,
-      anomalies: detectAnomalies(breakdown),
+      // A renda entra para o piso do alerta acompanhar quem ganha quanto:
+      // R$ 50 cala alertas que importam para quem ganha 2 mil e alerta por
+      // ruido para quem ganha 30 mil.
+      anomalies: detectAnomalies(breakdown, { referenceIncome: income }),
       recurring,
       invisible: detectInvisibleSpending(monthTransactions),
       recurringMonthly: recurring.reduce((a, r) => a + r.monthlyAmount, 0),
@@ -131,9 +134,13 @@ export function SpendingInsightsModal({
                               <div className="min-w-0">
                                 <p className="text-xs text-ink-2 leading-relaxed">{a.message}</p>
                                 <p className="text-xs text-ink-3 mt-1">
-                                  {formatMoney(a.amount)} este mês · seu normal é {formatMoney(a.median)}
+                                  {/* Gasto novo não tem "seu normal": a categoria
+                                      estreou neste mês e não há mediana. */}
+                                  {a.variationPercent === null
+                                    ? <>{formatMoney(a.amount)} este mês · sem histórico para comparar</>
+                                    : <>{formatMoney(a.amount)} este mês · seu normal é {formatMoney(a.median)}</>}
                                   <span className={`ml-1.5 font-semibold ${a.severity === 'alta' ? 'text-neg' : 'text-warn'}`}>
-                                    +{a.variationPercent.toFixed(0)}%
+                                    {a.variationPercent === null ? 'novo' : `+${a.variationPercent.toFixed(0)}%`}
                                   </span>
                                 </p>
                               </div>

@@ -11,6 +11,8 @@ import {
   summarizeDebts,
   debtVsInvestment,
   EXPENSIVE_DEBT_RATE,
+  taxaAnualEquivalente,
+  pagamentoParaQuitarEm,
   type Debt,
 } from './debt';
 
@@ -244,5 +246,49 @@ describe('critério de aceite: R$ 5.000 a 14% a.m.', () => {
     const agressivo = simulatePayoff(5000, 0.14, 2000);
     expect(agressivo.months!).toBeLessThan(viavel.months!);
     expect(agressivo.totalInterest).toBeLessThan(viavel.totalInterest);
+  });
+});
+
+describe('taxaAnualEquivalente', () => {
+  it('3% ao mês são 42,58% ao ano', () => {
+    expect(taxaAnualEquivalente(0.03)).toBeCloseTo(0.4258, 4);
+  });
+
+  it('15% ao mês, o rotativo típico, são 435% ao ano', () => {
+    expect(taxaAnualEquivalente(0.15)).toBeCloseTo(4.3503, 4);
+  });
+
+  it('taxa zero não vira juro nenhum', () => {
+    expect(taxaAnualEquivalente(0)).toBe(0);
+  });
+
+  it('entrada inválida devolve zero, não NaN', () => {
+    expect(taxaAnualEquivalente(Number.NaN)).toBe(0);
+    expect(taxaAnualEquivalente(-0.05)).toBe(0);
+  });
+});
+
+describe('pagamentoParaQuitarEm', () => {
+  it('o caso do relatório: 10.000 a 3% em 12 meses', () => {
+    // 1.004,6209... arredondado para CIMA, ao centavo.
+    expect(pagamentoParaQuitarEm(10_000, 0.03, 12)).toBe(1004.63);
+  });
+
+  it('é o inverso de payoffMonths', () => {
+    const parcela = pagamentoParaQuitarEm(10_000, 0.03, 12)!;
+    expect(payoffMonths(10_000, 0.03, parcela)).toBe(12);
+  });
+
+  it('sem juros é divisão simples', () => {
+    expect(pagamentoParaQuitarEm(1_200, 0, 12)).toBe(100);
+  });
+
+  it('saldo zero não precisa de parcela', () => {
+    expect(pagamentoParaQuitarEm(0, 0.03, 12)).toBe(0);
+  });
+
+  it('prazo inválido devolve null', () => {
+    expect(pagamentoParaQuitarEm(1_000, 0.03, 0)).toBeNull();
+    expect(pagamentoParaQuitarEm(1_000, 0.03, -5)).toBeNull();
   });
 });

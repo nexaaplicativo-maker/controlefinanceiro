@@ -86,7 +86,7 @@ describe('forecastMonths', () => {
 });
 
 describe('upcomingBills', () => {
-  const hoje = new Date('2026-10-15T12:00:00Z');
+  const hoje = '2026-10-15';
 
   it('lista pendentes em ordem de data e marca atraso', () => {
     const b = upcomingBills([
@@ -123,7 +123,7 @@ describe('tightWeeks', () => {
       tx({ date: '2026-10-20', amount: 500 }),
       tx({ date: '2026-10-21', amount: 700 }),
       tx({ date: '2026-11-15', amount: 100 }),
-    ], new Date('2026-10-15T12:00:00Z'));
+    ], '2026-10-15');
 
     const semanas = tightWeeks(bills, 1000);
     expect(semanas).toHaveLength(1);

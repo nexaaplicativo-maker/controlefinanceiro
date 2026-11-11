@@ -22,6 +22,10 @@
  *  estrago de um falso positivo é criar dezenas de lançamentos fantasma. */
 export const MAX_PARCELAS = 36;
 
+// A aritmética de meses mora em lib/data.ts, com o resto das datas.
+import { somarMeses } from './data';
+export { somarMeses };
+
 export interface Parcela {
   numero: number;
   total: number;
@@ -71,24 +75,6 @@ export function tituloBase(descricao: string | null | undefined): string {
 /** Título como o app escreve parcela em todo lugar: "AMERICANAS (4/10)". */
 export function tituloDaParcela(base: string, numero: number, total: number): string {
   return `${base} (${numero}/${total})`;
-}
-
-/**
- * Soma meses numa data ISO, sem estourar o mês.
- *
- * `setMonth` puro transforma 31/01 + 1 mês em 03/03. Numa projeção de 10
- * parcelas o erro vai acumulando e as últimas caem no mês errado, então o dia
- * é preso ao último dia do mês de destino.
- */
-export function somarMeses(iso: string, meses: number): string {
-  const [ano, mes, dia] = iso.slice(0, 10).split('-').map(Number);
-  if (!ano || !mes || !dia) return iso;
-
-  const alvo = new Date(Date.UTC(ano, mes - 1 + meses, 1));
-  const ultimoDia = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate();
-  alvo.setUTCDate(Math.min(dia, ultimoDia));
-
-  return alvo.toISOString().slice(0, 10);
 }
 
 /**

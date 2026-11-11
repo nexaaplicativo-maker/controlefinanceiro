@@ -55,6 +55,24 @@ export function somarDias(iso: string, dias: number): string {
   return alvo.toISOString().slice(0, 10);
 }
 
+/**
+ * Soma meses numa data ISO, sem estourar o mês.
+ *
+ * `setMonth` puro transforma 31/01 + 1 mês em 03/03. Numa projeção de 10
+ * parcelas o erro vai acumulando e as últimas caem no mês errado, então o dia
+ * é preso ao último dia do mês de destino.
+ */
+export function somarMeses(iso: string, meses: number): string {
+  const [ano, mes, dia] = iso.slice(0, 10).split('-').map(Number);
+  if (!ano || !mes || !dia) return iso;
+
+  const alvo = new Date(Date.UTC(ano, mes - 1 + meses, 1));
+  const ultimoDia = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate();
+  alvo.setUTCDate(Math.min(dia, ultimoDia));
+
+  return alvo.toISOString().slice(0, 10);
+}
+
 /** Dias inteiros entre duas datas de calendário. Negativo se `ate` for antes. */
 export function diasEntre(de: string, ate: string): number {
   const ms = (iso: string) => {

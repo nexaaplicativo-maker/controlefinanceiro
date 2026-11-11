@@ -10,7 +10,7 @@ import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
 import { SUBCATEGORIAS, subcategoriaSugerida } from "../lib/subcategorias";
 import { AI_ENABLED } from "../lib/features";
-import { hojeEmSaoPaulo } from "../lib/data";
+import { hojeEmSaoPaulo, somarMeses } from "../lib/data";
 
 export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: { isOpen: boolean, onClose: () => void, onSave?: () => void, onImportarFatura?: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
@@ -115,18 +115,20 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
       const transactionsToInsert = [];
       const installmentGroup = isInstallment && installments > 1 ? crypto.randomUUID() : null;
 
-      const startDate = new Date(date);
-      // Ajusta timezone offset para evitar bug de data
-      startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
-
+      // A data vem do formulário como 'AAAA-MM-DD' e assim permanece: a
+      // conversão para `Date` e a correção manual de fuso que existiam aqui
+      // só criavam a chance de errar o dia.
       let loopCount = (isInstallment || isRecurring) && type === 'expense' ? installments : 1;
       let amountPerInstallment = baseAmount;
       if (isSplit && type === 'expense') amountPerInstallment = amountPerInstallment / 2;
 
       for (let i = 0; i < loopCount; i++) {
-        const currentInstallmentDate = new Date(startDate);
-        currentInstallmentDate.setMonth(currentInstallmentDate.getMonth() + i);
-        
+        // `somarMeses` prende o dia ao último dia do mês de destino. Com
+        // `setMonth` puro, uma compra em 31/01 gerava a 2ª parcela em 03/03 —
+        // e a importação por IA já usava a regra certa, então as duas telas
+        // produziam datas diferentes para o mesmo parcelamento.
+        const dataDaParcela = somarMeses(date, i);
+
         let finalTitle = title;
         if (isInstallment) finalTitle = `${title} (${i+1}/${installments})`;
         if (isSplit && type === 'expense') finalTitle = `${finalTitle} 👩‍❤️‍👨`;
@@ -141,7 +143,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
           subcategoria: type === 'expense'
             ? (subcategoria || subcategoriaSugerida(finalTitle))
             : null,
-          date: currentInstallmentDate.toISOString().split('T')[0],
+          date: dataDaParcela,
           installment_group: installmentGroup,
           installment_info: isInstallment ? `${i+1}/${installments}` : null,
           is_split: isSplit && type === 'expense',

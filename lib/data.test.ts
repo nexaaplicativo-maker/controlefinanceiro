@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { hojeEmSaoPaulo, mesAtual, mesDe, somarDias, diasEntre, domingoDaSemana } from './data';
+import { hojeEmSaoPaulo, mesAtual, mesDe, somarDias, somarMeses, diasEntre, domingoDaSemana } from './data';
 
 describe('hojeEmSaoPaulo', () => {
   it('21h de 31/10 em Brasília ainda é 31/10', () => {
@@ -107,5 +107,38 @@ describe('domingoDaSemana', () => {
   it('atravessa a virada do mês para trás', () => {
     // 2026-11-02 é segunda; o domingo da semana é 01/11.
     expect(domingoDaSemana('2026-11-02')).toBe('2026-11-01');
+  });
+});
+
+describe('somarMeses — a regra que o lançamento manual não seguia', () => {
+  it('31/01 + 1 mês é 28/02, não 03/03', () => {
+    // Com `setMonth` puro o JavaScript transborda para março.
+    expect(somarMeses('2026-01-31', 1)).toBe('2026-02-28');
+  });
+
+  it('o encurtamento não se acumula nas parcelas seguintes', () => {
+    // A 3ª parcela de uma compra em 31/01 volta a cair no dia 31.
+    expect(somarMeses('2026-01-31', 2)).toBe('2026-03-31');
+    expect(somarMeses('2026-01-31', 3)).toBe('2026-04-30');
+  });
+
+  it('acerta fevereiro de ano bissexto', () => {
+    expect(somarMeses('2028-01-31', 1)).toBe('2028-02-29');
+  });
+
+  it('uma série de 12 parcelas desde 31/01 cai sempre no mês certo', () => {
+    const meses = Array.from({ length: 12 }, (_, i) => somarMeses('2026-01-31', i).slice(0, 7));
+    expect(meses).toEqual([
+      '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06',
+      '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12',
+    ]);
+  });
+
+  it('vira o ano', () => {
+    expect(somarMeses('2026-11-15', 3)).toBe('2027-02-15');
+  });
+
+  it('dia 30 em fevereiro também é preso', () => {
+    expect(somarMeses('2026-01-30', 1)).toBe('2026-02-28');
   });
 });

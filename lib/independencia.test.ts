@@ -70,6 +70,7 @@ describe('computeStage: alvo da independência', () => {
 
 describe('progresso e renda passiva', () => {
   const comum = {
+    hoje: "2026-11-15",
     profile: perfil(),
     monthIncome: 10_000,
     monthExpense: 4_000,

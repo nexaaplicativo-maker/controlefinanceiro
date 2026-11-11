@@ -27,6 +27,7 @@ const perfil = (over: Partial<FinancialProfile> = {}): FinancialProfile => ({
 
 const chamar = (over: Partial<Parameters<typeof getProfileInsights>[0]> = {}) =>
   getProfileInsights({
+    hoje: "2026-11-15",
     profile: perfil(),
     allTransactions: [],
     monthIncome: 5_000,

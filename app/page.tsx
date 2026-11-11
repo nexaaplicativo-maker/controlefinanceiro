@@ -826,7 +826,12 @@ export default function Dashboard() {
   // É o cálculo mais caro da tela — varre todo o histórico para tirar medianas
   // por categoria e detectar cobrança recorrente. Rodava a cada render,
   // inclusive a cada tecla da busca.
+  // Memoizado pela DATA, não pelo instante: assim o painel não recalcula a
+  // cada render, mas vira de dia junto com o usuário.
+  const hoje = hojeEmSaoPaulo();
+
   const insights = useMemo(() => getProfileInsights({
+    hoje,
     profile,
     allTransactions,
     monthIncome: rendaLiquida,
@@ -835,7 +840,7 @@ export default function Dashboard() {
     reserveAmount: reservaAtual,
     positions,
     debts,
-  }), [profile, allTransactions, rendaLiquida, totalExpense, gargalo, reservaAtual, positions, debts]);
+  }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, reservaAtual, positions, debts]);
 
   const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);
   const hasRegisteredDebts = useMemo(() => debts.some(d => (d.status ?? 'ativa') === 'ativa'), [debts]);

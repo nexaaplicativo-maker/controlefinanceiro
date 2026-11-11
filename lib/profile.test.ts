@@ -45,7 +45,7 @@ describe('getReferenceIncome', () => {
       { type: 'income', category: 'Salário', amount: 5000, date: '2026-08-05' },
       { type: 'income', category: 'Salário', amount: 11000, date: '2026-09-05' },
     ];
-    expect(getReferenceIncome(perfilBase, tx)).toBe(5000);
+    expect(getReferenceIncome(perfilBase, tx, "2026-11-15")).toBe(5000);
   });
 
   it('exclui resgate de investimento da renda', () => {
@@ -55,15 +55,15 @@ describe('getReferenceIncome', () => {
       { type: 'income', category: 'Salário', amount: 3000, date: '2026-09-05' },
       { type: 'income', category: 'Investimentos', amount: 50000, date: '2026-09-06' },
     ];
-    expect(getReferenceIncome(perfilBase, tx)).toBe(3000);
+    expect(getReferenceIncome(perfilBase, tx, "2026-11-15")).toBe(3000);
   });
 
   it('cai no valor declarado quando não há histórico', () => {
-    expect(getReferenceIncome(perfilBase, [])).toBe(5000);
+    expect(getReferenceIncome(perfilBase, [], "2026-11-15")).toBe(5000);
   });
 
   it('devolve 0 sem histórico e sem perfil', () => {
-    expect(getReferenceIncome(null, [])).toBe(0);
+    expect(getReferenceIncome(null, [], "2026-11-15")).toBe(0);
   });
 });
 
@@ -75,11 +75,11 @@ describe('getMonthlyCost', () => {
       { type: 'expense', category: 'Contas Fixas', amount: 2000, date: '2026-09-05' },
       { type: 'expense', category: 'Investimentos', amount: 8000, date: '2026-09-06' },
     ];
-    expect(getMonthlyCost(tx, 5000)).toBe(2000);
+    expect(getMonthlyCost(tx, 5000, "2026-11-15")).toBe(2000);
   });
 
   it('estima 70% da renda quando não há despesa lançada', () => {
-    expect(getMonthlyCost([], 5000)).toBe(3500);
+    expect(getMonthlyCost([], 5000, "2026-11-15")).toBe(3500);
   });
 });
 
@@ -188,6 +188,7 @@ describe('computeStage', () => {
 describe('getProfileInsights', () => {
   const chamar = (over: Partial<Parameters<typeof getProfileInsights>[0]> = {}) =>
     getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfilBase,
       allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
       monthIncome: 5000,
@@ -252,6 +253,7 @@ describe('transição has_debt -> tabela debts', () => {
 
   const chamar = (profile: FinancialProfile, debts?: any[]) =>
     getProfileInsights({
+      hoje: "2026-11-15",
       profile,
       allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
       monthIncome: 5000,
@@ -303,6 +305,7 @@ describe('transição has_debt -> tabela debts', () => {
 describe('getStageLadder', () => {
   it('marca anteriores como concluídos, atual e bloqueados', () => {
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfilBase,
       allTransactions: meses(3, { type: 'expense', category: 'Contas Fixas', amount: 3000 }),
       monthIncome: 5000,
@@ -328,6 +331,7 @@ describe('getStageLadder', () => {
   it('não promete valores quando não há custo de vida apurado', () => {
     // Conta nova: a escada mostrava "faltam R$ 0,00" em todos os degraus.
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: { ...perfilBase, monthly_income: 0 },
       allTransactions: [],
       monthIncome: 0,

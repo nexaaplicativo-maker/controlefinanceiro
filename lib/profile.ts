@@ -91,6 +91,12 @@ export interface ProfileInsights {
   shouldSuggestContribution: boolean;
   /** Reserva + investido, sem contar o mesmo dinheiro duas vezes. */
   patrimonio: number;
+  /** De onde saiu a renda de referência: do histórico ou do que foi declarado. */
+  fonteDaRenda: FonteDoNumero;
+  /** Quantos meses fechados sustentam a renda de referência. */
+  mesesNaBase: number;
+  /** Oscilação da renda: desvio padrão sobre a média. null sem base. */
+  volatilidadeDaRenda: number | null;
   /** Patrimônio necessário para a independência. null sem custo conhecido. */
   independenciaAlvo: number | null;
   /** 0 a 1. null sem custo conhecido. */
@@ -201,31 +207,84 @@ function median(values: number[]): number {
     : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/** De onde saiu um número que o app exibe. */
+export type FonteDoNumero = 'historico' | 'parcial' | 'estimado' | 'declarado';
+
+export interface SerieMensal {
+  /** Totais por mês, em ordem cronológica. */
+  valores: number[];
+  meses: string[];
+  mediana: number;
+  mesesNaBase: number;
+  /** 3+ meses = histórico; 1 a 2 = parcial; nenhum = vazio. */
+  fonte: 'historico' | 'parcial' | 'vazio';
+  /** Desvio padrão sobre a média. Mede o quanto o número oscila. null sem base. */
+  coeficienteDeVariacao: number | null;
+}
+
 /**
- * Mediana mensal de um subconjunto de transações, nos últimos `months` meses
- * que tenham movimento.
+ * Série mensal de um subconjunto de transações, nos últimos meses FECHADOS.
+ *
+ * DUAS CORREÇÕES EM RELAÇÃO À VERSÃO ANTERIOR
+ *
+ * 1. Mês ativo sem o valor procurado conta ZERO, em vez de sumir.
+ *    Antes a série só tinha os meses em que o predicado casou. Para quem
+ *    recebeu em 3 de 6 meses, a mediana saía desses 3 — e o app concluía que
+ *    a renda recorrente era bem maior do que é. Justamente o perfil de renda
+ *    variável, que o resto do arquivo trata com mais cuidado.
+ *
+ *    "Mês ativo" é mês com QUALQUER lançamento. Mês em que a pessoa não usou
+ *    o app não é mês sem renda: é mês sem dado, e entra como nada.
+ *
+ * 2. O mês corrente fica de fora.
+ *    Ele está pela metade. No dia 3, com o aluguel pago e o salário ainda não
+ *    recebido, ele puxaria a mediana para baixo e mudaria todo dia.
  *
  * Mediana e não média: um 13º salário ou uma compra grande de uma vez só
- * distorceria a média e faria o app superestimar a renda recorrente (ou o
- * custo recorrente) do usuário.
+ * distorceria a média.
  */
-function monthlyMedian(transactions: Tx[], predicate: (t: Tx) => boolean, months = 6): number {
-  const totals = new Map<string, number>();
+export function serieMensalFechada(params: {
+  transacoes: Tx[];
+  predicado: (t: Tx) => boolean;
+  /** 'AAAA-MM-DD', já no fuso do usuário. */
+  hoje: string;
+  maxMeses?: number;
+}): SerieMensal {
+  const { transacoes, predicado, hoje, maxMeses = 6 } = params;
+  const mesCorrente = hoje.slice(0, 7);
 
-  for (const t of transactions) {
-    if (!t.date || !predicate(t)) continue;
-    const key = monthKey(t.date);
-    totals.set(key, (totals.get(key) ?? 0) + (t.amount ?? 0));
+  const ativos = new Set<string>();
+  const somas = new Map<string, number>();
+
+  for (const t of transacoes) {
+    if (!t.date) continue;
+    const mes = monthKey(t.date);
+    if (mes >= mesCorrente) continue;        // mês em andamento e futuros ficam fora
+
+    ativos.add(mes);
+    if (predicado(t)) somas.set(mes, (somas.get(mes) ?? 0) + (t.amount ?? 0));
   }
 
-  if (totals.size === 0) return 0;
+  const meses = [...ativos].sort().slice(-maxMeses);
+  const valores = meses.map(m => somas.get(m) ?? 0);
 
-  const recent = [...totals.entries()]
-    .sort((a, b) => b[0].localeCompare(a[0]))  // mês mais recente primeiro
-    .slice(0, months)
-    .map(([, total]) => total);
+  return {
+    valores,
+    meses,
+    mediana: median(valores),
+    mesesNaBase: meses.length,
+    fonte: meses.length >= 3 ? 'historico' : meses.length > 0 ? 'parcial' : 'vazio',
+    coeficienteDeVariacao: coefVariacao(valores),
+  };
+}
 
-  return median(recent);
+/** Desvio padrão sobre a média. Null quando não há base ou a média é zero. */
+function coefVariacao(valores: number[]): number | null {
+  if (valores.length < 2) return null;
+  const media = valores.reduce((a, v) => a + v, 0) / valores.length;
+  if (media <= 0) return null;
+  const variancia = valores.reduce((a, v) => a + (v - media) ** 2, 0) / valores.length;
+  return Math.round((Math.sqrt(variancia) / media) * 1000) / 1000;
 }
 
 // ---------------------------------------------------------------------------
@@ -237,15 +296,21 @@ function monthlyMedian(transactions: Tx[], predicate: (t: Tx) => boolean, months
  * Prioriza o observado (mediana das receitas reais); cai no declarado apenas
  * enquanto não houver histórico.
  */
-export function getReferenceIncome(profile: FinancialProfile | null, transactions: Tx[]): number {
+export function getReferenceIncome(
+  profile: FinancialProfile | null,
+  transactions: Tx[],
+  hoje: string,
+): number {
   // Exclui Investimentos: venda ou resgate de ativo é patrimônio mudando de
   // lugar, não renda recorrente. Incluir distorceria a mediana e, com ela, a
   // meta de reserva, o aporte sugerido e todos os limites de alerta.
-  const observed = monthlyMedian(
-    transactions,
-    t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
-  );
-  if (observed > 0) return observed;
+  const serie = serieMensalFechada({
+    transacoes: transactions,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+  });
+
+  if (serie.fonte !== 'vazio' && serie.mediana > 0) return serie.mediana;
   return profile?.monthly_income ?? 0;
 }
 
@@ -254,12 +319,18 @@ export function getReferenceIncome(profile: FinancialProfile | null, transaction
  * Se não houver histórico, estima em 70% da renda — conservador o bastante
  * para não prometer uma reserva pequena demais.
  */
-export function getMonthlyCost(transactions: Tx[], referenceIncome: number): number {
-  const observed = monthlyMedian(
-    transactions,
-    t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
-  );
-  if (observed > 0) return observed;
+export function getMonthlyCost(
+  transactions: Tx[],
+  referenceIncome: number,
+  hoje: string,
+): number {
+  const serie = serieMensalFechada({
+    transacoes: transactions,
+    predicado: t => t.type === 'expense' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+  });
+
+  if (serie.fonte !== 'vazio' && serie.mediana > 0) return serie.mediana;
   return referenceIncome * 0.7;
 }
 
@@ -462,11 +533,20 @@ export function getProfileInsights(params: {
   positions?: Array<{ invested_amount?: number; current_value?: number }>;
   /** Dívidas ativas. Quando houver, substituem o booleano has_debt. */
   debts?: Array<{ current_balance?: number; monthly_rate?: number; status?: string }>;
+  /** Hoje, 'AAAA-MM-DD' no fuso do usuário. Obrigatório: nenhuma regra deste
+   *  arquivo pode ter relógio escondido dentro dela. */
+  hoje: string;
 }): ProfileInsights {
-  const { profile, allTransactions, monthIncome, monthExpense, monthGargalo, reserveAmount, positions, debts } = params;
+  const { profile, allTransactions, monthIncome, monthExpense, monthGargalo, reserveAmount, positions, debts, hoje } = params;
 
-  const referenceIncome = getReferenceIncome(profile, allTransactions);
-  const monthlyCost = getMonthlyCost(allTransactions, referenceIncome);
+  const serieRenda = serieMensalFechada({
+    transacoes: allTransactions,
+    predicado: t => t.type === 'income' && t.category !== INVESTMENT_CATEGORY,
+    hoje,
+  });
+
+  const referenceIncome = getReferenceIncome(profile, allTransactions, hoje);
+  const monthlyCost = getMonthlyCost(allTransactions, referenceIncome, hoje);
 
   const { warn, critical } = getGargaloThresholds(profile);
   const { minimum, ideal } = getReserveTargets(profile, monthlyCost);
@@ -545,6 +625,9 @@ export function getProfileInsights(params: {
     // Sem custo de vida conhecido não há alvo: devolver 0 faria qualquer
     // patrimônio parecer completo, e dividir por ele daria Infinity.
     patrimonio: reserveAmount + investedTotal,
+    fonteDaRenda: serieRenda.fonte === 'vazio' ? 'declarado' : serieRenda.fonte,
+    mesesNaBase: serieRenda.mesesNaBase,
+    volatilidadeDaRenda: serieRenda.coeficienteDeVariacao,
     independenciaAlvo: monthlyCost > 0 ? Math.round(monthlyCost * MESES_PARA_INDEPENDENCIA) : null,
     independenciaProgresso: monthlyCost > 0
       ? Math.min(1, (reserveAmount + investedTotal) / (monthlyCost * MESES_PARA_INDEPENDENCIA))

@@ -77,8 +77,9 @@ describe('[CORRIGIDO F2] independência agora exige 300x o custo mensal', () => 
 // A2 — Mediana ignora meses sem movimento e inclui o mês corrente
 // ===========================================================================
 
-describe('[DEFEITO A2] a mediana da renda pula os meses sem receita', () => {
-  it('junho sem receita não vira zero: a mediana sai de 4 meses, não de 5', () => {
+// CORRIGIDO em F4.
+describe('[CORRIGIDO F4] a mediana conta como zero o mês ativo sem receita', () => {
+  it('junho teve despesa e nenhuma receita: entra como zero', () => {
     const txs = [
       { type: 'income', category: 'Salário', amount: 3_000, date: '2026-05-10' },
       // Junho teve movimento, mas só despesa — hoje some do cálculo da renda.
@@ -88,19 +89,21 @@ describe('[DEFEITO A2] a mediana da renda pula os meses sem receita', () => {
       { type: 'income', category: 'Salário', amount: 3_500, date: '2026-10-10' },
     ];
 
-    // Série usada hoje: [3000, 4000, 5000, 3500] -> mediana 3.750.
-    // Contando junho como 0 seriam [0, 3000, 3500, 4000, 5000] -> 3.500.
-    expect(getReferenceIncome(perfil(), txs)).toBe(3_750);
+    // Antes: [3000, 4000, 5000, 3500] -> 3.750, porque junho sumia.
+    // Agora: [3000, 0, 4000, 5000, 3500] -> ordenado [0, 3000, 3500, 4000, 5000] -> 3.500.
+    expect(getReferenceIncome(perfil(), txs, "2026-11-15")).toBe(3_500);
   });
 
-  it('o mês corrente parcial entra na mediana como se estivesse fechado', () => {
+  it('o mês corrente parcial NÃO entra mais na mediana', () => {
     const txs = [
       { type: 'income', category: 'Salário', amount: 4_000, date: '2026-09-05' },
       { type: 'income', category: 'Salário', amount: 4_000, date: '2026-10-05' },
-      // Mês em andamento, só o adiantamento lançado.
+      // Mês em andamento, só o adiantamento lançado: fica de fora.
       { type: 'income', category: 'Salário', amount: 500, date: '2026-11-03' },
     ];
-    expect(getReferenceIncome(perfil(), txs)).toBe(4_000);
+    // A série é [4000, 4000] dos meses FECHADOS. Os 500 de novembro não
+    // puxam o número para baixo enquanto o mês não termina.
+    expect(getReferenceIncome(perfil(), txs, "2026-11-15")).toBe(4_000);
   });
 
   it('resgate de investimento não conta como renda', () => {
@@ -108,7 +111,7 @@ describe('[DEFEITO A2] a mediana da renda pula os meses sem receita', () => {
       { type: 'income', category: 'Salário', amount: 3_000, date: '2026-10-10' },
       { type: 'income', category: 'Investimentos', amount: 50_000, date: '2026-10-11' },
     ];
-    expect(getReferenceIncome(perfil(), txs)).toBe(3_000);
+    expect(getReferenceIncome(perfil(), txs, "2026-11-15")).toBe(3_000);
   });
 });
 
@@ -118,11 +121,11 @@ describe('[DEFEITO A2] a mediana da renda pula os meses sem receita', () => {
 
 describe('[DEFEITO A8] sem histórico, o custo de vida é chutado em 70% da renda', () => {
   it('renda declarada de 5.000 vira custo de 3.500', () => {
-    expect(getMonthlyCost([], 5_000)).toBe(3_500);
+    expect(getMonthlyCost([], 5_000, "2026-11-15")).toBe(3_500);
   });
 
   it('a meta de reserva herda o chute', () => {
-    const custo = getMonthlyCost([], 5_000);
+    const custo = getMonthlyCost([], 5_000, "2026-11-15");
     expect(getReserveTargets(perfil(), custo)).toEqual({ minimum: 10_500, ideal: 21_000 });
   });
 });
@@ -234,6 +237,7 @@ describe('[CORRIGIDO F1] o aporte do botão Poupar não é mais contado duas vez
     // É exatamente o que PayYourselfFirstModal grava: uma despesa em
     // Investimentos COM o título marcador, mais a soma na meta.
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfil(),
       allTransactions: [
         { type: 'income', category: 'Salário', amount: 5_000, date: '2026-10-05' },
@@ -253,6 +257,7 @@ describe('[CORRIGIDO F1] o aporte do botão Poupar não é mais contado duas vez
 
   it('transação de Investimentos SEM o marcador continua contando', () => {
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfil(),
       allTransactions: [
         { type: 'expense', category: 'Investimentos', amount: 1_000, date: '2026-10-06', title: 'Tesouro Selic' },
@@ -268,6 +273,7 @@ describe('[CORRIGIDO F1] o aporte do botão Poupar não é mais contado duas vez
 
   it('posição cadastrada substitui os aportes, sem somar', () => {
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfil(),
       allTransactions: [
         { type: 'expense', category: 'Investimentos', amount: 10_000, date: '2026-10-06' },
@@ -292,6 +298,7 @@ describe('[CORRIGIDO F1] o aporte do botão Poupar não é mais contado duas vez
 describe('[DEFEITO A6] o aporte sugerido sai da renda, não do que sobra', () => {
   it('sugere 20% da renda mesmo com o mês fechando no zero', () => {
     const insights = getProfileInsights({
+      hoje: "2026-11-15",
       profile: perfil(),
       allTransactions: [
         { type: 'income', category: 'Salário', amount: 5_000, date: '2026-10-05' },

@@ -40,7 +40,10 @@ const perfil = (over: Partial<FinancialProfile> = {}): FinancialProfile => ({
 // A1 — Independência em 92× o custo mensal
 // ===========================================================================
 
-describe('[DEFEITO A1] independência dispara em 92x o custo mensal', () => {
+// CORRIGIDO em F2. Este bloco documentava o defeito; agora documenta a
+// correção. Mantido no lugar, com os mesmos números, para o diff mostrar
+// exatamente o que mudou de comportamento.
+describe('[CORRIGIDO F2] independência agora exige 300x o custo mensal', () => {
   const base = {
     profile: perfil(),
     referenceIncome: 10_000,
@@ -52,19 +55,20 @@ describe('[DEFEITO A1] independência dispara em 92x o custo mensal', () => {
     hasRegisteredDebts: false,
   };
 
-  it('368.000 (= 92 x 4.000) já é classificado como Independência', () => {
-    // Pela regra dos 4% o alvo seria 300 x 4.000 = 1.200.000.
+  it('368.000 (= 92 x 4.000) NÃO é mais Independência', () => {
+    // Era o comportamento antigo. O alvo correto é 300 x 4.000 = 1.200.000.
     const stage = computeStage({ ...base, reserveAmount: 368_000, investedTotal: 0 });
-    expect(stage.id).toBe('independencia');
+    expect(stage.id).toBe('acumulacao');
   });
 
-  it('um real abaixo de 92x cai para Acumulação', () => {
+  it('um real abaixo do alvo antigo também é Acumulação', () => {
     const stage = computeStage({ ...base, reserveAmount: 367_999, investedTotal: 0 });
     expect(stage.id).toBe('acumulacao');
   });
 
-  it('o patrimônio é a soma de reserva + investido', () => {
-    const stage = computeStage({ ...base, reserveAmount: 200_000, investedTotal: 168_000 });
+  it('o patrimônio continua sendo a soma de reserva + investido', () => {
+    // 900.000 + 300.000 = 1.200.000, exatamente o novo alvo.
+    const stage = computeStage({ ...base, reserveAmount: 900_000, investedTotal: 300_000 });
     expect(stage.id).toBe('independencia');
   });
 });

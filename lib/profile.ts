@@ -19,6 +19,7 @@
  */
 
 import { EXPENSIVE_DEBT_RATE } from "./debt";
+import { MESES_PARA_INDEPENDENCIA, TAXA_RETIRADA_SEGURA } from "./constantes-financeiras";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -88,6 +89,12 @@ export interface ProfileInsights {
   suggestedContribution: number;
   /** Se false, o app NÃO deve sugerir aporte (dívida cara vem antes) */
   shouldSuggestContribution: boolean;
+  /** Patrimônio necessário para a independência. null sem custo conhecido. */
+  independenciaAlvo: number | null;
+  /** 0 a 1. null sem custo conhecido. */
+  independenciaProgresso: number | null;
+  /** Quanto o patrimônio de hoje renderia por mês a 4% ao ano. ESTIMATIVA. */
+  rendaPassivaEstimada: number;
   /** true enquanto o usuário não respondeu o onboarding */
   needsOnboarding: boolean;
 }
@@ -338,8 +345,13 @@ export function computeStage(params: {
     return STAGES.emergencia;
   }
 
-  // 5. Independência — patrimônio cobre ~92 meses de custo de vida (regra dos 4%).
-  if (monthlyCost > 0 && patrimonio >= monthlyCost * 92) {
+  // 5. Independência — patrimônio cobre 300 meses (25 anos) de custo de vida.
+  //
+  // Era 92, com este mesmo comentário citando a regra dos 4%. Mas 4% ao ano
+  // sobre o patrimônio pede 12/0,04 = 300 meses de despesa; 92 meses
+  // equivalem a sacar 13% ao ano. O app declarava independência a quem tinha
+  // menos de um terço do necessário.
+  if (monthlyCost > 0 && patrimonio >= monthlyCost * MESES_PARA_INDEPENDENCIA) {
     return STAGES.independencia;
   }
 
@@ -380,7 +392,7 @@ export function getStageLadder(insights: ProfileInsights): StageStep[] {
   const { stage, monthlyCost, reserveAmount, reserveIdeal, investedTotal, gargaloCritical } = insights;
 
   const patrimonio = reserveAmount + investedTotal;
-  const independenceTarget = monthlyCost * 92;
+  const independenceTarget = monthlyCost * MESES_PARA_INDEPENDENCIA;
 
   const defs: Array<{ id: StageId; goal: string; target: number | null; current: number }> = [
     {
@@ -403,7 +415,7 @@ export function getStageLadder(insights: ProfileInsights): StageStep[] {
     },
     {
       id: 'acumulacao',
-      goal: 'Acumular patrimônio de 92× seu custo mensal.',
+      goal: `Acumular patrimônio de ${MESES_PARA_INDEPENDENCIA}× seu custo mensal — 25 anos de despesa.`,
       target: independenceTarget > 0 ? independenceTarget : null,
       current: patrimonio,
     },
@@ -520,6 +532,15 @@ export function getProfileInsights(params: {
     suggestedSavingsRate,
     suggestedContribution: Math.max(0, Math.round(referenceIncome * suggestedSavingsRate)),
     shouldSuggestContribution,
+    // Sem custo de vida conhecido não há alvo: devolver 0 faria qualquer
+    // patrimônio parecer completo, e dividir por ele daria Infinity.
+    independenciaAlvo: monthlyCost > 0 ? Math.round(monthlyCost * MESES_PARA_INDEPENDENCIA) : null,
+    independenciaProgresso: monthlyCost > 0
+      ? Math.min(1, (reserveAmount + investedTotal) / (monthlyCost * MESES_PARA_INDEPENDENCIA))
+      : null,
+    // ESTIMATIVA, não promessa: é quanto o patrimônio de hoje renderia por mês
+    // se a taxa de retirada segura se confirmasse.
+    rendaPassivaEstimada: ((reserveAmount + investedTotal) * TAXA_RETIRADA_SEGURA) / 12,
     needsOnboarding: !profile?.onboarded_at,
   };
 }

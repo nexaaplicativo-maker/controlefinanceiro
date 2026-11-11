@@ -164,11 +164,24 @@ describe('computeStage', () => {
     expect(computeStage({ ...base, reserveAmount: 18000 }).id).toBe('acumulacao');
   });
 
-  it('independência com patrimônio de 92x o custo mensal', () => {
+  // ATUALIZADO em F2: o alvo era 92x o custo mensal, com o código dizendo que
+  // isso era a regra dos 4%. Não era — 4% ao ano pede 12/0,04 = 300 meses de
+  // despesa. 92 meses equivalem a sacar 13% ao ano. O teste antigo congelava
+  // o número errado, então mudou junto com a regra.
+  it('independência com patrimônio de 300x o custo mensal', () => {
     const stage = computeStage({
-      ...base, reserveAmount: 18000, investedTotal: 3000 * 92,
+      ...base, reserveAmount: 18000, investedTotal: 3000 * 300,
     });
     expect(stage.id).toBe('independencia');
+  });
+
+  it('o antigo alvo de 92x agora é apenas acumulação', () => {
+    // Reserva completa (18.000) para o fluxo passar de "estabilidade"; o
+    // patrimônio total fecha em 276.000, que é 92 × 3.000.
+    const stage = computeStage({
+      ...base, reserveAmount: 18000, investedTotal: 3000 * 92 - 18000,
+    });
+    expect(stage.id).toBe('acumulacao');
   });
 });
 

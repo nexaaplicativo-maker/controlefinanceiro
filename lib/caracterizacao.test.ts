@@ -166,10 +166,12 @@ describe('[CORRIGIDO F8] 80/20 alerta pelo consumo total, não pelo gargalo', ()
 // B5 — Renda variável recebe limite mais frouxo
 // ===========================================================================
 
-describe('[DEFEITO B5] renda variável afrouxa o limite em vez de estabilizar a base', () => {
-  it('soma 5 pontos ao aviso e ao crítico', () => {
+// CORRIGIDO em F11: o limite voltou a ser igual para todo mundo; o que muda
+// para renda variável é o DENOMINADOR, que passou a ser a mediana.
+describe('[CORRIGIDO F11] renda variável tem o mesmo limite, com base estável', () => {
+  it('não soma mais 5 pontos ao aviso e ao crítico', () => {
     expect(getGargaloThresholds(perfil({ income_type: 'variavel' })))
-      .toEqual({ warn: 35, critical: 55, base: 'gargalo' });
+      .toEqual({ warn: 30, critical: 50, base: 'gargalo' });
   });
 
   it('a reserva exigida dobra — esta parte está correta', () => {

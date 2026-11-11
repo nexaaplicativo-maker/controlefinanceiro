@@ -384,3 +384,50 @@ describe('F8 — alerta da estratégia 80/20 mede consumo total', () => {
     expect(i.nivelDeAlerta).toBe('ok');
   });
 });
+
+describe('F11 — renda variável mede contra a mediana, não contra o mês', () => {
+  /** Seis meses fechados com renda oscilando em torno de 5.000. */
+  const historico = [
+    ['2026-05', 5_000], ['2026-06', 2_000], ['2026-07', 8_000],
+    ['2026-08', 5_000], ['2026-09', 2_000], ['2026-10', 8_000],
+  ].map(([m, v]) => ({ type: 'income', category: 'Salário', amount: v as number, date: `${m}-05` }));
+
+  const avaliar = (rendaDoMes: number, tipo: 'fixa' | 'variavel') => getProfileInsights({
+    hoje: HOJE,
+    profile: perfil({ income_type: tipo, monthly_income: 5_000 }),
+    allTransactions: historico,
+    monthIncome: rendaDoMes,
+    monthExpense: 1_800,
+    monthGargalo: 1_800,          // o MESMO gasto nos dois cenários
+    reserveAmount: 0,
+  });
+
+  it('mês magro não acende alerta falso para renda variável', () => {
+    // 1.800 sobre 2.000 seriam 90% — crítico. Sobre a mediana de 5.000, 36%.
+    const r = avaliar(2_000, 'variavel');
+    expect(r.percentualDoAlerta).toBe(36);
+    expect(r.nivelDeAlerta).toBe('atencao');
+  });
+
+  it('mês gordo não relaxa o limite para renda variável', () => {
+    // 1.800 sobre 8.000 seriam 22,5% — tranquilo. Continua 36%.
+    expect(avaliar(8_000, 'variavel').percentualDoAlerta).toBe(36);
+  });
+
+  it('renda fixa segue medindo contra o mês', () => {
+    expect(avaliar(2_000, 'fixa').percentualDoAlerta).toBe(90);
+  });
+
+  it('sem mediana, renda variável cai no mês, em vez de dividir por zero', () => {
+    const r = getProfileInsights({
+      hoje: HOJE,
+      profile: perfil({ income_type: 'variavel', monthly_income: null }),
+      allTransactions: [],
+      monthIncome: 4_000,
+      monthExpense: 1_000,
+      monthGargalo: 1_000,
+      reserveAmount: 0,
+    });
+    expect(r.percentualDoAlerta).toBe(25);
+  });
+});

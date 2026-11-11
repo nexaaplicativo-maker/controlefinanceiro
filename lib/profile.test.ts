@@ -116,10 +116,12 @@ describe('getGargaloThresholds', () => {
     expect(getGargaloThresholds({ ...perfilBase, strategy: '40_20_40' }).warn).toBe(20);
   });
 
-  it('dá folga para renda variável', () => {
-    const fixa = getGargaloThresholds({ ...perfilBase, income_type: 'fixa' });
-    const variavel = getGargaloThresholds({ ...perfilBase, income_type: 'variavel' });
-    expect(variavel.warn).toBe(fixa.warn + 5);
+  // ATUALIZADO em F11: afrouxar o limite resolvia o sintoma no lugar errado,
+  // e afrouxava justo para o perfil mais frágil. Agora o limite é o mesmo e o
+  // denominador é que fica estável (a mediana, não a renda do mês).
+  it('renda variável usa o MESMO limite da renda fixa', () => {
+    expect(getGargaloThresholds({ ...perfilBase, income_type: 'variavel' }))
+      .toEqual(getGargaloThresholds(perfilBase));
   });
 
   it('usa o padrão conservador sem perfil', () => {

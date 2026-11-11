@@ -435,11 +435,18 @@ export function getGargaloThresholds(profile: FinancialProfile | null): LimitesD
   const warn = strategy.variable * 100;
   const critical = Math.min(warn + 20, 70);
 
-  // Renda variável ganha folga porque o mês ruim é estrutural, não descuido.
-  // (F11 propõe trocar isto por estabilizar o denominador; ainda não feito.)
-  if (ehVariavel) {
-    return { warn: warn + 5, critical: Math.min(critical + 5, 75), base: 'gargalo' };
-  }
+  // Renda variável NÃO ganha mais limite mais frouxo.
+  //
+  // A intenção original era evitar falso alarme no mês de faturamento baixo:
+  // o mesmo gasto, dividido por uma renda menor, estoura o teto sem que nada
+  // tenha mudado no comportamento. Mas afrouxar o LIMITE resolve o sintoma no
+  // lugar errado — e afrouxa justamente para o perfil mais frágil, que é o
+  // que mais precisa de reserva e de aviso cedo.
+  //
+  // O remédio certo é estabilizar o DENOMINADOR: medir contra a renda de
+  // referência (mediana dos meses fechados) em vez da renda do mês. Isso está
+  // feito em getProfileInsights, logo abaixo. Aqui os limites voltam a ser
+  // iguais para todo mundo.
   return { warn, critical, base: 'gargalo' };
 }
 
@@ -769,7 +776,16 @@ export function getProfileInsights(params: {
 
   // O gargalo é medido contra a renda DO MÊS quando ela existe; se o mês ainda
   // está vazio, usa a renda de referência para não exibir 0% enganoso.
-  const incomeBase = monthIncome > 0 ? monthIncome : referenceIncome;
+  // Renda variável mede contra a MEDIANA, não contra o mês.
+  //
+  // Num mês de faturamento baixo, o mesmo gasto de sempre viraria alerta
+  // crítico; num mês excepcional, gastança nenhuma acenderia a luz. Os dois
+  // são leitura errada do mesmo comportamento. A mediana descreve a renda
+  // típica e não oscila com o mês.
+  const ehRendaVariavel = profile?.income_type === 'variavel';
+  const incomeBase = ehRendaVariavel && referenceIncome > 0
+    ? referenceIncome
+    : (monthIncome > 0 ? monthIncome : referenceIncome);
   const gargaloPercent = incomeBase > 0 ? (monthGargalo / incomeBase) * 100 : 0;
 
   // O numerador depende do que a estratégia escolhida de fato limita.

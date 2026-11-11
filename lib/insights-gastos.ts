@@ -21,6 +21,8 @@ export type Tx = {
   title?: string;
 };
 
+import { formatMoney as dinheiro } from './format';
+
 const INVESTMENT = 'Investimentos';
 
 /** Mês de uma data ISO, sem construir Date (evita o bug de fuso). */
@@ -126,9 +128,11 @@ export interface Anomaly {
   category: string;
   amount: number;
   median: number;
-  variationPercent: number;
+  /** null em gasto NOVO: não há mediana com que comparar. */
+  variationPercent: number | null;
   variationAmount: number;
-  severity: 'atencao' | 'alta';
+  /** 'novo' = categoria que não existia no histórico e já pesa. */
+  severity: 'novo' | 'atencao' | 'alta';
   /** Frase pronta, em linguagem do dia a dia */
   message: string;
 }
@@ -139,11 +143,32 @@ export interface Anomaly {
  */
 export function detectAnomalies(
   breakdown: CategoryBreakdown[],
-  opts: { thresholdPercent?: number; minAmount?: number } = {},
+  opts: { thresholdPercent?: number; minAmount?: number; referenceIncome?: number } = {},
 ): Anomaly[] {
-  const { thresholdPercent = 30, minAmount = 50 } = opts;
+  const { thresholdPercent = 30, referenceIncome = 0 } = opts;
 
-  return breakdown
+  // O piso de R$ 50 era fixo e não acompanhava a renda: para quem ganha
+  // R$ 2.000 ele é alto demais e cala alertas que importam; para quem ganha
+  // R$ 30.000 é baixo demais e alerta por ruído. HEURÍSTICA: 1% da renda,
+  // nunca abaixo de R$ 50.
+  const minAmount = opts.minAmount ?? Math.max(50, referenceIncome * 0.01);
+
+  const novos: Anomaly[] = breakdown
+    // Gasto NOVO: não havia mediana, então variationPercent é null e o filtro
+    // antigo descartava a categoria inteira. Uma viagem de R$ 8.000 estreando
+    // no mês não gerava alerta nenhum, por maior que fosse.
+    .filter(b => b.variationPercent === null && b.amount >= minAmount)
+    .map(b => ({
+      category: b.category,
+      amount: b.amount,
+      median: 0,
+      variationPercent: null,
+      variationAmount: b.amount,
+      severity: 'novo' as const,
+      message: `${b.category} apareceu agora: ${dinheiro(b.amount)} neste mês, e não havia histórico.`,
+    }));
+
+  const desvios: Anomaly[] = breakdown
     .filter(b =>
       b.variationPercent !== null &&
       b.variationPercent >= thresholdPercent &&
@@ -156,9 +181,10 @@ export function detectAnomalies(
       variationPercent: b.variationPercent!,
       variationAmount: b.variationAmount,
       severity: b.variationPercent! >= 60 ? 'alta' as const : 'atencao' as const,
-      message: `Você gastou R$ ${b.variationAmount.toFixed(2).replace('.', ',')} a mais em ${b.category} do que o seu normal.`,
-    }))
-    .sort((a, b) => b.variationAmount - a.variationAmount);
+      message: `Você gastou ${dinheiro(b.variationAmount)} a mais em ${b.category} do que o seu normal.`,
+    }));
+
+  return [...desvios, ...novos].sort((a, b) => b.variationAmount - a.variationAmount);
 }
 
 // ---------------------------------------------------------------------------

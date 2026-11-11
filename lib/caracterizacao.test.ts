@@ -404,20 +404,24 @@ describe('[CARACTERIZAÇÃO A7] confiança da recorrência', () => {
 // B9 — Piso fixo de R$ 50 e ausência de alerta para gasto novo
 // ===========================================================================
 
-describe('[DEFEITO B9] anomalias usam piso fixo e ignoram gasto novo', () => {
+// CORRIGIDO em F15.
+describe('[CORRIGIDO F15] gasto novo alerta, e o piso acompanha a renda', () => {
   const comum = { currentMonth: '2026-11', income: 10_000 };
 
-  it('categoria sem histórico não gera alerta, por maior que seja', () => {
+  it('categoria sem histórico agora gera alerta próprio', () => {
     const r = breakdownByCategory({
       ...comum,
       monthTransactions: [{ type: 'expense', category: 'Viagem', amount: 8_000, date: '2026-11-05' }],
       allTransactions: [{ type: 'expense', category: 'Viagem', amount: 8_000, date: '2026-11-05' }],
     });
     expect(r[0].variationPercent).toBeNull();
-    expect(detectAnomalies(r)).toHaveLength(0);
+
+    const alertas = detectAnomalies(r, { referenceIncome: 10_000 });
+    expect(alertas).toHaveLength(1);
+    expect(alertas[0].severity).toBe('novo');
   });
 
-  it('o piso de R$ 50 não acompanha a renda', () => {
+  it('o piso acompanha a renda: 1% de 10.000 são R$ 100', () => {
     const r = breakdownByCategory({
       ...comum,
       monthTransactions: [{ type: 'expense', category: 'Lazer', amount: 160, date: '2026-11-05' }],
@@ -427,8 +431,9 @@ describe('[DEFEITO B9] anomalias usam piso fixo e ignoram gasto novo', () => {
         { type: 'expense', category: 'Lazer', amount: 100, date: '2026-09-05' },
       ],
     });
-    // +60% e +R$ 60 sobre uma renda de 10.000: alerta de severidade alta.
-    expect(detectAnomalies(r)[0].severity).toBe('alta');
+    // +60% e +R$ 60: passava no piso fixo de 50, não passa no piso de 100.
+    expect(detectAnomalies(r, { referenceIncome: 10_000 })).toHaveLength(0);
+    expect(detectAnomalies(r, { referenceIncome: 2_000 })).toHaveLength(1);
   });
 });
 

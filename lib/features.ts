@@ -16,3 +16,20 @@
  * validam a chave de verdade por conta própria.
  */
 export const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === 'true';
+
+/**
+ * Login com Google.
+ *
+ * Desligado por padrão, pela mesma razão do AI_ENABLED: o provedor precisa
+ * estar habilitado no painel do Supabase, e enquanto não estiver, o botão
+ * falha em 100% dos cliques. Confirmado medindo `/auth/v1/settings`, que
+ * listava apenas `email` entre os provedores ativos.
+ *
+ * Botão que nunca funciona é pior que botão ausente: a pessoa conclui que o
+ * app está quebrado, não que aquele caminho não existe.
+ *
+ * Para ligar, depois de habilitar o provedor no Supabase:
+ *
+ *   NEXT_PUBLIC_GOOGLE_LOGIN=true
+ */
+export const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN === 'true';

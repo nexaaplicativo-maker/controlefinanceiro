@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../lib/api-auth';
 import { checkRateLimit, rateLimitResponse } from '../../../lib/rate-limit';
+import { validarRenda } from '../../../lib/auto-budget';
 
 export async function POST(req: Request) {
   try {
@@ -10,13 +11,33 @@ export async function POST(req: Request) {
     const limit = await checkRateLimit(auth.db, auth.user.id, 'auto-budget');
     if (!limit.allowed) return rateLimitResponse(limit);
 
-    const body = await req.json();
-    const { income } = body;
+    // Corpo malformado é erro de quem chamou, não falha do servidor: sem este
+    // try, um JSON quebrado caía no catch geral e virava 500.
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Requisição inválida." }, { status: 400 });
+    }
+
+    // A renda é validada ANTES de qualquer chamada paga ao Gemini. Ver
+    // lib/auto-budget.ts para o porquê — em resumo: o valor entra dentro de um
+    // prompt, e entrada não verificada dentro de prompt é instrução de graça
+    // para quem chamar a rota.
+    const renda = validarRenda((body as { income?: unknown } | null)?.income);
+    if (!renda.ok) {
+      return NextResponse.json({ error: renda.erro }, { status: 400 });
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "Recursos de IA estão desativados nesta instalação." }, { status: 503 });
     }
+
+    // Interpola o valor JÁ VALIDADO E NORMALIZADO, nunca `body.income` cru —
+    // é isso que fecha a injeção de prompt. Depois de validarRenda, o que
+    // entra aqui é garantidamente um número finito e positivo.
+    const income = renda.valor;
 
     const promptText = `Atue como um planejador financeiro de elite.
 O usuário ganha R$ ${income} por mês.
@@ -42,8 +63,15 @@ Os valores numéricos (sem vírgula e sem símbolo de moeda) devem somar no máx
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: "Erro no Google Gemini: " + err }, { status: 500 });
+      // O detalhe fica no log do servidor. Antes esta era a única das três
+      // rotas de IA que devolvia o texto cru do Google ao cliente — e a
+      // resposta de erro do Gemini traz eco da requisição, nome de modelo e,
+      // em alguns casos, parte do prompt. As outras duas já faziam assim.
+      console.error("Gemini recusou o orçamento:", response.status, await response.text());
+      return NextResponse.json(
+        { error: "Não consegui gerar o orçamento agora. Tente de novo em instantes." },
+        { status: 502 },
+      );
     }
 
     const data = await response.json();
@@ -53,8 +81,11 @@ Os valores numéricos (sem vírgula e sem símbolo de moeda) devem somar no máx
     const parsedJson = JSON.parse(textResponse);
     return NextResponse.json(parsedJson);
 
-  } catch (error: any) {
+  } catch (error) {
+    // Detalhe no log do servidor; o cliente recebe mensagem genérica. Antes
+    // isto devolvia `error.message`, que vaza caminho de arquivo e estrutura
+    // interna para quem chamar a rota.
     console.error("Erro no auto-budget:", error);
-    return NextResponse.json({ error: "Erro ao gerar orçamento: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao gerar orçamento. Tente novamente." }, { status: 500 });
   }
 }

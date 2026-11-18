@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import {
   Shield, Users, TrendingUp, TrendingDown, DollarSign,
@@ -36,30 +36,10 @@ export default function AdminPage() {
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [novosFeedbacks, setNovosFeedbacks] = useState(0);
 
-  useEffect(() => {
-    checkAdmin();
-  }, []);
-
-  async function checkAdmin() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = '/login'; return; }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin') {
-      window.location.href = '/';
-      return;
-    }
-
-    setIsAuthorized(true);
-    await loadData();
-  }
-
-  async function loadData() {
+  /* `useCallback` com dependencias vazias: esta funcao so usa setters de
+     estado (estaveis) e os modulos importados. Fica com identidade fixa, o
+     que permite que `checkAdmin` e o efeito a declarem sem se recriar. */
+  const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
       // Agregação no banco, não no navegador.
@@ -112,7 +92,37 @@ export default function AdminPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }
+  }, []);
+
+  /* Depende só de `loadData`, que é estável: o efeito mais abaixo continua
+     rodando uma única vez, na montagem, como antes.
+
+     A ORDEM AQUI IMPORTA. Com `useCallback`, o array de dependências é
+     avaliado DURANTE o render — então `loadData` precisa já existir quando
+     esta linha roda, e o `useEffect` precisa vir depois das duas. Declarar
+     na ordem errada não dá erro de tipo: dá ReferenceError em produção. */
+  const checkAdmin = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/login'; return; }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      window.location.href = '/';
+      return;
+    }
+
+    setIsAuthorized(true);
+    await loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    checkAdmin();
+  }, [checkAdmin]);
 
   async function handleToggleRole(userId: string, currentRole: string) {
     const newRole = currentRole === 'admin' ? 'client' : 'admin';
@@ -128,7 +138,6 @@ export default function AdminPage() {
       toast("Erro ao alterar role.", "error");
     }
   }
-
 
   const filteredUsers = users.filter(u =>
     u.id.toLowerCase().includes(searchQuery.toLowerCase()) ||

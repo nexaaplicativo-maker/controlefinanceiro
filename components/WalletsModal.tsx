@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Wallet, Trash2, Plus, CreditCard, Building2, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -15,20 +15,24 @@ export function WalletsModal({ isOpen, onClose, userId }: { isOpen: boolean, onC
   const [newWalletType, setNewWalletType] = useState("bank"); // bank or credit
   const [isSaving, setIsSaving] = useState(false);
 
-  const loadWallets = async () => {
+  /* `useCallback` para a função poder entrar nas dependências do efeito sem
+     recriá-lo a cada render. Ela só muda quando `userId` muda, que já era
+     dependência — então o efeito dispara exatamente nas mesmas situações de
+     antes. */
+  const loadWallets = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.from('wallets').select('*').eq('user_id', userId).order('created_at', { ascending: true });
     if (!error && data) {
       setWallets(data);
     }
     setLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (isOpen && userId) {
       loadWallets();
     }
-  }, [isOpen, userId]);
+  }, [isOpen, userId, loadWallets]);
 
   const handleCreateWallet = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -175,7 +175,7 @@ export function ForecastModal({
                       ))}
                     </div>
                     <p className="text-xs text-ink-3 mt-2.5 leading-relaxed">
-                      "Já comprometido" é o que está lançado no app. "Contas de sempre" é estimativa pelo seu padrão dos últimos meses — pode variar.
+                      “Já comprometido” é o que está lançado no app. “Contas de sempre” é estimativa pelo seu padrão dos últimos meses — pode variar.
                     </p>
                   </section>
 

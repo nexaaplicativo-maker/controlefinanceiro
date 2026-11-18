@@ -96,7 +96,7 @@ export default function CasaisDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {goals.length === 0 ? (
-            <p className="text-ink-3 italic">Nenhuma meta criada ainda. Clique em "Nova Meta"!</p>
+            <p className="text-ink-3 italic">Nenhuma meta criada ainda. Clique em “Nova Meta”!</p>
           ) : (
             goals.map(goal => (
               <GoalCard 

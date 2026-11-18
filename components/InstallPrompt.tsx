@@ -57,12 +57,11 @@ export function InstallPrompt() {
   const [showIosPrompt, setShowIosPrompt] = useState(false);
 
   useEffect(() => {
-    // Registra o service worker aqui, e não no dashboard: este componente vive
-    // no layout e roda em toda página. O Chrome só oferece instalação se houver
-    // SW + manifest, então registrar só em "/" deixava /login sem a opção.
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW fail:', err));
-    }
+    // O registro do service worker saiu daqui para
+    // components/RegistraServiceWorker.tsx, montado no layout raiz. Este
+    // componente é escondido nas rotas públicas pelo ChromeDoApp, e o
+    // registro ia junto — deixando /login sem service worker, que é o
+    // oposto do que o comentário antigo aqui pretendia.
 
     // Se o navegador avisar que instalou, lembra para sempre. Esse evento é o
     // único sinal confiável de "já instalou" quando o app é aberto pela aba.

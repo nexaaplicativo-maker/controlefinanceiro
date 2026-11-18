@@ -33,11 +33,28 @@
   --color-neg: #f0776e;
   --color-warn: #e8b75d;
 
-  /* Texto em três níveis, mais um quarto só para os centavos. */
+  /* Texto em três níveis, mais um quarto só para os centavos.
+
+     OS TONS SUBIRAM POR CONTRASTE, NÃO POR GOSTO
+     Medido contra `--color-canvas` (#080b0f) pela fórmula da WCAG 2.1, que
+     exige 4,5:1 para texto normal:
+
+       ink-3  #5d6975 -> 3,6:1   REPROVAVA, e aparece 248 vezes no app
+       cents  #6b7784 -> 4,4:1   reprovava por pouco
+       ink-2  #93a1ac -> 7,5:1   passava, subiu junto para a escala não achatar
+
+     Com os valores de hoje: ink-3 e cents ficam em ~5,7:1 e ink-2 em ~9,0:1.
+
+     ink-3 é o tom de "Disponível para construir patrimônio" e das datas da
+     lista — texto pequeno, lido no celular, muitas vezes com a vista cansada.
+     É o mesmo raciocínio que levou a liberar o zoom no layout raiz.
+
+     `cents` e `ink-3` estão iguais por ora. O token continua separado de
+     propósito: os centavos podem voltar a divergir sem caçar ocorrência. */
   --color-ink: #f3f6f8;
-  --color-ink-2: #93a1ac;
-  --color-ink-3: #5d6975;
-  --color-cents: #6b7784;
+  --color-ink-2: #a3b0ba;
+  --color-ink-3: #7f8c98;
+  --color-cents: #7f8c98;
 
   --radius-card: 22px;
   --radius-inner: 16px;

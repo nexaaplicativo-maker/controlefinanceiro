@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, SlidersHorizontal, Loader2, Check, TrendingUp, Briefcase, CreditCard, Target } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { toast } from "./Toast";
 import { STRATEGIES, DEFAULT_STRATEGY, type FinancialProfile, type IncomeType, type MainGoal, type StrategyId } from "../lib/profile";
 import { useModalA11y } from "../hooks/use-modal-a11y";
+
+/** Marcador estável para "aberto, mas sem perfil carregado". Ver `fonte`. */
+const SEM_PERFIL = {};
 
 /**
  * Edição do perfil financeiro depois do onboarding.
@@ -41,16 +44,26 @@ export function ProfileSettingsModal({
   const [strategy, setStrategy] = useState<StrategyId>(DEFAULT_STRATEGY);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Recarrega os valores atuais toda vez que abre, para não mostrar
-  // um estado velho depois de uma edição anterior.
-  useEffect(() => {
-    if (!isOpen) return;
-    setIncome(profile?.monthly_income != null ? String(profile.monthly_income) : "");
-    setIncomeType(profile?.income_type ?? null);
-    setHasDebt(profile?.has_debt ?? null);
-    setMainGoal(profile?.main_goal ?? null);
-    setStrategy(profile?.strategy ?? DEFAULT_STRATEGY);
-  }, [isOpen, profile]);
+  /* Recarrega os valores atuais toda vez que abre, para não mostrar um
+     estado velho depois de uma edição anterior.
+     Feito durante o render, não num efeito: o efeito rodava DEPOIS da
+     primeira pintura, então a tela aparecia por um quadro com os valores
+     da abertura passada. Ver CoupleWealthModal para a mesma troca. */
+  const [sincronizadoCom, setSincronizadoCom] = useState<any>(null);
+  /* SEM_PERFIL precisa ser a MESMA referência todo render. Um `{}` literal
+     aqui seria um objeto novo a cada passagem, a comparação abaixo nunca
+     daria igual e o componente entraria em laço infinito de render. */
+  const fonte = isOpen ? (profile ?? SEM_PERFIL) : null;
+  if (fonte !== sincronizadoCom) {
+    setSincronizadoCom(fonte);
+    if (fonte) {
+      setIncome(profile?.monthly_income != null ? String(profile.monthly_income) : "");
+      setIncomeType(profile?.income_type ?? null);
+      setHasDebt(profile?.has_debt ?? null);
+      setMainGoal(profile?.main_goal ?? null);
+      setStrategy(profile?.strategy ?? DEFAULT_STRATEGY);
+    }
+  }
 
   if (!isOpen) return null;
 

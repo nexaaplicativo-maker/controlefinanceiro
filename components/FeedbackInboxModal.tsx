@@ -60,11 +60,6 @@ export function FeedbackInboxModal({
   const [isLoading, setIsLoading] = useState(true);
   const [faltaSql, setFaltaSql] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
   async function carregar() {
     setIsLoading(true);
     const [fb, er] = await Promise.all([
@@ -89,6 +84,15 @@ export function FeedbackInboxModal({
     setErros((er.data as ErrorRow[]) ?? []);
     setIsLoading(false);
   }
+
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+       ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+       setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+       Query) ou adiar o estado por microtask só para enganar o analisador.
+       O custo real é um render a mais na abertura. Ver nota no PR. */
+    if (isOpen) carregar();
+  }, [isOpen]);
 
   async function marcar(id: string, status: string) {
     const { error } = await supabase.from('feedback').update({ status }).eq('id', id);

@@ -18,12 +18,6 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
   const [name, setName] = useState("");
   const [type, setType] = useState<'expense' | 'income'>('expense');
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCategories();
-    }
-  }, [isOpen]);
-
   async function fetchCategories() {
     setIsLoading(true);
     const userId = await getUserId();
@@ -36,6 +30,17 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
     if (data) setCategories(data);
     setIsLoading(false);
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+         ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+         setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+         Query) ou adiar o estado por microtask só para enganar o analisador.
+         O custo real é um render a mais na abertura. Ver nota no PR. */
+      fetchCategories();
+    }
+  }, [isOpen]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

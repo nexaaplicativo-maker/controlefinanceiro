@@ -45,8 +45,23 @@ export function EditTransactionModal({
   const [subcategoria, setSubcategoria] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
+  async function fetchCategories() {
+    const userId = await getUserId();
+    if (!userId) {
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name');
+    if (data) setCustomCategories(data);
+  }
+
   useEffect(() => {
     if (isOpen && transaction) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+         ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+         setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+         Query) ou adiar o estado por microtask só para enganar o analisador.
+         O custo real é um render a mais na abertura. Ver nota no PR. */
       setTitle(transaction.title);
       setAmount(transaction.amount.toString());
       setCategory(transaction.category);
@@ -57,16 +72,6 @@ export function EditTransactionModal({
       fetchCategories();
     }
   }, [isOpen, transaction]);
-
-  async function fetchCategories() {
-    const userId = await getUserId();
-    if (!userId) {
-      toast("Sessão expirada. Faça login novamente.", "error");
-      return;
-    }
-    const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name');
-    if (data) setCustomCategories(data);
-  }
 
   const handleTypeChange = (newType: 'expense' | 'income') => {
     setType(newType);

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sem conexão — Nexa</title>
+<!--
+  Página de fallback do service worker.
+
+  É HTML puro e autocontido de propósito: ela precisa funcionar quando NADA
+  mais carrega. Uma rota do Next dependeria dos pacotes JavaScript, que é
+  exatamente o que pode estar faltando na hora em que esta tela aparece.
+
+  As cores são copiadas dos tokens de app/globals.css. Não dá para importar
+  a folha de estilos aqui pelo mesmo motivo — e se os tokens mudarem, esta
+  tela fica com o tom antigo até alguém atualizar. É o preço de ela ser
+  independente, e é um preço baixo para uma tela de três linhas.
+-->
+<style>
+  :root {
+    --canvas: #080b0f;
+    --ink: #f3f6f8;
+    --ink-2: #a3b0ba;
+    --brand: #8fbdd3;
+    --line: rgba(255, 255, 255, 0.1);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+    text-align: center;
+  }
+  .icone {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--ink-2);
+  }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  p { margin: 0; max-width: 32ch; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+  button {
+    min-height: 44px;
+    padding: 0 24px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--brand);
+    color: #06111a;
+    font: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <main>
+    <div class="icone" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M2 2l20 20"/>
+        <path d="M8.5 16.5a5 5 0 0 1 7 0"/>
+        <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/>
+        <path d="M13.8 10.2a10 10 0 0 1 5.2 2.7"/>
+        <path d="M2 8.8a15 15 0 0 1 4.2-2.5"/>
+        <path d="M17.8 6.3A15 15 0 0 1 22 8.8"/>
+        <path d="M12 20h.01"/>
+      </svg>
+    </div>
+
+    <h1>Sem conexão</h1>
+
+    <!--
+      Diz a verdade sobre o que o app consegue fazer offline: nada.
+      Todo número da tela vem do servidor, e prometer o contrário faria a
+      pessoa confiar num saldo velho para decidir um gasto.
+    -->
+    <p>
+      Seus dados financeiros ficam no servidor, então o Nexa precisa de
+      internet para mostrar qualquer valor. Assim que a conexão voltar, é só
+      tentar de novo.
+    </p>
+
+    <button type="button" onclick="location.reload()">Tentar de novo</button>
+  </main>
+
+  <script>
+    // Volta sozinho quando a rede retorna, para a pessoa não precisar
+    // descobrir que já dá para recarregar.
+    addEventListener('online', function () { location.reload(); });
+  </script>
+</body>
+</html>

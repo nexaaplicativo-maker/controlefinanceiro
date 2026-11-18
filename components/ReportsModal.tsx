@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
-import { X, PieChart as PieChartIcon, BarChart3, TrendingUp, TrendingDown, Download, FileText, ChevronLeft, ChevronRight, PiggyBank } from "lucide-react";
+import { motion } from "motion/react";
+import { PieChart as PieChartIcon, BarChart3, TrendingUp, TrendingDown, Download, FileText, ChevronLeft, ChevronRight, PiggyBank } from "lucide-react";
 import { 
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend 
@@ -11,7 +11,7 @@ import { toast } from "./Toast";
 import { formatMoney } from "../lib/format";
 import { hojeEmSaoPaulo } from "../lib/data";
 import { EmptyState } from "./ui/Surface";
-import { useModalA11y } from "../hooks/use-modal-a11y";
+import { Sheet } from "./ui/Sheet";
 
 /**
  * Fatias da rosquinha: um tom só, do claro ao escuro.
@@ -31,10 +31,50 @@ const COR_POS = '#5fd39b';
 const COR_NEG = '#f0776e';
 const COR_BRAND = '#8fbdd3';
 
+/**
+ * Os mesmos tokens de `globals.css`, em literal.
+ *
+ * Recharts pinta eixo e legenda via prop de estilo, não por classe CSS — não
+ * dá para passar `text-ink-2` aqui. Ficam como constante nomeada, com o nome
+ * do token que espelham, para a próxima mudança de tom não esquecer o gráfico
+ * para trás. Foi o que aconteceu: os valores antigos (#5d6975, #93a1ac)
+ * continuaram aqui depois que os tokens subiram por contraste.
+ */
+const COR_INK_3 = '#7f8c98';  // --color-ink-3
+const COR_INK_2 = '#a3b0ba';  // --color-ink-2
+
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+/**
+ * Balao do grafico.
+ *
+ * Vive no escopo do modulo, nao dentro do ReportsModal: componente
+ * declarado durante o render e um TIPO novo a cada passagem, entao o React
+ * desmonta e remonta a arvore inteira dele em vez de atualizar. Num balao
+ * que segue o cursor, isso e re-montagem a cada movimento do mouse.
+ *
+ * Nao fechava sobre nada do componente — so usa formatMoney, que e import
+ * de modulo — entao sair daqui nao custou prop nenhuma.
+ */
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="z-50 rounded-field border border-line-strong bg-black/80 p-3 shadow-xl backdrop-blur-md">
+        <p className="text-ink font-bold mb-1">{label || payload[0].name}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+            <span className="text-ink-2">{entry.name}:</span>
+            <span className="text-ink font-bold">{formatMoney(Number(entry.value))}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export function ReportsModal({ isOpen, onClose, transactions, allTransactions, activeMonth, activeYear, onPrevMonth, onNextMonth }: any) {
-  const a11yRef = useModalA11y(isOpen, onClose);
   const [activeTab, setActiveTab] = useState<'categorias' | 'balanco'>('categorias');
   const [periodFilter, setPeriodFilter] = useState<'month' | 'quarter' | 'semester' | 'year' | 'all'>('month');
 
@@ -123,23 +163,6 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
   const balanceData: any[] = Object.values(monthlyDataRaw).slice(0, 6).reverse();
 
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-black/80 backdrop-blur-md border border-white/10 p-3 rounded-field shadow-xl z-50">
-          <p className="text-ink font-bold mb-1">{label || payload[0].name}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-              <span className="text-ink-2">{entry.name}:</span>
-              <span className="text-ink font-bold">{formatMoney(Number(entry.value))}</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   const handleExportCSV = () => {
     if (!displayedTransactions || displayedTransactions.length === 0) {
@@ -270,79 +293,96 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md"
-          />
-          <motion.div ref={a11yRef} role="dialog" aria-modal="true" 
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="relative w-full max-w-2xl bg-surface sm:rounded-card rounded-t-3xl shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col max-h-[90vh] border border-white/10"
-          >
-            <div className="p-6 border-b border-white/10 flex justify-between items-start bg-white/5 flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-field bg-brand/20 flex items-center justify-center border border-brand/30 shadow-inner">
-                  <PieChartIcon className="w-5 h-5 text-brand" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-ink tracking-tight">Relatórios</h2>
-                  {periodFilter === 'month' ? (
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <button onClick={onPrevMonth} className="p-0.5 text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" /></button>
-                      <p className="text-xs text-ink-2 font-medium">{periodLabel}</p>
-                      <button onClick={onNextMonth} className="p-0.5 text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronRight className="w-3.5 h-3.5" /></button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-ink-2 mt-0.5">{periodLabel}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Filtro de Período */}
-                <select 
-                  value={periodFilter} 
-                  onChange={(e: any) => setPeriodFilter(e.target.value)}
-                  className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-xs font-medium text-ink-2 outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/50 cursor-pointer appearance-none pr-8 relative"
-                  style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.7rem top 50%', backgroundSize: '0.65rem auto' }}
-                >
-                  <option value="month">Mensal</option>
-                  <option value="quarter">Trimestral</option>
-                  <option value="semester">Semestral</option>
-                  <option value="year">Anual</option>
-                  <option value="all">Todo Histórico</option>
-                </select>
-                <button onClick={handleExportCSV} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink px-3 py-1.5 rounded-full text-sm font-medium transition-colors border border-line">
-                  <Download className="w-4 h-4" /> CSV
-                </button>
-                <button onClick={handleExportPDF} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-ink-2 hover:text-ink px-3 py-1.5 rounded-full text-sm font-medium transition-colors border border-line">
-                  <FileText className="w-4 h-4" /> PDF
-                </button>
-                <button onClick={onClose} aria-label="Fechar" className="p-2 text-ink-2 hover:text-ink hover:bg-white/10 rounded-full transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+    <Sheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Relatórios"
+      subtitle={periodFilter === 'month' ? undefined : periodLabel}
+      icon={<PieChartIcon className="h-5 w-5 text-brand" />}
+      largura="xl"
+    >
+      {/* Os controles desceram do cabeçalho para cá.
+          Eram cinco (navegação de mês, seletor de período, CSV, PDF e X)
+          espremidos numa barra com `flex-wrap`: em 360px eles quebravam em
+          três fileiras e empurravam o conteúdo para fora da primeira tela.
+          O cabeçalho da folha fica com título, período e fechar; o resto vira
+          uma barra de ferramentas que pode rolar na horizontal. */}
+      {/* Duas fileiras, não uma que quebra sozinha.
+          Com tudo num `flex-wrap`, em 360px a navegação de mês levava o
+          seletor junto e sobrava o PDF numa terceira fileira. Separando o
+          período (que é contexto do título) dos três controles de ação, cabem
+          dois níveis no celular e um só a partir de 640px. */}
+      <div className="mb-4 space-y-2">
+        {periodFilter === 'month' && (
+          <div className="flex w-fit items-center gap-1 rounded-full border border-line bg-white/5 p-0.5">
+            <button
+              onClick={onPrevMonth}
+              aria-label="Mês anterior"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full text-ink-2 transition-colors hover:text-ink"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <p className="min-w-0 px-1 text-xs font-medium text-ink-2">{periodLabel}</p>
+            <button
+              onClick={onNextMonth}
+              aria-label="Próximo mês"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full text-ink-2 transition-colors hover:text-ink"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
-            <div className="flex p-4 gap-2 bg-white/5 border-b border-white/5 overflow-x-auto scrollbar-hide">
-              <button 
-                onClick={() => setActiveTab('categorias')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-field font-medium transition-all whitespace-nowrap ${activeTab === 'categorias' ? 'bg-brand/15 text-brand border border-brand/30' : 'text-ink-2 hover:bg-white/5'}`}
-              >
-                <PieChartIcon className="w-4 h-4" /> Despesas por Categoria
-              </button>
-              <button 
-                onClick={() => setActiveTab('balanco')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-field font-medium transition-all whitespace-nowrap ${activeTab === 'balanco' ? 'bg-brand/15 text-brand border border-brand/30' : 'text-ink-2 hover:bg-white/5'}`}
-              >
-                <BarChart3 className="w-4 h-4" /> Balanço Mensal
-              </button>
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={periodFilter}
+          onChange={(e: any) => setPeriodFilter(e.target.value)}
+          aria-label="Período do relatório"
+          /* Enxuto de propósito: com o padding anterior, seletor + CSV + PDF
+             somavam 2px a mais que os 320px úteis de uma tela de 360 e o PDF
+             caía sozinho numa terceira fileira. */
+          className="relative min-h-11 cursor-pointer appearance-none rounded-field border border-line bg-black/30 py-2 pl-2.5 pr-7 text-xs font-medium text-ink-2 outline-none transition-colors focus:border-brand/60"
+          style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237f8c98%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.7rem top 50%', backgroundSize: '0.65rem auto' }}
+        >
+          <option value="month">Mensal</option>
+          <option value="quarter">Trimestral</option>
+          <option value="semester">Semestral</option>
+          <option value="year">Anual</option>
+          <option value="all">Todo Histórico</option>
+        </select>
 
-            <div className="p-6 overflow-y-auto">
-              
+        <button onClick={handleExportCSV} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-white/5 px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-white/10 hover:text-ink">
+          <Download className="h-4 w-4" /> CSV
+        </button>
+        <button onClick={handleExportPDF} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-white/5 px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-white/10 hover:text-ink">
+          <FileText className="h-4 w-4" /> PDF
+        </button>
+        </div>
+      </div>
+
+      {/* As abas QUEBRAM em vez de rolar.
+          Com `overflow-x-auto` e `whitespace-nowrap`, em 360px "Balanço
+          Mensal" ficava meio fora da tela: uma aba escondida atrás de uma
+          rolagem que nada indicava. Duas linhas de texto mostram as duas. */}
+      <div className="mb-5 flex gap-2">
+        <button
+          onClick={() => setActiveTab('categorias')}
+          aria-pressed={activeTab === 'categorias'}
+          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-field px-3 py-2 text-center text-sm font-medium transition-colors ${activeTab === 'categorias' ? 'border border-brand/30 bg-brand/15 text-brand' : 'border border-transparent text-ink-2 hover:bg-white/5'}`}
+        >
+          <PieChartIcon className="h-4 w-4 shrink-0" /> Despesas por Categoria
+        </button>
+        <button
+          onClick={() => setActiveTab('balanco')}
+          aria-pressed={activeTab === 'balanco'}
+          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-field px-3 py-2 text-center text-sm font-medium transition-colors ${activeTab === 'balanco' ? 'border border-brand/30 bg-brand/15 text-brand' : 'border border-transparent text-ink-2 hover:bg-white/5'}`}
+        >
+          <BarChart3 className="h-4 w-4 shrink-0" /> Balanço Mensal
+        </button>
+      </div>
+
+      <div>
+
               {activeTab === 'categorias' && (
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-6">
                   {categoryData.length === 0 ? (
@@ -381,7 +421,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                         {categoryData.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-field">
+                          <div key={index} className="flex items-center justify-between rounded-field border border-line bg-white/5 p-3">
                             <div className="flex items-center gap-3">
                               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                               <span className="text-sm font-medium text-ink-2">{item.name}</span>
@@ -417,10 +457,10 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
                             </defs>
                             {/* Sem grade: a referência não tem, e cada linha a mais
                                 é ruído atrás do dado. */}
-                            <XAxis dataKey="name" tick={{ fill: '#5d6975', fontSize: 12 }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: '#5d6975', fontSize: 12 }} axisLine={false} tickLine={false} tickCount={4} tickFormatter={(val) => `R$ ${val}`} />
+                            <XAxis dataKey="name" tick={{ fill: COR_INK_3, fontSize: 12 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: COR_INK_3, fontSize: 12 }} axisLine={false} tickLine={false} tickCount={4} tickFormatter={(val) => `R$ ${val}`} />
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff08' }} />
-                            <Legend wrapperStyle={{ paddingTop: 20, fontSize: 12, color: '#93a1ac' }} iconType="circle" iconSize={8} />
+                            <Legend wrapperStyle={{ paddingTop: 20, fontSize: 12, color: COR_INK_2 }} iconType="circle" iconSize={8} />
                             <Bar dataKey="Receitas" fill="url(#gReceitas)" radius={[6, 6, 0, 0]} barSize={16} />
                             <Bar dataKey="Despesas" fill="url(#gDespesas)" radius={[6, 6, 0, 0]} barSize={16} />
                             <Bar dataKey="Investido" fill="url(#gInvestido)" radius={[6, 6, 0, 0]} barSize={16} />
@@ -428,17 +468,17 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
                         </ResponsiveContainer>
                       </div>
 
-                      <div className="bg-gradient-to-r from-pos/10 to-neg/10 border border-white/5 p-4 rounded-inner flex items-center justify-around mt-4">
+                      <div className="mt-4 flex items-center justify-around rounded-inner border border-line bg-gradient-to-r from-pos/10 to-neg/10 p-4">
                         <div className="text-center">
                           <p className="text-xs text-ink-2 mb-1 flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3 text-pos"/> Receitas Total</p>
                           <p className="font-bold text-pos">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + b.Receitas, 0)))}</p>
                         </div>
-                        <div className="w-px h-10 bg-white/10"></div>
+                        <div className="h-10 w-px bg-line-strong"></div>
                         <div className="text-center">
                           <p className="text-xs text-ink-2 mb-1 flex items-center justify-center gap-1"><TrendingDown className="w-3 h-3 text-neg"/> Despesas Total</p>
                           <p className="font-bold text-neg">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + b.Despesas, 0)))}</p>
                         </div>
-                        <div className="w-px h-10 bg-white/10"></div>
+                        <div className="h-10 w-px bg-line-strong"></div>
                         <div className="text-center">
                           <p className="text-xs text-ink-2 mb-1 flex items-center justify-center gap-1"><PiggyBank className="w-3 h-3 text-brand"/> Investido</p>
                           <p className="font-bold text-brand">{formatMoney(Number(balanceData.reduce((a: number, b: any) => a + (b.Investido || 0), 0)))}</p>
@@ -449,10 +489,7 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
                 </motion.div>
               )}
 
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </Sheet>
   );
 }

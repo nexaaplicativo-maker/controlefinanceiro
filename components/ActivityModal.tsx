@@ -84,7 +84,7 @@ export function ActivityModal({ isOpen, onClose, transactions, dueBills = [] }: 
                               {isIncome ? 'Dinheiro na conta!' : 'Despesa registrada'}
                             </p>
                             <p className="text-xs text-ink-2 mt-1 leading-relaxed">
-                              O lançamento de <span className="text-ink">"{tx.title}"</span> no valor de <strong className={isIncome ? 'text-pos' : 'text-neg'}>{formatMoney(tx.amount)}</strong> foi adicionado em {tx.category}.
+                              O lançamento de <span className="text-ink">“{tx.title}”</span> no valor de <strong className={isIncome ? 'text-pos' : 'text-neg'}>{formatMoney(tx.amount)}</strong> foi adicionado em {tx.category}.
                             </p>
                             <span className="text-xs text-ink-3 mt-2 block font-medium">
                                {new Date(tx.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}

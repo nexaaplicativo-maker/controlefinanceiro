@@ -322,7 +322,7 @@ export function InvestmentsModal({
 
               {positions.length > 0 && (
                 <p className="text-xs text-ink-3 leading-relaxed mt-5 text-center">
-                  O app não consulta cotação — atualize o "vale hoje" quando quiser. Isto é patrimônio, separado dos seus lançamentos de aporte.
+                  O app não consulta cotação — atualize o “vale hoje” quando quiser. Isto é patrimônio, separado dos seus lançamentos de aporte.
                 </p>
               )}
             </div>

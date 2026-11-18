@@ -118,7 +118,14 @@ export function Sheet({
                 <button
                   onClick={onClose}
                   aria-label="Fechar"
-                  className="-mr-1 -mt-1 shrink-0 cursor-pointer rounded-full p-2 text-ink-2 transition-colors hover:bg-white/5 hover:text-ink"
+                  /* 44x44 de ÁREA, ícone de 16px.
+                     O mínimo de alvo de toque do sistema de design é 44px, e
+                     `p-2` em volta de um ícone de 16 dava 32 — oito pixels
+                     faltando de cada lado, justo no canto superior onde o
+                     polegar já chega torto. A margem negativa devolve o
+                     alinhamento visual: a área cresce para fora, a aresta do
+                     ícone continua onde estava. */
+                  className="-mr-2.5 -mt-2.5 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-ink-2 transition-colors hover:bg-white/5 hover:text-ink"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -149,12 +156,15 @@ export function SheetBackBar({ title, onBack, action }: { title: string; onBack:
       <button
         onClick={onBack}
         aria-label="Voltar"
-        className="shrink-0 cursor-pointer rounded-full bg-white/5 p-2 text-ink-2 transition-colors hover:text-ink"
+        /* Mesma regra do X da folha: 44x44 de área, ícone de 16px. */
+        className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <h3 className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-ink">{title}</h3>
-      <span className="shrink-0">{action ?? <span className="block h-8 w-8" />}</span>
+      {/* O vão da direita acompanha o botão da esquerda, senão o título
+          centralizado sai do centro. */}
+      <span className="shrink-0">{action ?? <span className="block h-11 w-11" />}</span>
     </div>
   );
 }

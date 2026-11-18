@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
-import { X, TrendingUp, TrendingDown, Inbox, Edit2 } from "lucide-react";
-import { useModalA11y } from "../hooks/use-modal-a11y";
+import { TrendingUp, TrendingDown, Inbox, Edit2 } from "lucide-react";
+import { Sheet } from "./ui/Sheet";
+import { EmptyState } from "./ui/Surface";
 import { formatMoney } from "../lib/format";
 
 /**
@@ -26,8 +26,14 @@ import { formatMoney } from "../lib/format";
  * o dedo no celular, a lixeira ao lado do lápis é clique errado esperando
  * acontecer. Apagar segue na lista do mês, onde a intenção é gerenciar.
  *
- * Z-INDEX: abaixo do modal de edição (z-100), seguindo o IncomeListModal
- * (z-50). Mais alto que ele, a edição abriria ATRÁS desta lista.
+ * A CASCA VEM DA FOLHA
+ * Fundo, painel, alça, cabeçalho, X, rolagem, trap de foco e animação agora
+ * vêm de `ui/Sheet`. Antes estavam copiados aqui à mão, como em outros 25
+ * arquivos. O que sobrou neste arquivo é só o que é desta tela: a ordenação,
+ * a barra proporcional e a linha de lançamento.
+ *
+ * Z-INDEX: o padrão da folha (50) fica abaixo do modal de edição (z-100).
+ * Mais alto que ele, a edição abriria ATRÁS desta lista.
  */
 
 type Transacao = {
@@ -45,13 +51,13 @@ type Transacao = {
  * As chaves antigas (emerald, blue, indigo) continuam aceitas para não quebrar
  * quem ainda as passa, apontando todas para o tom neutro.
  */
-const ACCENTS: Record<string, { text: string; bar: string; ring: string }> = {
-  padrao:  { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
-  amber:   { text: 'text-warn',  bar: 'bg-warn',  ring: 'border-warn/30' },
-  rose:    { text: 'text-neg',   bar: 'bg-neg',   ring: 'border-neg/30' },
-  emerald: { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
-  blue:    { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
-  indigo:  { text: 'text-ink-2', bar: 'bg-brand', ring: 'border-line-strong' },
+const ACCENTS: Record<string, { bar: string }> = {
+  padrao:  { bar: 'bg-brand' },
+  amber:   { bar: 'bg-warn' },
+  rose:    { bar: 'bg-neg' },
+  emerald: { bar: 'bg-brand' },
+  blue:    { bar: 'bg-brand' },
+  indigo:  { bar: 'bg-brand' },
 };
 
 export function PillarDetailModal({
@@ -73,9 +79,6 @@ export function PillarDetailModal({
   showValues?: boolean;
   onEdit?: (t: Transacao) => void;
 }) {
-  const a11yRef = useModalA11y(isOpen, onClose);
-  if (!isOpen) return null;
-
   const theme = ACCENTS[accent] ?? ACCENTS.padrao;
 
   // Ordena uma cópia: `sort` altera no lugar, e a lista recebida é a mesma que
@@ -86,131 +89,114 @@ export function PillarDetailModal({
 
   const dinheiro = (v: number) => (showValues ? formatMoney(v) : 'R$ •••••');
 
+  const legenda = transactions.length === 0
+    ? 'Nenhum lançamento neste mês'
+    : `${transactions.length} ${transactions.length === 1 ? 'lançamento' : 'lançamentos'}${subtitle ? ` • ${subtitle}` : ''}`;
+
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/70 backdrop-blur-md"
-          onClick={onClose}
+    <Sheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      subtitle={legenda}
+      largura="lg"
+      footer={
+        <p className="text-xs leading-snug text-ink-2">
+          {onEdit
+            ? 'Toque no lápis para corrigir valor ou categoria. Para apagar, use a lista do mês.'
+            : 'Para editar ou apagar, use a lista de lançamentos do mês.'}
+        </p>
+      }
+    >
+      {/* O total abre o corpo em vez de morar no cabeçalho: a folha reserva o
+          cabeçalho para título, apoio e ação, e é ele que mantém as 26 telas
+          parecidas entre si. */}
+      <p className="mb-4 text-[32px] font-semibold tracking-[-0.02em] text-ink tnum">
+        {dinheiro(total)}
+      </p>
+
+      {ordenadas.length === 0 ? (
+        <EmptyState
+          icon={<Inbox className="h-6 w-6" />}
+          title="Nada lançado aqui neste mês."
+          description="Se você esperava ver algo, confira se o lançamento está na categoria certa ou em outro mês."
         />
-
-        <motion.div
-          ref={a11yRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Lançamentos de ${title}`}
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 40, opacity: 0 }}
-          transition={{ type: "spring", bounce: 0, duration: 0.35 }}
-          className={`relative w-full sm:max-w-lg sheet-panel sheet-grab rounded-t-card sm:rounded-card shadow-[0_24px_60px_rgba(0,0,0,0.65)] flex flex-col max-h-[85dvh] sm:max-h-[80dvh] overflow-hidden`}
-        >
-          {/* shrink-0 no cabeçalho e no rodapé, flex-1 + min-h-0 no corpo:
-              sem isso o flex comprime o conteúdo em vez de rolar. */}
-          <div className="shrink-0 p-5 pb-4 border-b border-white/10">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-ink truncate">{title}</h2>
-                <p className="text-xs text-ink-3 mt-0.5">
-                  {transactions.length === 0
-                    ? 'Nenhum lançamento neste mês'
-                    : `${transactions.length} ${transactions.length === 1 ? 'lançamento' : 'lançamentos'} • ${subtitle ?? ''}`}
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                aria-label="Fechar"
-                className="shrink-0 p-2 text-ink-2 hover:text-ink bg-white/5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+      ) : (
+        <div className="space-y-2">
+          {ordenadas.map(t => {
+            const fatia = total > 0 ? (t.amount / total) * 100 : 0;
+            const isIncome = t.type === 'income';
+            return (
+              <div
+                key={t.id}
+                className="relative overflow-hidden rounded-inner border border-line bg-white/5 p-3"
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+                {/* Barra proporcional ao MAIOR item, não ao total: com 30
+                    lançamentos, todas as fatias contra o total viram traços
+                    invisíveis e a comparação se perde. */}
+                <div
+                  className={`pointer-events-none absolute bottom-0 left-0 top-0 ${theme.bar} opacity-[0.07]`}
+                  style={{ width: `${maior > 0 ? (t.amount / maior) * 100 : 0}%` }}
+                />
 
-            <p className="text-[32px] font-semibold tracking-[-0.02em] mt-3 text-ink tnum">{dinheiro(total)}</p>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-            {ordenadas.length === 0 ? (
-              <div className="py-12 text-center">
-                <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-inner flex items-center justify-center mx-auto mb-4">
-                  <Inbox className="w-5 h-5 text-ink-3" />
-                </div>
-                <p className="text-sm text-ink-2">Nada lançado aqui neste mês.</p>
-                <p className="text-xs text-ink-3 mt-1 leading-relaxed max-w-xs mx-auto">
-                  Se você esperava ver algo, confira se o lançamento está na categoria certa ou em outro mês.
-                </p>
-              </div>
-            ) : (
-              ordenadas.map(t => {
-                const fatia = total > 0 ? (t.amount / total) * 100 : 0;
-                const isIncome = t.type === 'income';
-                return (
-                  <div
-                    key={t.id}
-                    className="relative p-3 rounded-inner bg-white/5 border border-white/5 overflow-hidden"
-                  >
-                    {/* Barra proporcional ao MAIOR item, não ao total: com 30
-                        lançamentos, todas as fatias contra o total viram
-                        traços invisíveis e a comparação se perde. */}
-                    <div
-                      className={`absolute left-0 top-0 bottom-0 ${theme.bar} opacity-[0.07] pointer-events-none`}
-                      style={{ width: `${maior > 0 ? (t.amount / maior) * 100 : 0}%` }}
-                    />
-
-                    <div className="relative flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-white/5 text-ink-2">
-                          {isIncome ? <TrendingUp className="w-[18px] h-[18px]" /> : <TrendingDown className="w-[18px] h-[18px]" />}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            {t.is_paid === false && (
-                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-warn" title="Pendente" />
-                            )}
-                            <p className="text-[15px] font-medium text-ink truncate">{t.title || 'Sem título'}</p>
-                          </div>
-                          <p className="text-xs text-ink-3 mt-0.5 truncate">
-                            {t.category || 'Sem categoria'}
-                            {t.date && ` • ${new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 flex items-center gap-2">
-                        <div className="text-right">
-                          <p className="text-[15px] font-semibold text-ink whitespace-nowrap tnum">{dinheiro(t.amount)}</p>
-                          {total > 0 && showValues && (
-                            <p className="text-xs text-ink-3 mt-0.5">{fatia.toFixed(0)}% do total</p>
-                          )}
-                        </div>
-                        {onEdit && (
-                          <button
-                            onClick={() => onEdit(t)}
-                            aria-label={`Editar ${t.title || 'lançamento'}`}
-                            title="Editar"
-                            className="p-2 text-brand/60 hover:text-brand hover:bg-brand/10 rounded-field transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                <div className="relative flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2">
+                      {isIncome ? <TrendingUp className="h-[18px] w-[18px]" /> : <TrendingDown className="h-[18px] w-[18px]" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {t.is_paid === false && (
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
                         )}
+                        <p className="truncate text-[15px] font-medium text-ink">
+                          {t.title || 'Sem título'}
+                          {/* O ponto âmbar sozinho não diz nada para quem usa
+                              leitor de tela, nem para quem nunca viu a
+                              legenda. O texto fica fora da tela e dentro da
+                              frase. */}
+                          {t.is_paid === false && <span className="sr-only"> (pendente)</span>}
+                        </p>
                       </div>
+                      {/* dd/mm, não dd/mm/aaaa: é a regra de data do sistema
+                          de design, e aqui ela resolve um problema concreto.
+                          Com a área de toque do lápis em 44px, o ano empurrava
+                          a linha e em 360px a data saía cortada ("23/11/...").
+                          O ano é redundante numa tela que já é de um mês só. */}
+                      <p className="mt-0.5 truncate text-xs text-ink-2">
+                        {t.category || 'Sem categoria'}
+                        {t.date && ` • ${new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit' })}`}
+                      </p>
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
 
-          <div className="shrink-0 px-5 py-3 border-t border-white/10 bg-white/5">
-            <p className="text-xs text-ink-3 leading-snug">
-              {onEdit
-                ? 'Toque no lápis para corrigir valor ou categoria. Para apagar, use a lista do mês.'
-                : 'Para editar ou apagar, use a lista de lançamentos do mês.'}
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <div className="text-right">
+                      <p className="whitespace-nowrap text-[15px] font-semibold text-ink tnum">{dinheiro(t.amount)}</p>
+                      {total > 0 && showValues && (
+                        <p className="mt-0.5 text-xs text-ink-2">{fatia.toFixed(0)}% do total</p>
+                      )}
+                    </div>
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(t)}
+                        aria-label={`Editar ${t.title || 'lançamento'}`}
+                        /* 44x44 de área, ícone de 16px. Era `p-2` em volta de
+                           um ícone de 16, ou seja 32px — abaixo do mínimo, e
+                           numa lista densa onde a linha de cima está a 8px de
+                           distância. A área cresce, o ícone não. */
+                        className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-field text-brand/70 transition-colors hover:bg-brand/10 hover:text-brand"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Sheet>
   );
 }

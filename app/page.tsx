@@ -993,8 +993,10 @@ export default function Dashboard() {
     <BetaGate>
     <div className="min-h-[100dvh] bg-canvas text-ink font-sans selection:bg-brand/30">
       
-      <nav className="hidden md:flex border-b border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between w-full">
+      <nav className="hidden md:flex border-b border-line-strong bg-white/5 backdrop-blur-md sticky top-0 z-50">
+        {/* Mesma largura do conteúdo: com a barra em max-w-7xl e o conteúdo
+            em 1120px, o logo não ficava alinhado com o primeiro card. */}
+        <div className="mx-auto flex h-20 w-full max-w-[1120px] items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-field flex items-center justify-center shadow-lg shadow-brand/20 overflow-hidden bg-white/5">
               <img src="/icon-192.png" alt="Logo" className="w-full h-full object-cover" />
@@ -1006,7 +1008,7 @@ export default function Dashboard() {
             <select 
               value={activeWalletId || ''} 
               onChange={(e) => setActiveWalletId(e.target.value || null)}
-              className="bg-black/30 border border-white/10 text-ink text-sm rounded-lg py-1.5 px-3 focus:outline-none focus:border-brand hidden sm:block"
+              className="bg-black/30 border border-line-strong text-ink text-sm rounded-lg py-1.5 px-3 focus:outline-none focus:border-brand hidden sm:block"
             >
               <option value="">Todas Carteiras</option>
               {wallets.map(w => (
@@ -1021,14 +1023,19 @@ export default function Dashboard() {
               <Bell className="w-5 h-5" />
               {hasUnread && <span className="absolute -top-1 -right-1 w-2 h-2 bg-neg rounded-full animate-pulse"></span>}
             </button>
-            <div onClick={() => setIsProfileOpen(true)} className={`w-9 h-9 border rounded-full flex items-center justify-center overflow-hidden cursor-pointer transition-colors ${userRole === 'admin' ? 'bg-brand/20 border-brand text-brand' : 'bg-white/5 border-white/10 text-ink-2 hover:border-pos'}`}>
+            <div onClick={() => setIsProfileOpen(true)} className={`w-9 h-9 border rounded-full flex items-center justify-center overflow-hidden cursor-pointer transition-colors ${userRole === 'admin' ? 'bg-brand/20 border-brand text-brand' : 'bg-white/5 border-line-strong text-ink-2 hover:border-pos'}`}>
               <User className="w-4 h-4" />
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-md md:max-w-7xl mx-auto px-6 pt-safe py-8 md:py-12">
+      {/* Largura máxima de 1120px, o valor do sistema de design.
+          Era `md:max-w-7xl` (1280px): numa tela larga o painel esticava até
+          virar três colunas de cards muito afastadas, e o olho precisava
+          atravessar a tela inteira para ligar um rótulo ao seu número —
+          exatamente o que acontecia com "Saldo em conta". */}
+      <main className="mx-auto max-w-md px-6 pt-safe py-8 md:max-w-[1120px] md:py-12">
         
         {/* No celular este é o ÚNICO cabeçalho.
             Antes vinha ele e, logo abaixo, "Visão Geral / Acompanhe e gerencie
@@ -1078,7 +1085,7 @@ export default function Dashboard() {
             </div>
             <button
               onClick={() => setShowValues(!showValues)}
-              className="hidden shrink-0 rounded-full border border-white/10 bg-white/5 p-2.5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink md:block"
+              className="hidden shrink-0 rounded-full border border-line-strong bg-white/5 p-2.5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink md:block"
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
               title={showValues ? "Ocultar valores" : "Mostrar valores"}
             >
@@ -1090,7 +1097,7 @@ export default function Dashboard() {
                 da página — o usuário trocava os quatro cards do topo sem
                 perceber de onde vinha a mudança. Aqui ele fica junto do título,
                 deixando claro que escopa tudo. */}
-            <div className="flex w-full items-center justify-between gap-1 bg-white/5 p-1 rounded-full border border-white/10 sm:w-fit sm:justify-start">
+            <div className="flex w-full items-center justify-between gap-1 bg-white/5 p-1 rounded-full border border-line-strong sm:w-fit sm:justify-start">
               <button onClick={handlePrevMonth} aria-label="Mês anterior" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
               <div className="flex-1 text-center font-medium text-xs text-ink tracking-wider uppercase sm:w-32 sm:flex-none">{MONTHS[activeMonth]} <span className="text-ink-3">{activeYear}</span></div>
               <button onClick={handleNextMonth} aria-label="Próximo mês" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
@@ -1119,8 +1126,12 @@ export default function Dashboard() {
             <div className="relative shrink-0">
               <button
                 onClick={() => setIsMenuOpen(v => !v)}
-                className={`p-2.5 rounded-full border transition-colors cursor-pointer ${isMenuOpen ? 'bg-white/10 border-white/20 text-ink' : 'bg-white/5 border-white/10 text-ink-2 hover:text-ink'}`}
+                /* 44x44: estava em 40px (p-2.5 + ícone de 20), quatro abaixo
+                   do mínimo do sistema, e é o botão que abre catorze telas. */
+                className={`grid h-11 w-11 cursor-pointer place-items-center rounded-full border transition-colors ${isMenuOpen ? 'border-line-strong bg-white/10 text-ink' : 'border-line-strong bg-white/5 text-ink-2 hover:text-ink'}`}
                 title="Mais ferramentas"
+                aria-label="Mais ferramentas"
+                aria-expanded={isMenuOpen}
               >
                 <MoreHorizontal className="w-5 h-5" />
               </button>
@@ -1134,32 +1145,71 @@ export default function Dashboard() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.96 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-60 bg-surface border border-white/10 rounded-inner shadow-2xl p-2 z-50 origin-top-right"
+                      className="absolute right-0 top-full z-50 mt-2 max-h-[70dvh] w-60 origin-top-right overflow-y-auto rounded-inner border border-line-strong bg-surface p-2 shadow-2xl scrollbar-hide"
                     >
+                      {/* Catorze itens numa lista corrida viravam uma parede:
+                          para achar "Previsão" era preciso ler os catorze.
+                          Agrupados por intenção, a pessoa escolhe primeiro o
+                          grupo — três opções — e só depois o item.
+
+                          E o ícone volta a ser monocromático. Havia cinco
+                          cores aqui (brand, warn, neg, pos, ink-2) distribuídas
+                          sem critério: "Metas" em âmbar não significava alerta,
+                          "Patrimônio" em verde não significava lucro. Cor que
+                          não quer dizer nada ensina a ignorar a cor que quer —
+                          e aí "Dívidas" em vermelho, que É um estado, se perde
+                          no meio. Agora é a única colorida. */}
                       {[
-                        { label: 'Poupar',      icon: <PiggyBank className="w-4 h-4" />,     color: 'text-brand',  action: () => setIsPayYourselfOpen(true) },
-                        { label: 'Cartões',     icon: <CreditCard className="w-4 h-4" />,    color: 'text-brand',  action: () => setIsCardsOpen(true) },
-                        { label: 'Relatórios',  icon: <PieChartIcon className="w-4 h-4" />,  color: 'text-brand',  action: () => setIsReportsOpen(true) },
-                        { label: 'Orçamentos',  icon: <Wallet className="w-4 h-4" />,        color: 'text-ink-2',  action: () => setIsBudgetOpen(true) },
-                        { label: 'Metas',       icon: <Target className="w-4 h-4" />,        color: 'text-warn',  action: () => setIsGoalsOpen(true) },
-                        { label: 'Calendário',  icon: <Calendar className="w-4 h-4" />,      color: 'text-ink-2',    action: () => setIsCalendarOpen(true) },
-                        { label: 'Assinaturas', icon: <Clock className="w-4 h-4" />,         color: 'text-ink-2',    action: () => setIsTrackerOpen(true) },
-                        ...(AI_ENABLED ? [{ label: 'Conselheiro IA', icon: <Bot className="w-4 h-4" />, color: 'text-brand', action: () => setIsPlannerOpen(true) }] : []),
-                        { label: 'Casal',       icon: <Heart className="w-4 h-4" />,         color: 'text-ink-2',    action: () => setIsCoupleOpen(true) },
-                        { label: 'Previsão',    icon: <CalendarClock className="w-4 h-4" />,  color: 'text-ink-2',    action: () => setIsForecastOpen(true) },
-                        { label: 'Raio-x dos gastos', icon: <PieChartIcon className="w-4 h-4" />, color: 'text-warn', action: () => setIsSpendingOpen(true) },
-                        { label: 'Dívidas',     icon: <TrendingDown className="w-4 h-4" />,    color: 'text-neg',    action: () => setIsDebtsOpen(true) },
-                        { label: 'Patrimônio',  icon: <LineChart className="w-4 h-4" />,     color: 'text-pos', action: () => setIsInvestmentsOpen(true) },
-                        { label: 'Perfil financeiro', icon: <SlidersHorizontal className="w-4 h-4" />, color: 'text-ink-2', action: () => setIsProfileSettingsOpen(true) },
-                      ].map(item => (
-                        <button
-                          key={item.label}
-                          onClick={() => { setIsMenuOpen(false); item.action(); }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-field text-sm text-ink-2 hover:bg-white/5 hover:text-ink transition-colors cursor-pointer text-left"
-                        >
-                          <span className={item.color}>{item.icon}</span>
-                          {item.label}
-                        </button>
+                        {
+                          grupo: 'Planejar',
+                          itens: [
+                            { label: 'Poupar',      icon: <PiggyBank className="h-4 w-4" />,          action: () => setIsPayYourselfOpen(true) },
+                            { label: 'Orçamentos',  icon: <Wallet className="h-4 w-4" />,             action: () => setIsBudgetOpen(true) },
+                            { label: 'Metas',       icon: <Target className="h-4 w-4" />,             action: () => setIsGoalsOpen(true) },
+                            { label: 'Previsão',    icon: <CalendarClock className="h-4 w-4" />,      action: () => setIsForecastOpen(true) },
+                            ...(AI_ENABLED ? [{ label: 'Conselheiro IA', icon: <Bot className="h-4 w-4" />, action: () => setIsPlannerOpen(true) }] : []),
+                            { label: 'Perfil financeiro', icon: <SlidersHorizontal className="h-4 w-4" />, action: () => setIsProfileSettingsOpen(true) },
+                          ],
+                        },
+                        {
+                          grupo: 'Acompanhar',
+                          itens: [
+                            { label: 'Cartões',     icon: <CreditCard className="h-4 w-4" />,         action: () => setIsCardsOpen(true) },
+                            { label: 'Relatórios',  icon: <PieChartIcon className="h-4 w-4" />,       action: () => setIsReportsOpen(true) },
+                            { label: 'Raio-x dos gastos', icon: <PieChartIcon className="h-4 w-4" />, action: () => setIsSpendingOpen(true) },
+                            { label: 'Calendário',  icon: <Calendar className="h-4 w-4" />,           action: () => setIsCalendarOpen(true) },
+                            { label: 'Assinaturas', icon: <Clock className="h-4 w-4" />,              action: () => setIsTrackerOpen(true) },
+                            { label: 'Casal',       icon: <Heart className="h-4 w-4" />,              action: () => setIsCoupleOpen(true) },
+                          ],
+                        },
+                        {
+                          grupo: 'Dívidas e patrimônio',
+                          itens: [
+                            // A única cor do menu. Dívida é estado, não assunto.
+                            { label: 'Dívidas',     icon: <TrendingDown className="h-4 w-4" />, cor: 'text-neg', action: () => setIsDebtsOpen(true) },
+                            { label: 'Patrimônio',  icon: <LineChart className="h-4 w-4" />,          action: () => setIsInvestmentsOpen(true) },
+                          ],
+                        },
+                      ].map((secao, i) => (
+                        <div key={secao.grupo} className={i > 0 ? 'mt-1 border-t border-line pt-1' : undefined}>
+                          {/* 12px é o piso absoluto do sistema, e maiúsculas
+                              ficam reservadas à navegação de mês e à etiqueta
+                              de estágio — um título de grupo em caixa alta
+                              seria o terceiro uso e tiraria o valor dos dois. */}
+                          <p className="px-3 pb-1 pt-2 text-xs font-semibold text-ink-3">
+                            {secao.grupo}
+                          </p>
+                          {secao.itens.map(item => (
+                            <button
+                              key={item.label}
+                              onClick={() => { setIsMenuOpen(false); item.action(); }}
+                              className="flex w-full cursor-pointer items-center gap-3 rounded-field px-3 py-2.5 text-left text-sm text-ink-2 transition-colors hover:bg-white/5 hover:text-ink"
+                            >
+                              <span className={'cor' in item && item.cor ? item.cor : 'text-ink-2'}>{item.icon}</span>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
                       ))}
                     </motion.div>
                   </>
@@ -1437,6 +1487,20 @@ export default function Dashboard() {
                     A Vencer
                   </button>
                 </div>
+
+                {/* Legenda do ponto âmbar.
+                    O ponto já existia ao lado do título do lançamento, com a
+                    explicação só no atributo `title` — que não abre no
+                    celular, onde o app é usado. Quem via a bolinha amarela
+                    não tinha como descobrir o que ela queria dizer.
+                    Aparece só quando há pendência na lista: legenda de um
+                    estado ausente é ruído. */}
+                {recentTransactions.some((t: any) => t.is_paid === false) && (
+                  <p className="flex items-center gap-2 text-xs text-ink-2">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
+                    Ponto âmbar: conta ainda não paga.
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-0.5">
                 {recentTransactions.length === 0 ? (
@@ -1488,7 +1552,7 @@ export default function Dashboard() {
                 {ocultos > 0 && (
                   <button
                     onClick={() => setMostrarTodos(true)}
-                    className="w-full py-3 rounded-inner border border-white/10 bg-white/5 text-sm font-semibold text-ink-2 hover:bg-white/5 hover:text-ink transition-colors cursor-pointer"
+                    className="w-full py-3 rounded-inner border border-line-strong bg-white/5 text-sm font-semibold text-ink-2 hover:bg-white/5 hover:text-ink transition-colors cursor-pointer"
                   >
                     Ver mais {ocultos} {ocultos === 1 ? 'lançamento' : 'lançamentos'}
                   </button>
@@ -1665,7 +1729,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
   // Sem custo de vida apurado não há meta confiável para oferecer.
   if (!goal && (!ideal || ideal <= 0)) {
     return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-white/5 border border-white/10 rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center items-center text-center gap-2">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-white/5 border border-line-strong rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center items-center text-center gap-2">
         <ShieldCheck className="w-6 h-6 text-ink-3" />
         <h3 className="font-bold text-ink text-sm">Reserva de Emergência</h3>
         <p className="text-xs text-ink-3 leading-relaxed max-w-xs">
@@ -1702,7 +1766,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-pos/5 border-pos/20' : 'bg-white/5 border-white/10'}`}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-pos/5 border-pos/20' : 'bg-white/5 border-line-strong'}`}>
       <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-brand/[0.06]' : atingiuMinimo ? 'bg-brand/[0.06]' : 'bg-brand/[0.06]'}`}></div>
 
       <div className="flex items-start justify-between gap-3 mb-5 relative z-10">
@@ -1741,7 +1805,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
                   onChange={e => setValue(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
                   placeholder="0,00"
-                  className="w-full bg-black/30 border border-white/10 rounded-field py-2.5 pl-9 pr-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
+                  className="w-full bg-black/30 border border-line-strong rounded-field py-2.5 pl-9 pr-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
                 />
               </div>
               <button
@@ -1767,7 +1831,7 @@ function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMont
         </div>
 
         {/* Barra com o marco do mínimo (3 meses de custo, ou 6 se renda variável) */}
-        <div className="relative w-full h-3 bg-black/40 rounded-full overflow-hidden border border-white/5">
+        <div className="relative w-full h-3 bg-black/40 rounded-full overflow-hidden border border-line">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
@@ -1869,7 +1933,13 @@ function PillarCard({ title, value, visible = true, caption, icon, accent, badge
           em vez de virar um bloco separado na página. */}
       {secondary && (
         <div className="relative mt-auto pt-4">
-          <div className="flex items-baseline justify-between gap-2">
+          {/* Rótulo e valor LADO A LADO, não nas duas pontas.
+              Com `justify-between`, no card herói — que ocupa a largura toda —
+              "Saldo em conta" ficava na borda esquerda e o número na direita,
+              a quase mil pixels de distância no desktop. São uma informação
+              só e precisam ser lidos como uma frase. No celular a diferença
+              quase não aparecia; era no monitor que os dois se desgarravam. */}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="text-xs text-ink-3">{secondary.label}</span>
             <Money
               value={secondary.value}
@@ -1946,7 +2016,7 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.55 }}
-        className="bg-white/5 border border-white/10 rounded-card p-6 backdrop-blur-sm"
+        className="bg-white/5 border border-line-strong rounded-card p-6 backdrop-blur-sm"
       >
         <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
         <p className="text-sm text-ink-2 mt-2 leading-relaxed">
@@ -1988,7 +2058,7 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.55 }}
-      className="bg-white/5 border border-white/10 rounded-card p-6 backdrop-blur-sm"
+      className="bg-white/5 border border-line-strong rounded-card p-6 backdrop-blur-sm"
     >
       <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
       <p className="text-xs text-ink-3 mt-1 mb-5">
@@ -2072,10 +2142,14 @@ function TransactionRow({ title, category, date, amount, visible, type, isPaid, 
             {/* Pendente vira um ponto de 6px: antes era fundo âmbar na linha
                 inteira mais uma etiqueta, para dizer uma coisa só. */}
             {isPaid === false && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" title="Pendente" />
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
             )}
             <h4 className="truncate text-[15px] font-medium leading-snug text-ink">
               {title || "Sem título"}
+              {/* `title` não abre no toque e leitor de tela não anuncia cor.
+                  A legenda acima explica o ponto para quem enxerga; isto
+                  resolve para quem não. */}
+              {isPaid === false && <span className="sr-only"> (não paga)</span>}
             </h4>
           </div>
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-3">

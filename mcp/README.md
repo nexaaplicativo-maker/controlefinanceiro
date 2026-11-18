@@ -107,11 +107,23 @@ URI**. Troque usuário e senha pelos do `mcp_readonly`. Se a senha tiver
 
 > `mcp/.env` e `mcp/logs/` estão no `.gitignore`. Nunca commite os dois.
 
-### 3. Compile
+### 3. Confira contra o banco
 
 ```bash
-npm run build
+npm run verificar
 ```
+
+Compila e roda as nove consultas no banco de verdade. É o passo que os testes
+não conseguem fazer, e o que pega a divergência mais provável: uma view sua com
+nome de coluna diferente do que a tool espera.
+
+Ele mostra **nome de coluna e contagem de linhas, nunca o conteúdo** — a saída
+pode ser colada numa conversa sem pensar duas vezes. E confere o principal:
+que `public.transactions`, `public.profiles` e `auth.users` são **negadas**
+nessa conexão.
+
+Se alguma view falhar com `column "dia" does not exist`, o nome da data na sua
+view é outro — ajuste o `WHERE` em `src/consultas.ts`.
 
 ---
 
@@ -186,6 +198,7 @@ Então é só perguntar:
 ```bash
 npm run build      # compila para dist/
 npm start          # roda o servidor (stdio — espera um cliente MCP)
+npm run verificar  # build + confere as 9 views no banco de verdade
 npm run inspect    # build + Inspector
 npm test           # testes das travas de segurança
 npm run typecheck  # tsc --noEmit

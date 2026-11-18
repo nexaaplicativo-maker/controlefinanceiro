@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 /**
  * Varredura do código-fonte do MCP.
@@ -134,7 +135,35 @@ describe('o MCP não carrega credencial do app', () => {
     expect(texto).toMatch(/^logs\//m);
   });
 
-  it('não existe .env commitado nesta pasta', () => {
-    expect(fs.existsSync(path.join(RAIZ_MCP, '.env'))).toBe(false);
+  /**
+   * A versão anterior deste teste exigia que `mcp/.env` NÃO EXISTISSE, o que
+   * estava errado: o dono precisa ter um para o servidor rodar. O que não
+   * pode é ele chegar ao git.
+   *
+   * `git check-ignore` responde exatamente isso, e responde sobre o arquivo
+   * de verdade — não sobre o que o `.gitignore` parece dizer.
+   */
+  it('o git ignora o .env, exista ele ou não', () => {
+    const resultado = spawnSync('git', ['check-ignore', '.env'], {
+      cwd: RAIZ_MCP,
+      encoding: 'utf8',
+    });
+
+    if (resultado.error) {
+      // Sem git disponível, o teste do .gitignore acima já cobriu a intenção.
+      return;
+    }
+
+    expect(resultado.status, 'git check-ignore devia reconhecer mcp/.env').toBe(0);
+  });
+
+  it('o .env nunca foi rastreado pelo git', () => {
+    const rastreados = spawnSync('git', ['ls-files', '--', '.env', '.env.local'], {
+      cwd: RAIZ_MCP,
+      encoding: 'utf8',
+    });
+
+    if (rastreados.error) return;
+    expect(rastreados.stdout.trim()).toBe('');
   });
 });

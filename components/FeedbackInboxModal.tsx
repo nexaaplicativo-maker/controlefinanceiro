@@ -92,7 +92,6 @@ export function FeedbackInboxModal({
        Query) ou adiar o estado por microtask só para enganar o analisador.
        O custo real é um render a mais na abertura. Ver nota no PR. */
     if (isOpen) carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   async function marcar(id: string, status: string) {

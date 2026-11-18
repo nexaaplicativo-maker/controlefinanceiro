@@ -63,13 +63,29 @@ async function main(): Promise<void> {
 
   console.log('\n--- 3. O usuário enxerga o schema do app? (tem que FALHAR) ---\n');
 
+  /* A FALHA PRECISA SER A CERTA.
+     A primeira versão deste passo dava OK para QUALQUER erro — então, com a
+     senha errada, ele dizia "negada, como deve ser" nas três e passava uma
+     sensação de segurança que o teste não tinha verificado. Erro de conexão
+     não prova nada sobre GRANT nenhum.
+     Só `42501` (insufficient_privilege) e `42P01` (tabela invisível por
+     falta de USAGE no schema) contam como prova. */
+  const NEGACAO_LEGITIMA = new Set(['42501', '42P01']);
+
   for (const alvo of ['public.transactions', 'public.profiles', 'auth.users']) {
     try {
       await db.consultar(alvo, `SELECT 1 FROM ${alvo} LIMIT 1`);
       problemas++;
       console.log(falha(`${alvo} FOI LIDA. A trava principal não está de pé — confira os GRANTs.`));
-    } catch {
-      console.log(ok(`${alvo} negada, como deve ser`));
+    } catch (erro) {
+      const codigo = (erro as { code?: string }).code ?? '';
+      if (NEGACAO_LEGITIMA.has(codigo)) {
+        console.log(ok(`${alvo} negada pelo banco (${codigo}), como deve ser`));
+      } else {
+        problemas++;
+        console.log(aviso(`${alvo}: não dá para concluir nada — a consulta nem chegou a ser avaliada`));
+        console.log(`      (${(erro as Error).message})`);
+      }
     }
   }
 

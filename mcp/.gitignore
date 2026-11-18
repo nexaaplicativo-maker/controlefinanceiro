@@ -10,3 +10,6 @@ logs/
 dist/
 node_modules/
 *.tsbuildinfo
+
+# SQL temporario com senha dentro. Gerado para troca de credencial.
+*.local.sql

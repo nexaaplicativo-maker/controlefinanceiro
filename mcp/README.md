@@ -109,10 +109,25 @@ usuário e senha pelos do `mcp_readonly`. Duas formas funcionam:
 | **Direta** | `mcp_readonly` | `db.SEU-PROJETO.supabase.co:5432` |
 | **Pooler** (Session) | `mcp_readonly.SEU-PROJETO` | `aws-0-REGIAO.pooler.supabase.com:5432` |
 
-Em projeto novo do Supabase a conexão direta é **só IPv6**. Se der
-`ENETUNREACH` ou `could not translate host name`, use o pooler — repare no
-`.SEU-PROJETO` colado no nome do usuário, que é como ele sabe para qual
-projeto rotear.
+**Na prática, provavelmente é o pooler.** Em projeto novo do Supabase o host
+direto não tem registro IPv4 nenhum — só IPv6 — e a maioria das redes
+domésticas e de escritório não alcança IPv6. O sintoma é um
+`Connection terminated due to connection timeout` que parece problema de
+senha e não é. Para confirmar:
+
+```bash
+node -e "require('dns').promises.resolve4('db.SEU-PROJETO.supabase.co').then(console.log).catch(e=>console.log('sem IPv4:',e.code))"
+```
+
+`sem IPv4: ENODATA` significa pooler.
+
+Repare no `.SEU-PROJETO` **colado no nome do usuário** — é assim que o pooler
+sabe para qual projeto rotear, e é o detalhe que mais passa batido.
+
+A região (`aws-0` ou `aws-1`, `sa-east-1`…) aparece na string que o painel
+mostra em **Connect → Session pooler**. Se não tiver certeza, conectar na
+região errada responde `Tenant or user not found` — é um erro inofensivo e
+serve para procurar por eliminação.
 
 Se a senha tiver `@ : / ? #`, codifique em percent-encoding (`@` → `%40`,
 `:` → `%3A`, `/` → `%2F`, `?` → `%3F`, `#` → `%23`).
@@ -156,6 +171,24 @@ tem parâmetro.
 Se aparecer erro de conexão, o motivo quase sempre está em `mcp/.env`. O
 servidor escreve o diagnóstico em **stderr**, que o Inspector mostra no painel
 de log.
+
+---
+
+## Ligar no Claude Code
+
+Se você já usa o Claude Code neste projeto, é um comando — e não precisa do
+Claude Desktop instalado:
+
+```bash
+claude mcp add nexa-dono --scope local -- node "CAMINHO-ABSOLUTO/mcp/dist/index.js"
+claude mcp list          # deve mostrar "nexa-dono: ... ✔ Connected"
+```
+
+`--scope local` guarda a configuração no seu perfil, associada a este
+projeto — não cria arquivo no repositório e não vaza para quem clonar.
+
+As tools só aparecem em uma sessão **nova**: os servidores MCP são carregados
+na abertura. Saia e entre de novo.
 
 ---
 

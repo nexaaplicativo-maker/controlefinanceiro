@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, UploadCloud, Camera, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { PAGINA } from "../lib/consultas";
 import { toast } from "./Toast";
 import { getUserId } from "../lib/session";
 import { useModalA11y } from "../hooks/use-modal-a11y";
@@ -40,7 +41,12 @@ async function semParcelasRepetidas(userId: string, candidatos: Candidato[]): Pr
     .eq('user_id', userId)
     .not('installment_info', 'is', null)
     .gte('date', datas[0])
-    .lte('date', datas[datas.length - 1]);
+    .lte('date', datas[datas.length - 1])
+    /* Ordem e teto: a janela ja vem das datas do proprio arquivo importado,
+       entao sao poucos dias. O limite existe para uma fatura com datas
+       absurdas nao virar uma varredura do historico inteiro. */
+    .order('date', { ascending: false })
+    .limit(PAGINA);
 
   // Falhou a consulta: importa tudo. Lançamento duplicado o usuário apaga;
   // lançamento que nunca entrou ele não descobre que faltou.

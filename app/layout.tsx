@@ -5,6 +5,7 @@ import { ToastContainer } from "../components/Toast";
 import { ConfirmDialogContainer } from "../components/ConfirmDialog";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ChromeDoApp } from "../components/ChromeDoApp";
+import { RegistraServiceWorker } from "../components/RegistraServiceWorker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,6 +47,9 @@ export default function RootLayout({
         <ToastContainer />
         <ConfirmDialogContainer />
         <ChromeDoApp />
+        {/* Fora do ChromeDoApp de proposito: o service worker precisa valer
+            tambem nas rotas publicas. Ver o comentario no componente. */}
+        <RegistraServiceWorker />
       </body>
     </html>
   );

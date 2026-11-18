@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Building, PiggyBank, Home, Save } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -15,13 +15,23 @@ export function CoupleWealthModal({ isOpen, onClose, currentData, onSave }: any)
   const [house, setHouse] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (currentData) {
-      setWealth(currentData.joint_wealth || "0");
-      setEmergency(currentData.emergency_fund || "0");
-      setHouse(currentData.house_expenses || "0");
+  /* Sincroniza os campos com os dados recebidos DURANTE O RENDER, não num
+     efeito.
+     É o padrão que o React documenta para "ajustar estado quando uma prop
+     muda": o render é descartado e refeito na hora, sem pintar a tela com o
+     valor velho. O efeito fazia a mesma coisa um render depois — e esse
+     render intermediário era o que mostrava o formulário com o conteúdo da
+     abertura anterior por um instante. */
+  const [sincronizadoCom, setSincronizadoCom] = useState<any>(null);
+  const fonte = isOpen ? currentData : null;
+  if (fonte !== sincronizadoCom) {
+    setSincronizadoCom(fonte);
+    if (fonte) {
+      setWealth(fonte.joint_wealth || "0");
+      setEmergency(fonte.emergency_fund || "0");
+      setHouse(fonte.house_expenses || "0");
     }
-  }, [currentData, isOpen]);
+  }
 
   if (!isOpen) return null;
 

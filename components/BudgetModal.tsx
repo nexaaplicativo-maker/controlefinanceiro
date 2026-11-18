@@ -24,15 +24,6 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchBudgets();
-    }
-    // budgetMonth entra nas dependências: trocar de mês no dashboard e reabrir
-    // precisa recarregar o orçamento daquela competência, não repetir a anterior.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, budgetMonth]);
-
   const fetchBudgets = async () => {
     const userId = await getUserId();
     if (!userId) return;
@@ -49,6 +40,20 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
     if (data) data.forEach(b => { bMap[b.category] = b.amount; });
     setBudgets(bMap);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+         ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+         setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+         Query) ou adiar o estado por microtask só para enganar o analisador.
+         O custo real é um render a mais na abertura. Ver nota no PR. */
+      fetchBudgets();
+    }
+    // budgetMonth entra nas dependências: trocar de mês no dashboard e reabrir
+    // precisa recarregar o orçamento daquela competência, não repetir a anterior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, budgetMonth]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -134,7 +139,6 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
       return (parseInt(month) - 1) === activeMonth;
     }).reduce((acc, t) => acc + t.amount, 0);
   };
-
 
   return (
     <AnimatePresence>

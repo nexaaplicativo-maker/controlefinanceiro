@@ -30,12 +30,24 @@ export function IdleTimeout() {
   const [saindo, setSaindo] = useState(false);
 
   // Espelha o estado para os listeners não capturarem um valor velho.
+  //
+  // A escrita acontece num efeito, não no corpo do componente. Escrever em
+  // ref durante o render quebra a promessa de que renderizar não tem efeito
+  // colateral: em modo estrito o React renderiza duas vezes e pode descartar
+  // um dos resultados, e no futuro pode interromper um render pela metade —
+  // com a ref já alterada.
   const avisandoRef = useRef(false);
-  avisandoRef.current = avisando;
+  useEffect(() => {
+    avisandoRef.current = avisando;
+  }, [avisando]);
 
   // Momento da última interação. Um único relógio verificando periodicamente é
   // mais simples e mais robusto que reagendar timeouts a cada clique.
-  const ultimaAtividade = useRef(Date.now());
+  //
+  // Começa em null e é preenchida no efeito: `Date.now()` no corpo do
+  // componente é leitura de valor que muda sozinho, o que torna o render
+  // impuro — dois renders do mesmo estado dariam resultados diferentes.
+  const ultimaAtividade = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -56,6 +68,11 @@ export function IdleTimeout() {
 
     const verificar = () => {
       if (cancelado) return;
+      // Ainda não marcamos a primeira atividade: não há inatividade a medir.
+      // Na prática não acontece — o relógio só começa depois que a sessão é
+      // confirmada, e é lá que a marca é posta — mas sair por engano é o
+      // modo de falha caro aqui, então a guarda é explícita.
+      if (ultimaAtividade.current === null) return;
       const parado = Date.now() - ultimaAtividade.current;
 
       if (!avisandoRef.current) {

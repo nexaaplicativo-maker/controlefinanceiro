@@ -45,6 +45,35 @@ const COR_INK_2 = '#a3b0ba';  // --color-ink-2
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+/**
+ * Balao do grafico.
+ *
+ * Vive no escopo do modulo, nao dentro do ReportsModal: componente
+ * declarado durante o render e um TIPO novo a cada passagem, entao o React
+ * desmonta e remonta a arvore inteira dele em vez de atualizar. Num balao
+ * que segue o cursor, isso e re-montagem a cada movimento do mouse.
+ *
+ * Nao fechava sobre nada do componente — so usa formatMoney, que e import
+ * de modulo — entao sair daqui nao custou prop nenhuma.
+ */
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="z-50 rounded-field border border-line-strong bg-black/80 p-3 shadow-xl backdrop-blur-md">
+        <p className="text-ink font-bold mb-1">{label || payload[0].name}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+            <span className="text-ink-2">{entry.name}:</span>
+            <span className="text-ink font-bold">{formatMoney(Number(entry.value))}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export function ReportsModal({ isOpen, onClose, transactions, allTransactions, activeMonth, activeYear, onPrevMonth, onNextMonth }: any) {
   const [activeTab, setActiveTab] = useState<'categorias' | 'balanco'>('categorias');
   const [periodFilter, setPeriodFilter] = useState<'month' | 'quarter' | 'semester' | 'year' | 'all'>('month');
@@ -134,23 +163,6 @@ export function ReportsModal({ isOpen, onClose, transactions, allTransactions, a
   const balanceData: any[] = Object.values(monthlyDataRaw).slice(0, 6).reverse();
 
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="z-50 rounded-field border border-line-strong bg-black/80 p-3 shadow-xl backdrop-blur-md">
-          <p className="text-ink font-bold mb-1">{label || payload[0].name}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-              <span className="text-ink-2">{entry.name}:</span>
-              <span className="text-ink font-bold">{formatMoney(Number(entry.value))}</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   const handleExportCSV = () => {
     if (!displayedTransactions || displayedTransactions.length === 0) {

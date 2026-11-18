@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, KeyRound, MailCheck } from "lucide-react";
 import { supabase } from "../../lib/supabase";
@@ -226,7 +227,7 @@ export default function Login() {
         
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="flex flex-col items-center relative z-10">
           <div className="w-24 h-24 rounded-card flex items-center justify-center shadow-[0_0_60px_rgba(99,102,241,0.4)] mb-8 overflow-hidden bg-white/5 border border-white/10">
-            <img src="/icon-192.png" alt="Logo Nexa" className="w-full h-full object-cover" />
+            <Image src="/icon-192.png" alt="Logo Nexa" width={96} height={96} priority className="w-full h-full object-cover" />
           </div>
           
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-center flex flex-col items-center">
@@ -246,7 +247,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-inner flex items-center justify-center shadow-lg shadow-brand/20 mb-6 overflow-hidden bg-white/5 border border-white/10">
-            <img src="/icon-192.png" alt="Logo Nexa" className="w-full h-full object-cover" />
+            <Image src="/icon-192.png" alt="Logo Nexa" width={64} height={64} priority className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-ink mb-2 tracking-tight">Nexa</h1>
           <p className="text-ink-2 text-center text-sm">Inteligência Financeira ao seu dispor.</p>

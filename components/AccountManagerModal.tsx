@@ -27,10 +27,6 @@ export function AccountManagerModal({ isOpen, onClose }: { isOpen: boolean, onCl
   const [editName, setEditName] = useState("");
   const [userId, setUserId] = useState("");
 
-  useEffect(() => {
-    if (isOpen) loadWallets();
-  }, [isOpen]);
-
   const loadWallets = async () => {
     setLoading(true);
     const userId = await getUserId();
@@ -48,6 +44,15 @@ export function AccountManagerModal({ isOpen, onClose }: { isOpen: boolean, onCl
     if (!error && data) setWallets(data);
     setLoading(false);
   };
+
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+       ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+       setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+       Query) ou adiar o estado por microtask só para enganar o analisador.
+       O custo real é um render a mais na abertura. Ver nota no PR. */
+    if (isOpen) loadWallets();
+  }, [isOpen]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

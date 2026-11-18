@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { Lock, Eye, EyeOff, Loader2, Check, AlertTriangle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
@@ -86,9 +87,9 @@ export default function RecuperarSenhaPage() {
             <p className="text-sm text-ink-2 leading-relaxed mb-6">
               Links de recuperação valem por pouco tempo e só podem ser usados uma vez. Peça um novo na tela de login.
             </p>
-            <a href="/login" className="block w-full bg-brand text-canvas font-bold py-3.5 rounded-field hover:bg-brand-strong transition-colors">
+            <Link href="/login" className="block w-full bg-brand text-canvas font-bold py-3.5 rounded-field hover:bg-brand-strong transition-colors">
               Voltar ao login
-            </a>
+            </Link>
           </div>
         )}
 
@@ -101,9 +102,9 @@ export default function RecuperarSenhaPage() {
             <p className="text-sm text-ink-2 leading-relaxed mb-6">
               Já pode entrar com a nova senha.
             </p>
-            <a href="/" className="block w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-colors">
+            <Link href="/" className="block w-full bg-brand hover:bg-brand-strong text-canvas font-bold py-3.5 rounded-field transition-colors">
               Ir para o app
-            </a>
+            </Link>
           </div>
         )}
 

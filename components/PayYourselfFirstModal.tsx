@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, PiggyBank, ShieldCheck, Zap, Loader2, AlertTriangle, TrendingUp } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -41,9 +41,14 @@ export function PayYourselfFirstModal({
   const suggested = insights.suggestedContribution;
   const blocked = !insights.shouldSuggestContribution;
 
-  useEffect(() => {
+  /* Limpa o campo ao abrir, durante o render em vez de num efeito. Ver
+     CoupleWealthModal para o porquê: o efeito só limpava um render depois,
+     então a abertura piscava com o valor digitado da vez anterior. */
+  const [abertoAntes, setAbertoAntes] = useState(isOpen);
+  if (isOpen !== abertoAntes) {
+    setAbertoAntes(isOpen);
     if (isOpen) setAmount("");
-  }, [isOpen]);
+  }
 
 
   const handleSubmit = async (e: React.FormEvent) => {

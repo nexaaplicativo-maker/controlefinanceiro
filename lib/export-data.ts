@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { hojeEmSaoPaulo } from './data';
+import { buscarTudo } from './consultas';
 
 /**
  * Exportação de dados — portabilidade da LGPD.
@@ -37,10 +38,32 @@ export async function exportAllDataAsJson(userId: string): Promise<ExportResult>
   dump.perfil = profile ?? null;
 
   for (const tabela of TABELAS) {
-    // Uma tabela ausente (ex.: SQL de alguma fase não rodado) não pode
-    // derrubar a exportação inteira — a pessoa tem direito ao resto.
-    const { data, error } = await supabase.from(tabela).select('*').eq('user_id', userId);
-    dump[tabela] = error ? { erro: error.message } : (data ?? []);
+    /* Paginado, e não uma consulta só.
+       O PostgREST corta em 1.000 linhas sem avisar. Numa exportação que o
+       arquivo chama de "seus dados", entregar as mil primeiras transações
+       como se fossem todas é o pior tipo de falha: a pessoa só descobre
+       quando precisar do que não veio — provavelmente num lugar onde não dá
+       mais para voltar e pedir de novo.
+
+       Uma tabela ausente (ex.: SQL de alguma fase não rodado) não pode
+       derrubar a exportação inteira — a pessoa tem direito ao resto. */
+    const { linhas, truncado, erro } = await buscarTudo<Record<string, unknown>>(
+      async (de, ate) =>
+        await supabase
+          .from(tabela)
+          .select('*')
+          .eq('user_id', userId)
+          .order('id', { ascending: true })
+          .range(de, ate),
+    );
+
+    if (erro) { dump[tabela] = { erro: erro.message }; continue; }
+
+    // Se nem o teto de 20 mil linhas bastou, isso vai DENTRO do arquivo:
+    // quem abrir precisa saber que está incompleto.
+    dump[tabela] = truncado
+      ? { incompleto: true, aviso: `Exportadas as primeiras ${linhas.length} linhas. Peça o restante pelo suporte.`, linhas }
+      : linhas;
   }
 
   return {
@@ -51,11 +74,20 @@ export async function exportAllDataAsJson(userId: string): Promise<ExportResult>
 }
 
 export async function exportTransactionsAsCsv(userId: string): Promise<ExportResult> {
-  const { data } = await supabase
-    .from('transactions')
-    .select('date, title, category, type, amount, is_paid, installment_info')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+  /* Mesmo motivo do JSON: sem paginar, uma planilha de "todas as minhas
+     transações" pararia calada na milésima linha. O desempate por `id`
+     deixa a ordem total, senão duas linhas da mesma data podem trocar de
+     lugar entre páginas e uma se perder na emenda. */
+  const { linhas: data } = await buscarTudo<Record<string, any>>(
+    async (de, ate) =>
+      await supabase
+        .from('transactions')
+        .select('date, title, category, type, amount, is_paid, installment_info, id')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .order('id', { ascending: false })
+        .range(de, ate),
+  );
 
   const cabecalho = ['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Pago', 'Parcela'];
 

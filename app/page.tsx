@@ -67,6 +67,7 @@ import { summarizeDebts } from "../lib/debt";
 import { linhasDaMesmaFatura } from "../lib/fatura";
 import { moverNaMeta } from "../lib/aporte-meta";
 import { hojeEmSaoPaulo } from "../lib/data";
+import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import type { StepId } from "../lib/onboarding";
@@ -125,6 +126,34 @@ const TX_WINDOW = (() => {
   to.setMonth(to.getMonth() + 24);
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 })();
+
+/**
+ * As transacoes da janela do painel, SEM o corte de mil linhas.
+ *
+ * Esta consulta sustenta todo numero da tela. Pedida de uma vez, o
+ * PostgREST devolveria no maximo 1.000 linhas em silencio e o painel
+ * somaria um pedaco do mes achando que somou o mes.
+ */
+function buscarTransacoesDaJanela(userId: string) {
+  /* `async` + `await` de propósito: o construtor do supabase-js é "thenable",
+     mas não é uma Promise completa, e `buscarTudo` pede uma. */
+  return buscarTudo<any>(async (de, ate) =>
+    await supabase
+      .from('transactions')
+      .select(COLUNAS_TX)
+      .eq('user_id', userId)
+      .gte('date', TX_WINDOW.from)
+      .lte('date', TX_WINDOW.to)
+      /* Ordem TOTAL, não só por data: com várias linhas na mesma data, o
+         Postgres não garante a mesma ordem entre páginas, e a emenda
+         poderia repetir uma linha e perder outra. O desempate por `id`
+         torna a paginação determinística. */
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
+      .range(de, ate),
+  );
+}
+
 
 export default function Dashboard() {
   // Meses ja buscados fora da janela, para nao repetir consulta ao voltar.
@@ -254,7 +283,13 @@ export default function Dashboard() {
       .select(COLUNAS_TX)
       .eq('user_id', uid)
       .gte('date', primeiro)
-      .lte('date', ultimo);
+      /* Ordem explícita e teto. São no máximo 31 dias de lançamentos, então
+         mil linhas é folga enorme — o limite existe para o caso patológico
+         (importação de fatura que deu errado) não travar a troca de mês. */
+      .lte('date', ultimo)
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(PAGINA);
 
     // Falhou: tira da lista de carregados para tentar de novo na próxima
     // visita, em vez de fingir que o mês está vazio para sempre.
@@ -300,11 +335,11 @@ export default function Dashboard() {
 
       const [profileResponse, txResponse, walletsResponse, goalsResponse, positionsResponse, debtsResponse] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.from('transactions').select(COLUNAS_TX).eq('user_id', session.user.id).gte('date', TX_WINDOW.from).lte('date', TX_WINDOW.to).order('date', { ascending: false }),
-        supabase.from('wallets').select('*').eq('user_id', session.user.id),
-        supabase.from('goals').select('*').eq('user_id', session.user.id),
-        supabase.from('investments').select('*').eq('user_id', session.user.id),
-        supabase.from('debts').select('*').eq('user_id', session.user.id)
+        buscarTransacoesDaJanela(session.user.id),
+        supabase.from('wallets').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA),
+        supabase.from('goals').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA),
+        supabase.from('investments').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA),
+        supabase.from('debts').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA)
       ]);
 
       // As transações sustentam todo número desta tela. Sem elas não existe
@@ -314,12 +349,20 @@ export default function Dashboard() {
       // erro para quem ainda não tem linha, e isso é o estado normal de uma
       // conta recém-criada. Tratá-lo como falha trancaria o usuário novo
       // para fora do app no primeiro acesso.
-      if (txResponse.error) {
-        setErroCarregamento(txResponse.error.message);
+      if (txResponse.erro) {
+        setErroCarregamento(txResponse.erro.message);
         return;
       }
 
-      setAllTransactions(txResponse.data ?? []);
+      /* Teto de páginas atingido: há mais lançamentos do que trouxemos, e
+         todo total desta tela sairia menor que o real. Avisar é a única
+         saída honesta — um número incompleto apresentado como completo é
+         pior que nenhum número. */
+      if (txResponse.truncado) {
+        toast("Você tem lançamentos demais no período para o app somar de uma vez. Os totais abaixo estão incompletos — use os relatórios por mês.", "warning");
+      }
+
+      setAllTransactions(txResponse.linhas);
 
       if (positionsResponse.data) setPositions(positionsResponse.data);
       if (debtsResponse.data) setDebts(debtsResponse.data);
@@ -400,21 +443,21 @@ export default function Dashboard() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const [txResponse, walletsResponse, goalsResponse] = await Promise.all([
-      supabase.from('transactions').select(COLUNAS_TX).eq('user_id', session.user.id).gte('date', TX_WINDOW.from).lte('date', TX_WINDOW.to).order('date', { ascending: false }),
-      supabase.from('wallets').select('*').eq('user_id', session.user.id),
-      supabase.from('goals').select('*').eq('user_id', session.user.id)
+      buscarTransacoesDaJanela(session.user.id),
+      supabase.from('wallets').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA),
+      supabase.from('goals').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA)
     ]);
 
     // Esta função roda logo depois de salvar. Falhar calada aqui é pior que
     // na carga inicial: o lançamento FOI gravado, mas a lista não se atualiza
     // e a pessoa conclui que o salvamento não funcionou — então lança de novo
     // e fica com a despesa duplicada.
-    if (txResponse.error) {
+    if (txResponse.erro) {
       toast("Salvei, mas não consegui atualizar a lista. Puxe a tela para baixo ou recarregue — não lance de novo.", "warning");
       return;
     }
 
-    setAllTransactions(txResponse.data ?? []);
+    setAllTransactions(txResponse.linhas);
     if (walletsResponse.data) setWallets(walletsResponse.data);
     if (goalsResponse.data) setGoals(goalsResponse.data);
   }
@@ -505,7 +548,7 @@ export default function Dashboard() {
   async function refreshDebts() {
     const uid = await getUserId();
     if (!uid) return;
-    const { data } = await supabase.from('debts').select('*').eq('user_id', uid);
+    const { data } = await supabase.from('debts').select('*').eq('user_id', uid).order('created_at', { ascending: true }).limit(PAGINA);
     if (data) setDebts(data);
     await refreshProfile();
   }
@@ -513,7 +556,7 @@ export default function Dashboard() {
   async function refreshPositions() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { data } = await supabase.from('investments').select('*').eq('user_id', session.user.id);
+    const { data } = await supabase.from('investments').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }).limit(PAGINA);
     if (data) setPositions(data);
   }
 

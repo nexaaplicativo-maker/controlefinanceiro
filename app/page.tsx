@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
 import { 
@@ -999,7 +1000,7 @@ export default function Dashboard() {
         <div className="mx-auto flex h-20 w-full max-w-[1120px] items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-field flex items-center justify-center shadow-lg shadow-brand/20 overflow-hidden bg-white/5">
-              <img src="/icon-192.png" alt="Logo" className="w-full h-full object-cover" />
+              <Image src="/icon-192.png" alt="Logo" width={40} height={40} priority className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-xl tracking-tight">Nexa</span>
           </div>
@@ -1047,7 +1048,7 @@ export default function Dashboard() {
               para fora da tela, porque texto não encolhe sozinho em flex. */}
           <div className="flex min-w-0 items-center gap-3">
             <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/5">
-              <img src="/icon-192.png" alt="" className="h-full w-full object-cover" />
+              <Image src="/icon-192.png" alt="" width={44} height={44} priority className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-xs text-ink-2">{saudacao()},</p>

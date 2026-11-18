@@ -1,0 +1,15 @@
+# A string de conexao do banco de producao. Nunca vai para o git.
+.env
+.env.local
+
+# Registro das chamadas. Nao tem dado pessoal dentro, mas o historico de
+# quando o dono olhou cada metrica tambem nao precisa virar commit.
+logs/
+
+# Build
+dist/
+node_modules/
+*.tsbuildinfo
+
+# SQL temporario com senha dentro. Gerado para troca de credencial.
+*.local.sql

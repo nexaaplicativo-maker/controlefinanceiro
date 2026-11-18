@@ -881,6 +881,21 @@ export default function Dashboard() {
     reserveAmount: reservaAtual,
     positions,
     debts,
+    /* eslint-disable-next-line react-hooks/preserve-manual-memoization -- O
+       compilador não consegue provar que `gargalo` e `custosFixos` não mudam
+       depois: eles saem de `somar(lista)`, e as mesmas listas são passadas
+       adiante para os modais de detalhe. Elas não são mutadas em lugar nenhum
+       (o modal ordena uma cópia), mas isso a análise não enxerga.
+
+       A saída seria remover este useMemo e deixar o compilador memorizar
+       sozinho. Não dá hoje: o React Compiler não está ligado no
+       next.config.ts, então o aviso é consultivo e tirar o useMemo faria
+       `getProfileInsights` — que varre TODO o histórico do usuário — rodar a
+       cada render do painel, e o painel re-renderiza a cada um dos ~30
+       interruptores de modal. Trocar perda de desempenho real por um aviso
+       sobre otimização que não está ativa seria o negócio errado.
+
+       Quando o compilador for ligado, reavaliar: aí vale tirar o useMemo. */
   }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, custosFixos, reservaAtual, positions, debts]);
 
   const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);

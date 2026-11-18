@@ -121,6 +121,11 @@ export default function AdminPage() {
   }, [loadData]);
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+       ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+       setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+       Query) ou adiar o estado por microtask só para enganar o analisador.
+       O custo real é um render a mais na abertura. Ver nota no PR. */
     checkAdmin();
   }, [checkAdmin]);
 

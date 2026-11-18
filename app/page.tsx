@@ -182,7 +182,9 @@ export default function Dashboard() {
     return () => window.removeEventListener('openModal', handleOpenModal);
   }, []);
 
-  const [hasUnread, setHasUnread] = useState(true);
+  /** Quantas contas a vencer havia quando a pessoa dispensou o aviso.
+   *  null = nunca dispensou. Ver `hasUnread`, mais abaixo. */
+  const [dispensadoCom, setDispensadoCom] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   /**
    * Por que a falha de carregamento tem estado próprio.
@@ -353,6 +355,11 @@ export default function Dashboard() {
   useEffect(() => {
     // O service worker é registrado pelo InstallPrompt, que vive no layout e
     // portanto roda em todas as páginas.
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- Carga de dados
+       ao abrir. A regra acusa a chamada abaixo porque o carregador acaba em
+       setState; satisfazê-la exigiria uma biblioteca de busca (SWR, React
+       Query) ou adiar o estado por microtask só para enganar o analisador.
+       O custo real é um render a mais na abertura. Ver nota no PR. */
     carregarPainel();
 
     /**
@@ -985,10 +992,21 @@ export default function Dashboard() {
     return t.date <= threeDaysStr;
   });
 
-  useEffect(() => {
-    if (dueBills.length > 0) setHasUnread(true);
-    else setHasUnread(false);
-  }, [dueBills.length]);
+  /**
+   * O ponto vermelho do sino é DERIVADO, não sincronizado.
+   *
+   * Antes um efeito espelhava `dueBills.length > 0` para dentro de um
+   * `hasUnread`, e abrir os avisos zerava o espelho. Dois problemas: um
+   * render extra toda vez que a contagem mudava, e um estado que podia
+   * discordar da lista que ele resume.
+   *
+   * Agora guardamos só o que o efeito não conseguia expressar — QUANTAS
+   * contas havia quando a pessoa dispensou o aviso. O ponto reaparece
+   * sozinho quando esse número muda, que é exatamente o que o efeito fazia
+   * ao rodar de novo com `dueBills.length` diferente.
+   */
+  const hasUnread = dueBills.length > 0 && dispensadoCom !== dueBills.length;
+  const dispensarAvisos = () => setDispensadoCom(dueBills.length);
 
   return (
     <BetaGate>
@@ -1020,7 +1038,7 @@ export default function Dashboard() {
               Carteiras
             </button>
 
-            <button onClick={() => { setIsActivityOpen(true); setHasUnread(false); }} className="text-ink-2 hover:text-ink transition-colors relative ml-2">
+            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} className="text-ink-2 hover:text-ink transition-colors relative ml-2">
               <Bell className="w-5 h-5" />
               {hasUnread && <span className="absolute -top-1 -right-1 w-2 h-2 bg-neg rounded-full animate-pulse"></span>}
             </button>
@@ -1068,7 +1086,7 @@ export default function Dashboard() {
             >
               {showValues ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
             </button>
-            <button onClick={() => { setIsActivityOpen(true); setHasUnread(false); }} aria-label="Avisos" className="relative rounded-full bg-white/5 p-2.5 text-ink-2 transition-colors hover:text-ink">
+            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative rounded-full bg-white/5 p-2.5 text-ink-2 transition-colors hover:text-ink">
                 <Bell className="w-5 h-5"/>
                 {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-neg rounded-full"></span>}
              </button>

@@ -24,5 +24,9 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // `mcp` fora: e um projeto separado, com o proprio tsconfig e as proprias
+  // dependencias. Como o `include` acima varre todo .ts do repositorio, sem
+  // esta linha o `next build` tenta compilar o servidor MCP com as opcoes do
+  // app — outro target, outro moduleResolution — e quebra o build da Vercel.
+  "exclude": ["node_modules", "mcp"]
 }

@@ -37,13 +37,6 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
 
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setDate(hojeEmSaoPaulo());
-      fetchData();
-    }
-  }, [isOpen]);
-
   async function fetchData() {
     const userId = await getUserId();
     if (!userId) {
@@ -61,6 +54,13 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
       setWalletId(walRes.data[0].id);
     }
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      setDate(hojeEmSaoPaulo());
+      fetchData();
+    }
+  }, [isOpen]);
 
   const handleTypeChange = (newType: 'expense' | 'income') => {
     setType(newType);

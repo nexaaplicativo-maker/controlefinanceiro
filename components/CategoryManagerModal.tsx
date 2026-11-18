@@ -18,12 +18,6 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
   const [name, setName] = useState("");
   const [type, setType] = useState<'expense' | 'income'>('expense');
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCategories();
-    }
-  }, [isOpen]);
-
   async function fetchCategories() {
     setIsLoading(true);
     const userId = await getUserId();
@@ -36,6 +30,12 @@ export function CategoryManagerModal({ isOpen, onClose }: { isOpen: boolean, onC
     if (data) setCategories(data);
     setIsLoading(false);
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [isOpen]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

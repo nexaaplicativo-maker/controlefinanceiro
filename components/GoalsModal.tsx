@@ -26,12 +26,6 @@ export function GoalsModal({ isOpen, onClose, onSaved }: { isOpen: boolean, onCl
   const [transactionType, setTransactionType] = useState<'add'|'remove'>('add');
   const [transactionAmount, setTransactionAmount] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchGoals();
-    }
-  }, [isOpen]);
-
   async function fetchGoals() {
     setIsLoading(true);
     const userId = await getUserId();
@@ -44,6 +38,12 @@ export function GoalsModal({ isOpen, onClose, onSaved }: { isOpen: boolean, onCl
     if (data) setGoals(data);
     setIsLoading(false);
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchGoals();
+    }
+  }, [isOpen]);
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();

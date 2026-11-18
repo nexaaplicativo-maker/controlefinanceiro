@@ -15,12 +15,6 @@ export function WalletsModal({ isOpen, onClose, userId }: { isOpen: boolean, onC
   const [newWalletType, setNewWalletType] = useState("bank"); // bank or credit
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && userId) {
-      loadWallets();
-    }
-  }, [isOpen, userId]);
-
   const loadWallets = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('wallets').select('*').eq('user_id', userId).order('created_at', { ascending: true });
@@ -29,6 +23,12 @@ export function WalletsModal({ isOpen, onClose, userId }: { isOpen: boolean, onC
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      loadWallets();
+    }
+  }, [isOpen, userId]);
 
   const handleCreateWallet = async (e: React.FormEvent) => {
     e.preventDefault();

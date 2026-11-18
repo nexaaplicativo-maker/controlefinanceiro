@@ -27,10 +27,6 @@ export function AccountManagerModal({ isOpen, onClose }: { isOpen: boolean, onCl
   const [editName, setEditName] = useState("");
   const [userId, setUserId] = useState("");
 
-  useEffect(() => {
-    if (isOpen) loadWallets();
-  }, [isOpen]);
-
   const loadWallets = async () => {
     setLoading(true);
     const userId = await getUserId();
@@ -48,6 +44,10 @@ export function AccountManagerModal({ isOpen, onClose }: { isOpen: boolean, onCl
     if (!error && data) setWallets(data);
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (isOpen) loadWallets();
+  }, [isOpen]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

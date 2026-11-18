@@ -24,15 +24,6 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchBudgets();
-    }
-    // budgetMonth entra nas dependências: trocar de mês no dashboard e reabrir
-    // precisa recarregar o orçamento daquela competência, não repetir a anterior.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, budgetMonth]);
-
   const fetchBudgets = async () => {
     const userId = await getUserId();
     if (!userId) return;
@@ -49,6 +40,15 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
     if (data) data.forEach(b => { bMap[b.category] = b.amount; });
     setBudgets(bMap);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchBudgets();
+    }
+    // budgetMonth entra nas dependências: trocar de mês no dashboard e reabrir
+    // precisa recarregar o orçamento daquela competência, não repetir a anterior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, budgetMonth]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -134,7 +134,6 @@ export function BudgetModal({ isOpen, onClose, transactions, currentIncome, acti
       return (parseInt(month) - 1) === activeMonth;
     }).reduce((acc, t) => acc + t.amount, 0);
   };
-
 
   return (
     <AnimatePresence>

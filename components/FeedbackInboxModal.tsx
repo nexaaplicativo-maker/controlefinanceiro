@@ -60,11 +60,6 @@ export function FeedbackInboxModal({
   const [isLoading, setIsLoading] = useState(true);
   const [faltaSql, setFaltaSql] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
   async function carregar() {
     setIsLoading(true);
     const [fb, er] = await Promise.all([
@@ -89,6 +84,11 @@ export function FeedbackInboxModal({
     setErros((er.data as ErrorRow[]) ?? []);
     setIsLoading(false);
   }
+
+  useEffect(() => {
+    if (isOpen) carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   async function marcar(id: string, status: string) {
     const { error } = await supabase.from('feedback').update({ status }).eq('id', id);

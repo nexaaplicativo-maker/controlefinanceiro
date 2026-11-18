@@ -45,6 +45,16 @@ export function EditTransactionModal({
   const [subcategoria, setSubcategoria] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
+  async function fetchCategories() {
+    const userId = await getUserId();
+    if (!userId) {
+      toast("Sessão expirada. Faça login novamente.", "error");
+      return;
+    }
+    const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name');
+    if (data) setCustomCategories(data);
+  }
+
   useEffect(() => {
     if (isOpen && transaction) {
       setTitle(transaction.title);
@@ -57,16 +67,6 @@ export function EditTransactionModal({
       fetchCategories();
     }
   }, [isOpen, transaction]);
-
-  async function fetchCategories() {
-    const userId = await getUserId();
-    if (!userId) {
-      toast("Sessão expirada. Faça login novamente.", "error");
-      return;
-    }
-    const { data } = await supabase.from('categories').select('*').eq('user_id', userId).order('name');
-    if (data) setCustomCategories(data);
-  }
 
   const handleTypeChange = (newType: 'expense' | 'income') => {
     setType(newType);

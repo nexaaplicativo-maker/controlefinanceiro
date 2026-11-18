@@ -128,14 +128,30 @@ export function conferirUsuarioDoBanco(url: string): void {
     );
   }
 
-  if (usuario !== USUARIO_ESPERADO) {
+  /* O POOLER DO SUPABASE RENOMEIA O USUÁRIO.
+     Na conexão direta (`db.<ref>.supabase.co:5432`) o usuário é o do banco,
+     `mcp_readonly`. Nos poolers (`...pooler.supabase.com`, portas 5432 e
+     6543) ele vira `mcp_readonly.<ref>` — o sufixo é como o pooler sabe para
+     qual projeto rotear.
+
+     Isto importa porque a conexão direta é só IPv6 em projeto novo: na
+     prática muita gente SÓ consegue usar o pooler. Exigir o nome exato
+     tornaria este servidor impossível de ligar nesses projetos.
+
+     O que a trava precisa garantir continua garantido: `postgres` e
+     `postgres.<ref>` — o dono do banco, nas duas formas — seguem recusados,
+     porque a parte antes do ponto tem que ser `mcp_readonly`. */
+  const papel = usuario.split('.')[0] ?? '';
+
+  if (papel !== USUARIO_ESPERADO) {
     throw new ViolacaoDeSeguranca(
       `NEXA_MCP_DATABASE_URL conecta como "${usuario || '(sem usuário)'}", e este servidor ` +
-      `só roda como "${USUARIO_ESPERADO}". Use a string do papel somente leitura — ` +
+      `só roda como "${USUARIO_ESPERADO}" (ou "${USUARIO_ESPERADO}.<ref-do-projeto>", ` +
+      'que é a forma usada pelo pooler). Use a string do papel somente leitura — ' +
       'nunca a do dono do banco, nunca a chave de serviço do Supabase.',
     );
   }
 }
 
-/** O único usuário de banco que este servidor aceita. */
+/** O único papel de banco que este servidor aceita. */
 export const USUARIO_ESPERADO = 'mcp_readonly';

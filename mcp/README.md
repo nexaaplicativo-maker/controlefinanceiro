@@ -101,9 +101,21 @@ Abra `mcp/.env` e preencha:
 NEXA_MCP_DATABASE_URL=postgresql://mcp_readonly:SUA_SENHA@db.SEU-PROJETO.supabase.co:5432/postgres
 ```
 
-Host e porta: painel → **Project Settings → Database → Connection string →
-URI**. Troque usuário e senha pelos do `mcp_readonly`. Se a senha tiver
-`@ : / ? #`, codifique em percent-encoding.
+Pegue a string no painel → botão **Connect** → *Connection string*, e troque
+usuário e senha pelos do `mcp_readonly`. Duas formas funcionam:
+
+| | Usuário | Host |
+|---|---|---|
+| **Direta** | `mcp_readonly` | `db.SEU-PROJETO.supabase.co:5432` |
+| **Pooler** (Session) | `mcp_readonly.SEU-PROJETO` | `aws-0-REGIAO.pooler.supabase.com:5432` |
+
+Em projeto novo do Supabase a conexão direta é **só IPv6**. Se der
+`ENETUNREACH` ou `could not translate host name`, use o pooler — repare no
+`.SEU-PROJETO` colado no nome do usuário, que é como ele sabe para qual
+projeto rotear.
+
+Se a senha tiver `@ : / ? #`, codifique em percent-encoding (`@` → `%40`,
+`:` → `%3A`, `/` → `%2F`, `?` → `%3F`, `#` → `%23`).
 
 > `mcp/.env` e `mcp/logs/` estão no `.gitignore`. Nunca commite os dois.
 

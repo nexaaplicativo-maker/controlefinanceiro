@@ -117,10 +117,31 @@ describe('conferirUsuarioDoBanco — só mcp_readonly', () => {
     ).toThrow(ViolacaoDeSeguranca);
   });
 
-  it('recusa o usuário do pooler do Supabase', () => {
+  /* O pooler acrescenta `.<ref-do-projeto>` ao nome do usuário. Em projeto
+     novo do Supabase a conexão direta é só IPv6, então para muita gente o
+     pooler é o único caminho — e recusá-lo tornaria o servidor impossível
+     de ligar. O que não pode passar é o PAPEL errado, com ou sem sufixo. */
+  it('aceita a forma do pooler, com o sufixo do projeto', () => {
     expect(() =>
-      conferirUsuarioDoBanco('postgresql://postgres.abcdefgh:senha@pooler.exemplo.co:6543/postgres'),
+      conferirUsuarioDoBanco('postgresql://mcp_readonly.abcdefgh:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres'),
+    ).not.toThrow();
+    expect(() =>
+      conferirUsuarioDoBanco('postgresql://mcp_readonly.abcdefgh:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres'),
+    ).not.toThrow();
+  });
+
+  it('recusa o dono do banco TAMBÉM na forma do pooler', () => {
+    expect(() =>
+      conferirUsuarioDoBanco('postgresql://postgres.abcdefgh:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres'),
     ).toThrow(ViolacaoDeSeguranca);
+  });
+
+  it('recusa papel parecido que não é o nosso', () => {
+    for (const papel of ['mcp_readonl', 'mcp_readonly2', 'mcp_write', 'readonly']) {
+      expect(() =>
+        conferirUsuarioDoBanco(`postgresql://${papel}:senha@db.exemplo.co:5432/postgres`),
+      ).toThrow(ViolacaoDeSeguranca);
+    }
   });
 
   it('recusa string sem usuário', () => {

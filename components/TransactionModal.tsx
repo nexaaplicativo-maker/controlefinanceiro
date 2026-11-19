@@ -11,6 +11,14 @@ import { useModalA11y } from "../hooks/use-modal-a11y";
 import { SUBCATEGORIAS, subcategoriaSugerida } from "../lib/subcategorias";
 import { AI_ENABLED } from "../lib/features";
 import { hojeEmSaoPaulo, somarMeses } from "../lib/data";
+import { ACCEPT_COMPROVANTE, validarComprovante } from "../lib/comprovante";
+
+/** Ponte entre o `File` do navegador e a regra pura de `lib/comprovante`.
+ *  O nome do arquivo entra só como dado de decisão (foto de iPhone sem MIME);
+ *  quem define a extensão gravada é o tipo validado. */
+function validarArquivoDeComprovante(file: File) {
+  return validarComprovante({ nome: file.name, tipo: file.type, bytes: file.size });
+}
 
 export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: { isOpen: boolean, onClose: () => void, onSave?: () => void, onImportarFatura?: () => void }) {
   const a11yRef = useModalA11y(isOpen, onClose);
@@ -63,6 +71,12 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
          Query) ou adiar o estado por microtask só para enganar o analisador.
          O custo real é um render a mais na abertura. Ver nota no PR. */
       setDate(hojeEmSaoPaulo());
+      // O modal não desmonta ao fechar (isOpen só condiciona o JSX), e o reset
+      // completo só roda no caminho de sucesso. Sem esta linha, um comprovante
+      // escolhido e abandonado — fechar pelo "Ler a fatura", por exemplo —
+      // continua no estado enquanto o input aparece vazio, e seria anexado ao
+      // próximo lançamento salvo, consumindo cota do bucket sem o usuário pedir.
+      setReceiptFile(null);
       fetchData();
     }
   }, [isOpen]);
@@ -75,6 +89,24 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
       setIsSplit(false);
       setIsPaid(true);
     }
+  };
+
+  // Valida na hora da escolha, para o erro aparecer com o arquivo em mente e
+  // não depois de preencher o resto do formulário. Arquivo recusado não entra
+  // no estado, e o input é limpo para a MESMA seleção poder ser repetida (sem
+  // isso, escolher o mesmo arquivo de novo não disparava `onChange`).
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) { setReceiptFile(null); return; }
+
+    const vArquivo = validarArquivoDeComprovante(file);
+    if (!vArquivo.ok) {
+      toast(vArquivo.erro, "warning");
+      setReceiptFile(null);
+      e.target.value = '';
+      return;
+    }
+    setReceiptFile(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,6 +126,17 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
     const erro = firstError(vTitulo, vValor, vData, vParcelas);
     if (erro) { toast(erro, "warning"); return; }
 
+    // Revalidação do comprovante aqui, mesmo com a checagem no `onChange`:
+    // o arquivo validado na seleção pode ter sido substituído no disco, e esta
+    // é a última barreira antes do upload. Além disso é daqui que saem a
+    // extensão e o `contentType` do objeto gravado.
+    let comprovante: { contentType: string; extensao: string } | null = null;
+    if (receiptFile) {
+      const vArquivo = validarArquivoDeComprovante(receiptFile);
+      if (!vArquivo.ok) { toast(vArquivo.erro, "warning"); return; }
+      comprovante = { contentType: vArquivo.contentType, extensao: vArquivo.extensao };
+    }
+
     setIsLoading(true);
 
     try {
@@ -105,11 +148,19 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
       // sem autenticação para um comprovante financeiro. URL vaza por
       // histórico, log e compartilhamento — e uma vez vazada, vale para sempre.
       // Agora a URL é assinada na hora de abrir, com validade curta.
+      // A extensão e o `contentType` vêm do TIPO validado, não do nome do
+      // arquivo: antes a extensão era o último pedaço do nome escolhido pelo
+      // usuário, então dava para gravar `payload.html` no bucket. Forçar o
+      // `contentType` também é pré-requisito do painel: sem ele o SDK manda o
+      // `file.type` do navegador, que para foto de iPhone pode ser vazio — e
+      // aí o bucket recusaria o upload assim que `allowed_mime_types` for
+      // configurado.
       let receiptPath = null;
-      if (receiptFile && userId) {
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${userId}/${Date.now()}.${fileExt}`;
-        const { error: uploadError, data } = await supabase.storage.from('receipts').upload(fileName, receiptFile);
+      if (receiptFile && comprovante && userId) {
+        const fileName = `${userId}/${Date.now()}.${comprovante.extensao}`;
+        const { error: uploadError, data } = await supabase.storage
+          .from('receipts')
+          .upload(fileName, receiptFile, { contentType: comprovante.contentType });
         if (!uploadError && data) {
           receiptPath = data.path;
         } else if (uploadError) {
@@ -325,7 +376,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
 
               <div>
                 <label className="block text-sm font-medium text-ink-2 mb-1.5">Comprovante (Opcional)</label>
-                <input type="file" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full bg-white/5 border border-white/10 rounded-field py-2 px-3 text-sm text-ink-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand/20 file:text-brand hover:file:bg-brand/30 transition-colors cursor-pointer" />
+                <input type="file" accept={ACCEPT_COMPROVANTE} onChange={handleReceiptChange} className="w-full bg-white/5 border border-white/10 rounded-field py-2 px-3 text-sm text-ink-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand/20 file:text-brand hover:file:bg-brand/30 transition-colors cursor-pointer" />
 
                 {/* Anexar a fatura aqui só guarda o arquivo: nada dentro dele é
                     lido, e o gasto vira um item único. Quem fez isso achou que

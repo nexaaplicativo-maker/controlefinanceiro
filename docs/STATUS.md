@@ -65,5 +65,7 @@
 - `.env.example` não lista `NEXT_PUBLIC_GOOGLE_LOGIN` (divergência conhecida, aceita).
 - `relatorio-levantamento.md` não está commitado.
 - CI não bloqueia merge: falta marcar "Require status checks to pass" no GitHub.
-- `npm run lint` fora do build e do CI, com ~34 erros pré-existentes.
+- `npm run lint` fora do build e do CI: nada impede erro novo de entrar. O
+  código está limpo hoje — 0 erros e 0 avisos em 137 arquivos (ESLint 9.39.1,
+  verificado em 19/11/2026).
 - Limitações de produto e de código: seção 8 do `CONTEXTO-IA.md`.

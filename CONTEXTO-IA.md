@@ -287,10 +287,12 @@ sem expor valor nenhum.
    de atrito do projeto.
 2. **44 de 46 queries não têm `limit()`** — o dashboard baixa o histórico
    inteiro do usuário a cada abertura.
-3. **ESLint acusa ~34 erros** (`react-hooks/set-state-in-effect`,
-   `react-hooks/immutability`, `react/no-unescaped-entities`), e nada os
-   bloqueia: `next.config.ts` tem `eslint.ignoreDuringBuilds: true` e o CI não
-   roda lint.
+3. **O lint não é barreira**: `next.config.ts` tem
+   `eslint.ignoreDuringBuilds: true` e o CI não roda lint, então nada impede um
+   erro novo de entrar sem ninguém ver. O código em si está limpo — `npm run
+   lint` sai com 0 erros e 0 avisos em 137 arquivos (ESLint 9.39.1, verificado
+   em 19/11/2026); a afirmação anterior de "~34 erros pré-existentes" estava
+   vencida. Rode à mão.
 4. **`components/ui/Sheet.tsx` não é importado por ninguém**, enquanto 43
    arquivos repetem a estrutura de modal à mão. `EmptyState` e `Skeleton`
    (`ui/Surface.tsx`) são usados em 2 arquivos de 43.

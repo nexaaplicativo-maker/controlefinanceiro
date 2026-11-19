@@ -33,7 +33,9 @@ atualize o documento na mesma entrega.
 - CI usa **Node 20** (`.github/workflows/ci.yml`) e `package.json` não tem
   `engines`. Em dúvida sobre comportamento de build, assuma Node 20.
 - `npm run lint` não roda no build (`eslint.ignoreDuringBuilds: true`) nem no CI.
-  Há ~34 erros pré-existentes: rode o lint à mão e não acrescente erro novo.
+  Hoje passa limpo (0 erros e 0 avisos em 137 arquivos, ESLint 9.39.1 —
+  verificado em 19/11/2026), e como nada o executa por você, rode à mão e
+  mantenha assim: qualquer erro que aparecer foi introduzido pela sua mudança.
 - `npx tsc --noEmit` precisa passar limpo — `ignoreBuildErrors: false`, isto quebra o deploy.
 - Não altere `.github/workflows/` sem pedir: o token em uso não tem escopo e o push é recusado.
 - Não rode `npm run build` com o `npm run dev` ativo (ambos escrevem em `.next`).

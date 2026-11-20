@@ -232,6 +232,14 @@
   regra global em `app/globals.css` ou `<MotionConfig reducedMotion="user">` no
   layout resolve o app inteiro de uma vez; é item próprio, não de uma rodada
   visual.
+- **Linha de lançamento: dois resíduos conhecidos da rodada 2** (20/11/2026).
+  (a) Aparelho híbrido (notebook com tela de toque) reporta `pointer: fine`, e
+  ali o botão sobreposto não é renderizado: as ações dependem do `:hover` que o
+  navegador emula no toque. O teclado alcança sempre, e trocar para
+  `any-pointer` reabriria o problema no tablet. (b) Com cursor, em janela
+  abaixo de 360px, o bloco do valor ocupa a linha inteira e o grupo de ações
+  reservado cai numa terceira linha vazia (~40px). Os dois ficaram por decisão:
+  o conserto cobraria apertar o valor contra o texto em tela estreita.
 - **Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**,
   sob o piso de 44px do sistema de design. É troca consciente (20/11/2026): com
   44px a saudação não cabia e aparecia "Boa ...", e a alternativa era tirar um

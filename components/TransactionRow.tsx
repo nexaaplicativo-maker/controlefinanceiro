@@ -82,6 +82,13 @@ const BOTAO_ACAO =
  * abre e fecha a segunda linha. Um corte por `sm:`/`md:` prenderia as ações em
  * `opacity-0` num tablet de toque de 834px, porque o `group-hover:` do Tailwind
  * v4 já vem dentro de `@media (hover: hover)` e nunca dispara ali.
+ *
+ * ORDEM x ESPECIFICIDADE — a revelação depende disto
+ * No CSS gerado o `pointer-fine:opacity-0` aparece DEPOIS das regras de
+ * `group-hover:`/`group-focus-within:`, então ele só não vence porque estas
+ * medem 0,2,0 (`:is(:where(.group):hover *)` + a classe) contra 0,1,0 dele.
+ * Trocar `group-hover:` por um seletor de classe única mata a revelação com
+ * cursor, e o sintoma seria "as ações nunca aparecem no desktop".
  */
 export function TransactionRow({ title, category, date, amount, visible, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao, acoesVisiveis, onAlternarAcoes }: TransactionRowProps) {
   const isIncome = type === 'income';

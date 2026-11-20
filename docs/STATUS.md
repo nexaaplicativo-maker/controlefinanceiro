@@ -225,11 +225,13 @@
   conserto é despachar o `openModal` só depois da folha fechar
   (`requestAnimationFrame` ou `onExitComplete`). Hoje não afeta produção: com a
   IA desligada o `+` abre o lançamento direto, sem folha.
-- **`prefers-reduced-motion` não existe no projeto** (zero ocorrências em todo o
-  repo, nem em CSS nem como `MotionConfig`). Pré-existente, não introduzido pela
-  rodada 1 — que até tirou animação. Uma regra global em `app/globals.css` ou
-  `<MotionConfig reducedMotion="user">` no layout resolve o app inteiro de uma
-  vez; é item próprio, não de uma rodada visual.
+- **`prefers-reduced-motion` quase não existe no projeto.** A rodada 2 da lista
+  de lançamentos trouxe a primeira ocorrência (`motion-reduce:transition-none`
+  na revelação das ações em `components/TransactionRow.tsx`); o resto do app
+  segue sem tratamento, nem em CSS nem como `MotionConfig`. Pré-existente. Uma
+  regra global em `app/globals.css` ou `<MotionConfig reducedMotion="user">` no
+  layout resolve o app inteiro de uma vez; é item próprio, não de uma rodada
+  visual.
 - **Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**,
   sob o piso de 44px do sistema de design. É troca consciente (20/11/2026): com
   44px a saudação não cabia e aparecia "Boa ...", e a alternativa era tirar um

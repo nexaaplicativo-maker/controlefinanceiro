@@ -75,7 +75,7 @@ app/
     auto-budget/route.ts  POST — renda -> orçamento em JSON
     health/route.ts       GET  — estado da configuração e commit servido
 
-components/   43 arquivos: 29 modais + moldura do app + 4 primitivas em ui/
+components/   45 arquivos: 29 modais + moldura do app + `TransactionRow` + 4 primitivas em ui/
 lib/          32 arquivos de regra de negócio + 23 de teste
 hooks/        use-mobile, use-modal-a11y
 supabase/     17 scripts SQL idempotentes, rodados À MÃO no painel
@@ -325,7 +325,7 @@ sem expor valor nenhum.
    `components/BottomNav.tsx` (quarta adoção, não a primeira: as outras três já
    estavam na `main`). Ainda são **26 arquivos** repetindo `role="dialog"` à
    mão. `EmptyState` e `Skeleton` (`ui/Surface.tsx`) são importados em 4
-   arquivos de 43.
+   arquivos de 45.
 5. ~~`--color-ink-3` reprova no contraste~~ **RESOLVIDO.** `--color-ink-3` e
    `--color-cents` estão em **#7f8c98**, que mede **5,74:1 sobre
    `--color-canvas`** e **5,00:1 sobre o gradiente do `card`** — passa AA para
@@ -368,6 +368,15 @@ sem expor valor nenhum.
   - `--breakpoint-xs` (360px) = o piso em que dois cards cabem lado a lado. O
     par de cards de resumo da Visão Geral é `grid-cols-1 xs:grid-cols-2`,
     porque em 320px o título do card "Renda Líquida" ficava com 26px.
+- **Revelação por tipo de ponteiro (`components/TransactionRow.tsx`):** as ações
+  da linha de lançamento nascem em `opacity-0` com cursor (`pointer-fine:`) e
+  aparecem no hover/foco; no toque (`pointer-coarse:`) são uma disclosure aberta
+  pelo botão sobreposto à linha. **Não é bug** e não se "conserta" trocando por
+  `sm:`/`md:` — o `group-hover:` do Tailwind v4 só dispara em
+  `@media (hover: hover)`, então um corte por largura prenderia as ações
+  invisíveis num tablet de toque. A camada de conteúdo da linha é
+  `pointer-events-none`; todo elemento interativo dentro dela precisa de
+  `pointer-events-auto`.
 - **Feedback:** sempre `toast(msg, "success"|"error"|"warning"|"info")` de
   `components/Toast`. Nunca `alert()`.
 - **Dinheiro:** `amount` é sempre positivo no banco; o sinal é semântico, via

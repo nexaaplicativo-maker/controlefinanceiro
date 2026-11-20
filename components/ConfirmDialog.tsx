@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertTriangle } from "lucide-react";
 import { useModalA11y } from "../hooks/use-modal-a11y";
+import { novoId } from "../lib/ids";
 
 /**
  * Confirmação no padrão visual do app.
@@ -31,7 +32,7 @@ type PendingConfirm = ConfirmOptions & { id: string };
 
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   return new Promise(resolve => {
-    const id = crypto.randomUUID();
+    const id = novoId();
     const handler = (e: Event) => {
       window.removeEventListener('nexa:confirm-result:' + id, handler);
       resolve((e as CustomEvent).detail === true);

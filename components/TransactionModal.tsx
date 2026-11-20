@@ -12,6 +12,7 @@ import { SUBCATEGORIAS, subcategoriaSugerida } from "../lib/subcategorias";
 import { AI_ENABLED } from "../lib/features";
 import { hojeEmSaoPaulo, somarMeses } from "../lib/data";
 import { ACCEPT_COMPROVANTE, validarComprovante } from "../lib/comprovante";
+import { novoId } from "../lib/ids";
 
 /** Ponte entre o `File` do navegador e a regra pura de `lib/comprovante`.
  *  O nome do arquivo entra só como dado de decisão (foto de iPhone sem MIME);
@@ -169,7 +170,7 @@ export function TransactionModal({ isOpen, onClose, onSave, onImportarFatura }: 
       }
 
       const transactionsToInsert = [];
-      const installmentGroup = isInstallment && installments > 1 ? crypto.randomUUID() : null;
+      const installmentGroup = isInstallment && installments > 1 ? novoId() : null;
 
       // A data vem do formulário como 'AAAA-MM-DD' e assim permanece: a
       // conversão para `Date` e a correção manual de fuso que existiam aqui

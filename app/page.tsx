@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
   PieChart as PieChartIcon, Search, Trash2, Heart, CheckCircle2, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
   PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
-  WifiOff, RefreshCw, X, ArrowUpRight
+  WifiOff, RefreshCw, X, ArrowUpRight, MessageSquare
 } from "lucide-react";
 
 import { Money } from "../components/ui/Money";
@@ -67,24 +67,12 @@ import { summarizeDebts } from "../lib/debt";
 import { linhasDaMesmaFatura } from "../lib/fatura";
 import { moverNaMeta } from "../lib/aporte-meta";
 import { hojeEmSaoPaulo } from "../lib/data";
+import { primeiroNome, saudacao } from "../lib/saudacao";
+import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import type { StepId } from "../lib/onboarding";
-
-/**
- * Saudação pela hora do dia.
- *
- * O cabeçalho dizia "OLÁ, SOUZA.HIGOR" em caixa alta — um rótulo, não uma
- * saudação. Como é a primeira linha da tela, vale ela reconhecer a hora em
- * que a pessoa abriu.
- */
-function saudacao(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Bom dia';
-  if (h < 18) return 'Boa tarde';
-  return 'Boa noite';
-}
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -231,6 +219,28 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("client");
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
+
+  /**
+   * Nome do usuário para a saudação do cabeçalho.
+   *
+   * HOJE É SEMPRE NULO, DE PROPÓSITO. O app não coleta nome em lugar nenhum:
+   * o cadastro não manda `options.data`, então `user_metadata` nasce vazio; o
+   * `handle_new_user` grava só `id` e `role`; nem o `WelcomeModal` nem o
+   * `ProfileSettingsModal` perguntam. Não existe coluna de nome em `profiles`,
+   * e nenhum nome de coluna foi presumido aqui — inventar um faria a tela
+   * depender de algo que o banco não tem.
+   *
+   * PONTO DE LIGAÇÃO: quando o nome passar a ser coletado, basta trocar este
+   * `null` pelo campo do perfil. A consulta é `select('*')` (ver
+   * `carregarPainel`), então a coluna nova chega sozinha, sem mexer na busca.
+   *
+   * Enquanto for nulo, o cabeçalho mostra só a saudação ("Bom dia") — melhor
+   * que o pedaço do e-mail antes do @, que não é nome de ninguém.
+   */
+  const nomeDoPerfil: string | null = null;
+  /** `''` quando não há nome — e aí a saudação aparece sozinha. */
+  const nomeParaSaudacao = primeiroNome(nomeDoPerfil);
+
   const [goals, setGoals] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPending, setFilterPending] = useState(false);
@@ -1120,53 +1130,105 @@ export default function Dashboard() {
             coisa, ocupando quase uma tela antes do primeiro número. O título
             de página sobrou só no desktop, onde há altura sobrando. */}
         <header className="flex md:hidden justify-between items-center gap-3 mb-6">
-          {/* `min-w-0` + `truncate`: e-mail comprido antes empurrava o sino
-              para fora da tela, porque texto não encolhe sozinho em flex. */}
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/5">
+          {/* `min-w-0` + `truncate`: texto longo (antes era o e-mail inteiro)
+              empurrava o sino para fora da tela, porque texto não encolhe
+              sozinho em flex. Vale igual para um primeiro nome comprido. */}
+          <div className="flex min-w-0 items-center gap-2 xs:gap-3">
+            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/5 xs:h-11 xs:w-11">
               <Image src="/icon-192.png" alt="" width={44} height={44} priority className="h-full w-full object-cover" />
             </div>
+            {/* Sem nome, a saudação é a linha principal e não sobra vírgula
+                pendurada. Com nome, ela vira a linha de apoio do `h1`. Em
+                qualquer um dos dois casos existe UM `h1` nesta largura — no
+                desktop o `h1` é "Visão Geral", e este cabeçalho não aparece. */}
             <div className="min-w-0">
-              <p className="truncate text-xs text-ink-2">{saudacao()},</p>
+              {nomeParaSaudacao && (
+                <p className="truncate text-xs text-ink-2">{saudacao()},</p>
+              )}
               <h1 className="truncate text-xl font-semibold tracking-tight text-ink">
-                {userEmail ? userEmail.split('@')[0] : 'Usuário'}
+                {nomeParaSaudacao || saudacao()}
               </h1>
             </div>
           </div>
 
           {/* Assinaturas e Conselheiro saíram daqui: ambos vivem no menu "Mais",
               e os ícones (lupa, alvo) não diziam o que abriam. */}
-          <div className="flex shrink-0 gap-2">
+          {/* 44x44 nos três a partir de 360px: é o piso de alvo de toque do
+              sistema de design, o mesmo que o botão "Mais ferramentas" segue.
+              Estavam em 40px (`p-2.5` + ícone de 20).
+
+              ABAIXO de 360px eles caem para 36px e o vão para 4px. Com três
+              alvos de 44 e vão de 8 sobravam ~56px para a saudação, e "Boa
+              noite" pede ~95px: aparecia "Boa ...". Encolher aqui devolve 40px
+              e mantém os três ícones na tela, que foi a decisão do dono —
+              a alternativa era esconder um deles no menu. Abaixo de 360px,
+              portanto, o alvo fica sob o piso de propósito. */}
+          <div className="flex shrink-0 gap-1 xs:gap-2">
             <button
               onClick={() => setShowValues(!showValues)}
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
-              className="rounded-full bg-white/5 p-2.5 text-ink-2 transition-colors hover:text-ink"
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11"
             >
-              {showValues ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+              {showValues ? <Eye className="h-4 w-4 xs:h-5 xs:w-5" /> : <EyeOff className="h-4 w-4 xs:h-5 xs:w-5" />}
             </button>
-            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative rounded-full bg-white/5 p-2.5 text-ink-2 transition-colors hover:text-ink">
-                <Bell className="w-5 h-5"/>
-                {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-neg rounded-full"></span>}
+            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11">
+                <Bell className="h-4 w-4 xs:h-5 xs:w-5"/>
+                {hasUnread && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-neg rounded-full xs:top-2.5 xs:right-2.5"></span>}
              </button>
+            {/* Entrada do feedback abaixo de 1368px.
+                O botão flutuante cobria o conteúdo nessas larguras (ver
+                `FeedbackWidget`), então aqui ele deixa de pairar e passa a
+                rolar com a página. O painel é o mesmo: este botão só dispara
+                o evento que o widget escuta — não existe segundo formulário
+                de feedback. */}
+            <button
+              onClick={abrirFeedback}
+              aria-label={ROTULO_FEEDBACK}
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11"
+            >
+              <MessageSquare className="h-4 w-4 xs:h-5 xs:w-5" />
+            </button>
           </div>
         </header>
 
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 relative z-10 min-w-0">
+        {/* UMA linha em toda largura, com as ações à direita.
+            Era `flex-col xl:flex-row`, e isso dava duas regressões: no celular
+            o menu "⋯" sobrava sozinho numa fileira inteira acima do primeiro
+            card, e entre 768 e 1279px "Lançar"/"Ler Fatura" caíam numa linha
+            própria esticados a meia largura cada. Agora o grupo da esquerda
+            encolhe (`min-w-0 flex-1`) e o da direita acompanha o título. */}
+        <div className="flex items-center justify-between gap-3 md:gap-6 mb-8 relative z-10 min-w-0">
           {/* No celular isto era uma linha só, sem poder encolher: título +
               olho + seletor de mês passavam da largura da tela e empurravam a
-              página inteira para o lado. Agora o seletor desce sozinho. */}
-          <div className="flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-3 xl:w-auto xl:shrink-0 xl:flex-nowrap">
+              página inteira para o lado. O `flex-wrap` deixa o seletor descer
+              quando não couber ao lado do título. */}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-3 xl:flex-none">
             <div className="hidden min-w-0 flex-1 md:block xl:flex-none">
               <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">Visão Geral</h1>
               <p className="text-ink-2 text-sm md:text-base">Acompanhe e gerencie seu patrimônio</p>
             </div>
             <button
               onClick={() => setShowValues(!showValues)}
-              className="hidden shrink-0 rounded-full border border-line-strong bg-white/5 p-2.5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink md:block"
+              className="hidden h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-line-strong bg-white/5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink md:grid"
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
               title={showValues ? "Ocultar valores" : "Mostrar valores"}
             >
               {showValues ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+            </button>
+
+            {/* A MESMA entrada de feedback do cabeçalho do celular, para a
+                faixa de 768px a 1191px.
+                Aqui ela é obrigatória e não decorativa: o cabeçalho do celular
+                é `md:hidden`, e o botão flutuante só volta em 1368px — sem
+                este botão não haveria porta nenhuma para o feedback entre as
+                duas larguras. Dispara o mesmo evento, abre o mesmo painel. */}
+            <button
+              onClick={abrirFeedback}
+              className="hidden h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-line-strong bg-white/5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink md:max-gutter:grid"
+              aria-label={ROTULO_FEEDBACK}
+              title={ROTULO_FEEDBACK}
+            >
+              <MessageSquare className="h-5 w-5" />
             </button>
 
             {/* Seletor de mês global.
@@ -1181,24 +1243,38 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* Atalhos: 3 ações primárias + menu. Antes eram 11 chips coloridos
-              em linha, que no desktop quebravam em três fileiras. */}
-          {/* `flex-1` sozinho não encolhe abaixo do conteúdo: os três rótulos
-              mais o menu não cabiam em 312px de tela e o "Lançar" saía pela
-              direita. Com base fixa e quebra de linha, eles se organizam em
-              duas fileiras no celular e seguem numa só a partir do tablet. */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full min-w-0 xl:w-auto xl:flex-nowrap">
+          {/* Atalhos. Antes eram 11 chips coloridos em linha, que no desktop
+              quebravam em três fileiras.
+
+              NO CELULAR SOBRA SÓ O MENU. "Lançar" e "Ler Fatura" já são o "+"
+              da barra inferior, no alcance do polegar: repetidas aqui, viravam
+              quatro caminhos para dois destinos, e ainda disputavam os 312px
+              de largura com o menu. O menu fica porque é a única porta para as
+              outras catorze telas — e alinhado à direita, na mesma linha do
+              seletor de mês, em vez de abrir uma fileira própria.
+
+              Os botões têm a largura do CONTEÚDO (`shrink-0`, sem `flex-1`).
+              Com `flex-1 basis-28` eles esticavam para meia largura cada entre
+              768 e 1279px, virando dois blocos enormes numa linha só deles. */}
+          <div className="flex shrink-0 items-center justify-end gap-2.5">
+            {/* A ação principal do app é LANÇAR, não ler fatura.
+                A hierarquia estava invertida: "Ler Fatura" tinha o tom de
+                marca e a sombra, "Lançar" era a superfície apagada — ou seja,
+                o atalho de um caso específico, que depende de a IA estar
+                ligada, dominava o gesto que a pessoa repete todo dia. A troca
+                é de ORDEM NO DOM também, e não de `order-*`: a ordem do foco
+                por teclado tem que acompanhar a ordem visual. */}
+            <motion.button onClick={handleOpenModal} className="hidden shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand px-5 py-2.5 font-semibold text-canvas shadow-[0_8px_28px_rgba(143,189,211,0.28)] transition-colors hover:bg-brand-strong active:scale-[0.97] cursor-pointer md:flex">
+              <Plus className="w-4 h-4 shrink-0" /> <span className="text-sm">Lançar</span>
+            </motion.button>
+
             {AI_ENABLED && (
-              <motion.button onClick={() => setIsAiModalOpen(true)} className="flex-1 basis-28 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-strong text-canvas px-3 sm:px-5 py-2.5 rounded-full font-semibold transition-colors shadow-[0_8px_28px_rgba(143,189,211,0.28)] active:scale-[0.97] cursor-pointer whitespace-nowrap">
+              <motion.button onClick={() => setIsAiModalOpen(true)} className="hidden shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-line bg-white/5 px-5 py-2.5 font-medium text-ink transition-colors hover:bg-white/10 active:scale-[0.97] cursor-pointer md:flex">
                 {/* "Ler Foto" escondia o caso mais útil: ler uma fatura em PDF
                     e abrir compra por compra. */}
                 <Sparkles className="w-4 h-4 shrink-0" /> <span className="text-sm">Ler Fatura</span>
               </motion.button>
             )}
-
-            <motion.button onClick={handleOpenModal} className="flex-1 basis-28 xl:flex-none xl:basis-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-ink px-3 sm:px-5 py-2.5 rounded-full font-medium transition-colors active:scale-[0.97] cursor-pointer border border-line whitespace-nowrap">
-              <Plus className="w-4 h-4 shrink-0" /> <span className="text-sm">Lançar</span>
-            </motion.button>
 
             <div className="relative shrink-0">
               <button
@@ -1307,9 +1383,11 @@ export default function Dashboard() {
           />
         )}
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
+          /* Mesmo grid do estado carregado, senão o esqueleto desenha duas
+             colunas em 320px e o conteúdo chega em uma. */
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
             {[1,2,3,4].map(i => (
-              <Skeleton key={i} className={`h-36 rounded-card ${i === 1 ? "col-span-2 md:col-span-3 h-44" : ""}`} />
+              <Skeleton key={i} className={`h-36 rounded-card ${i === 1 ? "xs:col-span-2 md:col-span-3 h-44" : ""}`} />
             ))}
           </div>
         ) : erroCarregamento ? (
@@ -1340,8 +1418,11 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            <div className="col-span-2 md:col-span-3">
+          /* Uma coluna abaixo de 360px: ver `--breakpoint-xs` no globals.css.
+             Em 320px o par lado a lado deixava 26px para o título do card
+             "Renda Líquida", e nem a primeira palavra caberia. */
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
+            <div className="xs:col-span-2 md:col-span-3">
               <PillarCard
                 title="Capacidade de Poupança"
                 value={capacidadePoupanca}
@@ -1384,7 +1465,7 @@ export default function Dashboard() {
                 onClick={() => setPilarAberto('fixos')}
               />
             </div>
-            <div className="col-span-2 md:col-span-1">
+            <div className="xs:col-span-2 md:col-span-1">
               <PillarCard
                 title="Cartões & Variáveis"
                 value={gargalo}
@@ -1971,10 +2052,29 @@ function PillarCard({ title, value, visible = true, caption, icon, accent, badge
     >
       {hero && <span aria-hidden className="hero-mist" />}
 
-      <div className="relative mb-4 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5 text-ink-2">
+      {/* Em 360px a coluna do card deixa 108px internos. Descontando o ícone
+          (18 + 10 de vão) e o grupo da direita, o título ficava com 22px no
+          card "Renda Líquida" — o único que tem lápis E seta (26 + 8 + 16 =
+          50px) — e chegava cortado. Encolher a fonte não é saída: 12px já é o
+          piso do sistema e este é um app de dinheiro lido no celular.
+
+          Então: duas linhas para o título, e a seta sai no celular. Ela é
+          redundante ali, porque o card inteiro já é um botão; no desktop
+          continua, como pista visual de que dá para abrir. Isso devolve 24px e
+          leva o título a 46px em 360px.
+
+          O `xs:min-h-10` reserva as duas linhas quando os cards ficam lado a
+          lado, mesmo com título de uma linha ("Custos Fixos"), senão o valor de
+          um card da dupla nasceria ~18px acima do outro entre 414 e 767px. Vai
+          no wrapper, e não no `<p>`: o `<p>` é `line-clamp-2`, ou seja
+          `display:-webkit-box`, e o texto se cola no topo da caixa de 40px —
+          no wrapper, o `items-center` centra ícone e texto juntos. Abaixo de
+          360px o grid é de uma coluna e não há par para alinhar; no desktop o
+          título sempre cabe em uma linha. Nos dois casos o mínimo sai. */}
+      <div className="relative mb-4 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5 text-ink-2 xs:min-h-10 md:min-h-0">
           <span className="shrink-0">{icon}</span>
-          <p className="truncate text-[13px] font-medium">{title}</p>
+          <p className="line-clamp-2 text-[13px] font-medium leading-snug">{title}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -1993,7 +2093,7 @@ function PillarCard({ title, value, visible = true, caption, icon, accent, badge
           {badge && (
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badgeTom}`}>{badge}</span>
           )}
-          {onClick && <ArrowUpRight className="h-4 w-4 text-ink-3" />}
+          {onClick && <ArrowUpRight className="hidden h-4 w-4 text-ink-3 md:block" />}
         </div>
       </div>
 

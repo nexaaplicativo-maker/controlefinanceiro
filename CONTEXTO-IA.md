@@ -76,7 +76,7 @@ app/
     health/route.ts       GET  — estado da configuração e commit servido
 
 components/   43 arquivos: 29 modais + moldura do app + 4 primitivas em ui/
-lib/          31 arquivos de regra de negócio + 22 de teste
+lib/          32 arquivos de regra de negócio + 23 de teste
 hooks/        use-mobile, use-modal-a11y
 supabase/     17 scripts SQL idempotentes, rodados À MÃO no painel
 e2e/          smoke.spec.ts
@@ -114,6 +114,33 @@ window.dispatchEvent(new CustomEvent('openModal', { detail: name }));
 
 Consequência: nenhuma tem URL própria, não dá para compartilhar link, e o
 "voltar" do Android sai do app em vez de fechar o modal.
+
+O **`+` central da barra só aparece em `/`** (`usePathname`): quem escuta
+`openModal` é apenas `app/page.tsx`, então em `/casais` e `/admin` ele abria um
+menu que não levava a nada. Com a IA ligada, o `+` abre uma folha ("Adicionar")
+com "Novo lançamento" e "Ler fatura"; com a IA desligada sobraria uma opção só,
+então ele lança direto, sem menu. Essa folha é o `components/ui/Sheet.tsx`.
+
+A entrada do **feedback** não é mais um flutuante em toda largura, e a regra
+vale para **toda rota autenticada**: o botão `fixed` só aparece a partir de
+`--breakpoint-gutter` (1368px), onde existe margem externa para ele; abaixo
+disso é um ícone no cabeçalho. O limiar cobre a **maior** coluna do app
+(`max-w-7xl` = 1280px em `/casais` e `/admin`, não os 1120px da `/`), senão o
+flutuante volta a cobrir conteúdo em 1280 e 1366px. São quatro gatilhos, em
+três telas:
+
+| Tela | Onde | Larguras |
+|---|---|---|
+| `/` | cabeçalho do celular, ao lado do olho e do sino | < 768px |
+| `/` | faixa do título, ao lado do olho | 768–1367px |
+| `/casais` | `<nav>`, depois de "Configurar Cofre" | < 1368px |
+| `/admin` | `<nav>`, depois de "Atualizar" | < 1368px |
+
+Todos disparam o mesmo evento e abrem o **mesmo** painel — existe um
+formulário de feedback só. `abrirFeedback()` e `ROTULO_FEEDBACK` saem de
+`components/FeedbackWidget.tsx`; o acabamento visual é de cada cabeçalho.
+Em `/admin` o ícone é `MessageSquarePlus` porque ali `MessageSquare` já é a
+caixa de entrada do feedback recebido (`FeedbackInboxModal`).
 
 ### Proteção de rota
 Feita no navegador (`window.location.href = '/login'`) — ou seja, **cosmética**.
@@ -290,14 +317,20 @@ sem expor valor nenhum.
 3. **O lint não é barreira**: `next.config.ts` tem
    `eslint.ignoreDuringBuilds: true` e o CI não roda lint, então nada impede um
    erro novo de entrar sem ninguém ver. O código em si está limpo — `npm run
-   lint` sai com 0 erros e 0 avisos em 137 arquivos (ESLint 9.39.1, verificado
-   em 19/11/2026); a afirmação anterior de "~34 erros pré-existentes" estava
+   lint` sai com 0 erros e 0 avisos em 139 arquivos (ESLint 9.39.1, verificado
+   em 20/11/2026); a afirmação anterior de "~34 erros pré-existentes" estava
    vencida. Rode à mão.
-4. **`components/ui/Sheet.tsx` não é importado por ninguém**, enquanto 43
-   arquivos repetem a estrutura de modal à mão. `EmptyState` e `Skeleton`
-   (`ui/Surface.tsx`) são usados em 2 arquivos de 43.
-5. **`--color-ink-3` (#5d6975) reprova no contraste WCAG AA** (~3,6:1) e é
-   usado 248 vezes. `--color-cents` fica em ~4,4:1.
+4. **`components/ui/Sheet.tsx` tem 4 imports** — `IncomeListModal`,
+   `PillarDetailModal`, `ReportsModal` e, desde 20/11/2026, o menu do `+` em
+   `components/BottomNav.tsx` (quarta adoção, não a primeira: as outras três já
+   estavam na `main`). Ainda são **26 arquivos** repetindo `role="dialog"` à
+   mão. `EmptyState` e `Skeleton` (`ui/Surface.tsx`) são importados em 4
+   arquivos de 43.
+5. ~~`--color-ink-3` reprova no contraste~~ **RESOLVIDO.** `--color-ink-3` e
+   `--color-cents` estão em **#7f8c98**, que mede **5,74:1 sobre
+   `--color-canvas`** e **5,00:1 sobre o gradiente do `card`** — passa AA para
+   texto normal (4,5:1) nos dois fundos. O valor antigo (#5d6975, ~3,6:1) saiu;
+   o comentário em `app/globals.css` registra a subida e os números.
 6. **O service worker é fachada:** `public/sw.js` intercepta `fetch` e não faz
    nada. **O app não funciona offline**, apesar de se anunciar como PWA.
 7. **~84 usos de `any`** — não há tipos gerados do Supabase.
@@ -326,6 +359,15 @@ sem expor valor nenhum.
 - **Cor e raio vêm dos tokens** de `app/globals.css`: `bg-canvas`, `bg-surface`,
   `text-ink`/`-2`/`-3`, `brand`, `pos`, `neg`, `warn`, `rounded-card`.
   Não escreva `bg-neutral-900` nem `indigo-500`.
+- Além dos padrões do Tailwind, há **dois breakpoints próprios**:
+  - `--breakpoint-gutter` (1368px) = a largura a partir da qual sobra margem
+    externa ao lado da **maior** coluna do app (`max-w-7xl` = 1280px, usada em
+    `/casais` e `/admin`; a `/` usa 1120px). Conta: `V >= coluna + 72`, mais
+    16px de folga. É o limiar de qualquer elemento flutuante nos cantos; use
+    `gutter:` / `max-gutter:` em vez de recalcular.
+  - `--breakpoint-xs` (360px) = o piso em que dois cards cabem lado a lado. O
+    par de cards de resumo da Visão Geral é `grid-cols-1 xs:grid-cols-2`,
+    porque em 320px o título do card "Renda Líquida" ficava com 26px.
 - **Feedback:** sempre `toast(msg, "success"|"error"|"warning"|"info")` de
   `components/Toast`. Nunca `alert()`.
 - **Dinheiro:** `amount` é sempre positivo no banco; o sinal é semântico, via
@@ -348,7 +390,7 @@ sem expor valor nenhum.
 ```bash
 npm install
 npm run dev        # desenvolvimento
-npm test           # 477 testes unitários em lib/ (Vitest)
+npm test           # 496 testes unitários em lib/ (Vitest)
 npm run test:e2e   # fumaça (Playwright) — sobe o servidor
 npx tsc --noEmit   # tipos
 npm run lint       # ESLint — NÃO roda no build nem no CI

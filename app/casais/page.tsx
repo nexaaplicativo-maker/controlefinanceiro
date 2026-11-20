@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Heart, Home, Plane, Target, Plus, ChevronLeft, Building, PiggyBank, Sparkles, Settings } from "lucide-react";
+import { Heart, Home, Plane, Target, Plus, ChevronLeft, Building, PiggyBank, Sparkles, Settings, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { abrirFeedback, ROTULO_FEEDBACK } from "../../components/FeedbackWidget";
 import { CoupleGoalModal } from "../../components/CoupleGoalModal";
 import { CoupleWealthModal } from "../../components/CoupleWealthModal";
 import { formatMoney } from "../../lib/format";
@@ -68,9 +69,25 @@ export default function CasaisDashboard() {
               <span className="font-bold text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-strong">Nexa Casais</span>
             </div>
           </div>
-          <button onClick={() => setIsWealthModalOpen(true)} className="p-2 bg-white/10 hover:bg-white/20 text-ink-2 rounded-field transition-colors border border-white/20 flex items-center gap-2 cursor-pointer">
-            <Settings className="w-4 h-4" /> <span className="hidden sm:inline text-sm font-medium">Configurar Cofre</span>
-          </button>
+          {/* `min-h-11` nos dois: 44px é o piso de alvo de toque do sistema de
+              design, e `p-2` em volta de um ícone de 16 dava 32. */}
+          <div className="flex shrink-0 items-center gap-2">
+            <button onClick={() => setIsWealthModalOpen(true)} className="min-h-11 min-w-11 justify-center px-3 py-2 bg-white/10 hover:bg-white/20 text-ink-2 rounded-field transition-colors border border-white/20 flex items-center gap-2 cursor-pointer">
+              <Settings className="w-4 h-4" /> <span className="hidden sm:inline text-sm font-medium">Configurar Cofre</span>
+            </button>
+
+            {/* Entrada do feedback abaixo de 1368px, onde o botão flutuante
+                não aparece (ver `components/FeedbackWidget.tsx`). Mesmo
+                gatilho e mesmo painel da Visão Geral. */}
+            <button
+              onClick={abrirFeedback}
+              aria-label={ROTULO_FEEDBACK}
+              title={ROTULO_FEEDBACK}
+              className="hidden h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-field border border-white/20 bg-white/10 text-ink-2 transition-colors hover:bg-white/20 hover:text-ink max-gutter:grid"
+            >
+              <MessageSquare className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </nav>
 

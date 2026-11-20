@@ -1670,9 +1670,13 @@ export default function Dashboard() {
                     <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={acoesAbertas === tx.id} onAlternarAcoes={() => setAcoesAbertas(atual => atual === tx.id ? null : tx.id)} />
                   ))
                 )}
-
+                {/* Mesma medida do `pb-bottom-nav` (globals.css): a BottomNav é `fixed`
+                    e esta barra é `sticky`, que se ancora na viewport, então o
+                    espaçador do ChromeDoApp não a protege. Não virou token
+                    porque `pb-bottom-nav` é o respiro de rodapé do app inteiro
+                    e continua como está. Do `md` em diante a BottomNav some. */}
                 {modoSelecao && selecionados.length > 0 && (
-                  <div className="sticky bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]">
+                  <div className="sticky bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]"> 
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink">
                         {selecionados.length} {selecionados.length === 1 ? 'selecionado' : 'selecionados'}
@@ -1688,7 +1692,7 @@ export default function Dashboard() {
                     </div>
                     <button
                       onClick={handleDeleteSelecionados}
-                      className="shrink-0 inline-flex items-center gap-2 bg-neg/15 hover:bg-neg/25 text-neg border border-neg/30 px-4 py-2.5 rounded-field text-sm font-semibold transition-colors cursor-pointer"
+                      className="shrink-0 inline-flex min-h-11 items-center gap-2 bg-neg/15 hover:bg-neg/25 text-neg border border-neg/30 px-4 py-2.5 rounded-field text-sm font-semibold transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                       Apagar

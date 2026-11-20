@@ -3,9 +3,10 @@ import { requireUser } from '../../../lib/api-auth';
 import { checkRateLimit, rateLimitResponse } from '../../../lib/rate-limit';
 import { vocabularioParaPrompt } from '../../../lib/subcategorias';
 import { normalizarItensExtraidos } from '../../../lib/extracao';
+import { TIPOS_COMPROVANTE } from '../../../lib/comprovante';
 
 /**
- * Teto do arquivo aceito.
+ * Teto do arquivo aceito NESTA rota.
  *
  * Menor de propósito que o corte da Vercel (~4,5 MB no corpo da requisição):
  * assim a mensagem é nossa e diz o que fazer, em vez de um erro cru da
@@ -13,16 +14,14 @@ import { normalizarItensExtraidos } from '../../../lib/extracao';
  *
  * O cliente já reduz a imagem antes de enviar (lib/imagem.ts), então na
  * prática isto só pega arquivo que escapou daquele caminho.
+ *
+ * **Diferente do teto do comprovante de propósito** (`MAX_BYTES_COMPROVANTE`,
+ * 10 MiB em `lib/comprovante.ts`): lá o arquivo vai cru para o Storage e o
+ * teto espelha o `file_size_limit` do bucket; aqui ele vira base64 na memória
+ * de uma função serverless e tem a borda da Vercel no caminho. Não unifique os
+ * dois — a lista de MIME é compartilhada, os tetos não.
  */
 const MAX_BYTES = 4 * 1024 * 1024;
-
-/** O que a leitura sabe processar. Qualquer outra coisa é recusada antes de
- *  virar base64 na memória da função. */
-const TIPOS_ACEITOS = [
-  'image/jpeg', 'image/png', 'image/webp',
-  'image/heic', 'image/heif',
-  'application/pdf',
-];
 
 export async function POST(request: Request) {
   try {
@@ -42,7 +41,10 @@ export async function POST(request: Request) {
     // Sem estas duas checagens, qualquer arquivo ia direto para arrayBuffer()
     // e base64 — inflando um terço no caminho — na memória de uma função
     // serverless, 40 vezes por hora por usuário.
-    if (!TIPOS_ACEITOS.includes(file.type)) {
+    // A lista vive em `lib/comprovante.ts`: é a mesma pergunta que o upload de
+    // comprovante responde, e tem que ser idêntica ao `allowed_mime_types` do
+    // bucket. Duas cópias divergiriam na primeira mudança.
+    if (!TIPOS_COMPROVANTE.includes(file.type)) {
       return NextResponse.json(
         { error: "Esse tipo de arquivo não dá para ler. Envie uma foto (JPG, PNG) ou um PDF." },
         { status: 415 },

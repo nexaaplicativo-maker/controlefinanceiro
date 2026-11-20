@@ -76,7 +76,7 @@ app/
     health/route.ts       GET  — estado da configuração e commit servido
 
 components/   43 arquivos: 29 modais + moldura do app + 4 primitivas em ui/
-lib/          29 arquivos de regra de negócio + 20 de teste
+lib/          31 arquivos de regra de negócio + 22 de teste
 hooks/        use-mobile, use-modal-a11y
 supabase/     17 scripts SQL idempotentes, rodados À MÃO no painel
 e2e/          smoke.spec.ts
@@ -195,7 +195,21 @@ Todas as tabelas têm `id` (uuid) e `user_id` (uuid, dono da linha), e
 | `couple_goals` | `title`, `target_amount`, `current_amount`, `color` |
 | `feedback`, `error_log` | feedback do beta e erros do cliente |
 
-**Storage:** bucket `receipts`, arquivos em `{user_id}/{timestamp}.{ext}`.
+**Storage:** bucket `receipts`, arquivos em `{user_id}/{timestamp}.{ext}`. O
+`{ext}` vem do **MIME validado** (`lib/comprovante.ts`), não do nome do arquivo
+escolhido pelo usuário, e o upload força o `contentType` correspondente.
+
+Configuração esperada do bucket (aplicada à mão no painel, como o resto):
+
+| Campo | Valor |
+|---|---|
+| `public` | `false` — leitura só por URL assinada de 5 min (`lib/receipts.ts`) |
+| `file_size_limit` | 10 MiB (10485760), igual ao `MAX_BYTES_COMPROVANTE` |
+| `allowed_mime_types` | **pendente** — `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`, `application/pdf` |
+
+O `allowed_mime_types` só pode ser preenchido **depois** de o código que força
+o `contentType` estar em produção: antes disso, foto de iPhone (que chega sem
+MIME declarado) passaria a ser recusada pelo bucket.
 
 **RPCs:** `has_beta_access`, `redeem_beta_invite`, `delete_user`,
 `admin_user_stats`, `admin_platform_totals`, `admin_feedback_list`,
@@ -228,7 +242,14 @@ Usuários podem criar categorias próprias, que convivem com essas.
   `SECURITY DEFINER` e trigger `prevent_self_role_escalation`.
 - ✅ **Cabeçalhos de segurança** em `next.config.ts`: HSTS, `nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
-- ✅ **Upload validado** antes de virar base64: MIME em lista fechada e 4 MB.
+- ✅ **Os dois caminhos de arquivo são validados**, com a **mesma lista fechada
+  de MIME** (`TIPOS_COMPROVANTE`, em `lib/comprovante.ts`) e **tetos diferentes
+  de propósito**: 4 MB em `/api/extract` (vira base64 na memória da função e
+  tem a borda de ~4,5 MB da Vercel no caminho) e 10 MiB no upload do
+  comprovante (vai cru para o Storage; o teto espelha o `file_size_limit` do
+  bucket). Não unifique os tetos. No comprovante, a extensão do objeto e o
+  `contentType` vêm do MIME validado, nunca do nome do arquivo. Ainda **não há
+  conferência de magic number** em nenhum dos dois.
 - ✅ **Rotas de IA não vazam erro cru** ao cliente: detalhe no log, mensagem
   genérica na resposta.
 - ✅ **Sem `dangerouslySetInnerHTML`** em lugar nenhum.
@@ -266,10 +287,12 @@ sem expor valor nenhum.
    de atrito do projeto.
 2. **44 de 46 queries não têm `limit()`** — o dashboard baixa o histórico
    inteiro do usuário a cada abertura.
-3. **ESLint acusa ~34 erros** (`react-hooks/set-state-in-effect`,
-   `react-hooks/immutability`, `react/no-unescaped-entities`), e nada os
-   bloqueia: `next.config.ts` tem `eslint.ignoreDuringBuilds: true` e o CI não
-   roda lint.
+3. **O lint não é barreira**: `next.config.ts` tem
+   `eslint.ignoreDuringBuilds: true` e o CI não roda lint, então nada impede um
+   erro novo de entrar sem ninguém ver. O código em si está limpo — `npm run
+   lint` sai com 0 erros e 0 avisos em 137 arquivos (ESLint 9.39.1, verificado
+   em 19/11/2026); a afirmação anterior de "~34 erros pré-existentes" estava
+   vencida. Rode à mão.
 4. **`components/ui/Sheet.tsx` não é importado por ninguém**, enquanto 43
    arquivos repetem a estrutura de modal à mão. `EmptyState` e `Skeleton`
    (`ui/Surface.tsx`) são usados em 2 arquivos de 43.
@@ -325,7 +348,7 @@ sem expor valor nenhum.
 ```bash
 npm install
 npm run dev        # desenvolvimento
-npm test           # 436 testes unitários em lib/ (Vitest)
+npm test           # 477 testes unitários em lib/ (Vitest)
 npm run test:e2e   # fumaça (Playwright) — sobe o servidor
 npx tsc --noEmit   # tipos
 npm run lint       # ESLint — NÃO roda no build nem no CI

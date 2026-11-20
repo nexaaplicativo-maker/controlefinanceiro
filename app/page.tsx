@@ -250,6 +250,8 @@ export default function Dashboard() {
   /** Seleção múltipla: uma importação traz dezenas de linhas, e apagar uma a
    *  uma é inviável. Vale para qualquer lançamento, não só os importados. */
   const [modoSelecao, setModoSelecao] = useState(false);
+  // Um lançamento com as ações abertas por vez (modo toque). `null` = nenhum.
+  const [acoesAbertas, setAcoesAbertas] = useState<string | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
@@ -262,6 +264,7 @@ export default function Dashboard() {
     // A seleção também sai. Sem isto dava para marcar 3 num grupo, trocar de
     // grupo, marcar mais 2, e apagar 5 — três deles fora da tela.
     setModoSelecao(false);
+    setAcoesAbertas(null);
     setSelecionados([]);
   };
 
@@ -688,6 +691,7 @@ export default function Dashboard() {
 
   function sairDaSelecao() {
     setModoSelecao(false);
+    setAcoesAbertas(null);
     setSelecionados([]);
   }
 
@@ -1586,7 +1590,7 @@ export default function Dashboard() {
                     )}
                     {recentTransactions.length > 0 && (
                       <button
-                        onClick={() => modoSelecao ? sairDaSelecao() : setModoSelecao(true)}
+                        onClick={() => { if (modoSelecao) { sairDaSelecao(); } else { setAcoesAbertas(null); setModoSelecao(true); } }}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
                       >
                         {modoSelecao ? 'Cancelar' : 'Selecionar'}
@@ -1663,7 +1667,7 @@ export default function Dashboard() {
                   />
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={acoesAbertas === tx.id} onAlternarAcoes={() => setAcoesAbertas(atual => atual === tx.id ? null : tx.id)} />
                   ))
                 )}
 

@@ -164,10 +164,16 @@ Regra não óbvia em `sumCategory` (`app/page.tsx`): para `Investimentos` o valo
 todas com o mesmo `installment_group`. Só a primeira nasce com o `is_paid`
 escolhido; as demais nascem `false`.
 
-Há um ajuste de fuso na criação das datas — **mantenha-o**:
-```ts
-startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
-```
+A data de cada parcela sai de `somarMeses(date, i)` (`lib/data.ts`), que opera
+na string `YYYY-MM-DD` e prende o dia ao último dia do mês de destino: 31/01
+mais um mês dá 28/02, não 03/03.
+
+**Não converta essa data para `Date` nem reintroduza correção manual de fuso.**
+Até 20/11/2026 esta seção mandava manter um
+`startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset())`
+que **não existe mais no código**: ele saiu de propósito no commit `f46c795`,
+porque a conversão para `Date` era exatamente a chance de errar o dia. O
+comentário em `components/TransactionModal.tsx` registra a troca.
 
 ---
 
@@ -389,7 +395,8 @@ sem expor valor nenhum.
 - Não introduza biblioteca de UI nova (shadcn, MUI) sem ser pedido.
 - Não converta tudo para Server Components de uma vez.
 - Toda tabela nova precisa de policy de RLS junto.
-- Não remova o ajuste de `getTimezoneOffset()` no cálculo de parcelas.
+- Não converta a data da parcela para `Date` nem reintroduza correção manual
+  de fuso: `somarMeses` opera na string e é a regra certa (ver "Parcelamento").
 - Prefira consolidar duplicação existente a criar mais uma cópia.
 - Não altere `.github/workflows/` sem pedir — o token em uso não tem escopo
   para isso e o push é recusado.

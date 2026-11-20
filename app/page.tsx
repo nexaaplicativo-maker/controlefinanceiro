@@ -250,8 +250,15 @@ export default function Dashboard() {
   /** Seleção múltipla: uma importação traz dezenas de linhas, e apagar uma a
    *  uma é inviável. Vale para qualquer lançamento, não só os importados. */
   const [modoSelecao, setModoSelecao] = useState(false);
-  // Um lançamento com as ações abertas por vez (modo toque). `null` = nenhum.
-  const [acoesAbertas, setAcoesAbertas] = useState<string | null>(null);
+  /** Um lançamento com as ações abertas por vez (modo toque). Guarda o id MAIS
+   *  a assinatura do recorte da lista: busca e filtros trocam o conteúdo da
+   *  lista, e sem isso a linha aberta que saía do recorte voltava ABERTA quando
+   *  o filtro saía (achado do QA da rodada 2). É derivado na leitura em vez de
+   *  um `useEffect` que zera: o lint proíbe setState em efeito
+   *  (`react-hooks/set-state-in-effect`), e com razão — isto não é sincronismo
+   *  de estado, é uma pergunta que a lista já sabe responder. */
+  const [acoesAbertas, setAcoesAbertas] = useState<{ id: string; recorte: string } | null>(null);
+  const recorteAtual = `${searchQuery}|${filterPending}|${subcategoriaFiltro ?? ''}|${mostrarTodos}`;
   const [selecionados, setSelecionados] = useState<string[]>([]);
   
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
@@ -1667,7 +1674,7 @@ export default function Dashboard() {
                   />
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={acoesAbertas === tx.id} onAlternarAcoes={() => setAcoesAbertas(atual => atual === tx.id ? null : tx.id)} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={!!acoesAbertas && acoesAbertas.id === tx.id && acoesAbertas.recorte === recorteAtual} onAlternarAcoes={() => setAcoesAbertas(atual => atual?.id === tx.id ? null : { id: tx.id, recorte: recorteAtual })} />
                   ))
                 )}
                 {/* Mesma medida do `pb-bottom-nav` (globals.css): a BottomNav é `fixed`
@@ -1676,7 +1683,7 @@ export default function Dashboard() {
                     porque `pb-bottom-nav` é o respiro de rodapé do app inteiro
                     e continua como está. Do `md` em diante a BottomNav some. */}
                 {modoSelecao && selecionados.length > 0 && (
-                  <div className="sticky bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]"> 
+                  <div className="sticky bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink">
                         {selecionados.length} {selecionados.length === 1 ? 'selecionado' : 'selecionados'}

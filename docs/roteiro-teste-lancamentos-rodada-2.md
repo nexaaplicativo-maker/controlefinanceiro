@@ -112,7 +112,8 @@ Para cada largura, confira uma linha de título longo e uma com selo "Não paga"
 38. Despesa de categoria própria sem subcategoria: círculo tracejado.
 39. Busca por texto que traga lançamentos de outro mês, ou o filtro "A Vencer": a data aparece **completa** (`dd/MM/aaaa`). No mês normal, só `dd/MM`.
 40. Confira um lançamento no dia 1 ou no último dia do mês: o dia mostrado bate com o cadastrado (sem voltar um dia).
-41. Clique num grupo de "Onde foi o dinheiro", use "Ver tudo", troque a busca e o filtro: a lista continua coerente. **Se uma linha reaparecer aberta ao voltar de um filtro, anote:** é um caso conhecido de baixa gravidade (o estado de linha aberta não é zerado ao buscar ou filtrar).
+41. Abra as ações de uma linha, busque algo que a exclua da lista, limpe a busca e volte. Repita trocando o filtro "A Vencer", clicando num grupo de "Onde foi o dinheiro" e em "Ver tudo".
+    Esperado: a linha volta FECHADA em todos os casos. (Era o achado de baixa gravidade do QA, corrigido antes da entrega: o id aberto carrega a assinatura do recorte da lista.)
 
 ---
 

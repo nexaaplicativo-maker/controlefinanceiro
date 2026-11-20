@@ -69,7 +69,11 @@ export function IconeSubcategoria({
   if (ehReceita) return <TrendingUp className={className} />;
 
   const chave = normalizarSubcategoria(subcategoria);
-  const porCategoria = categoria
+  // `hasOwnProperty.call`, não acesso direto: uma categoria própria chamada
+  // `constructor` ou `toString` devolveria função do protótipo e o React
+  // tentaria renderizá-la. O mapa de subcategoria não corre esse risco porque
+  // a chave vem de `normalizarSubcategoria`, de vocabulário fechado.
+  const porCategoria = categoria && Object.prototype.hasOwnProperty.call(ICONES_CATEGORIA, categoria)
     ? ICONES_CATEGORIA[categoria as keyof typeof ICONES_CATEGORIA]
     : undefined;
   const Icone = chave ? ICONES[chave] : (porCategoria ?? CircleDashed);

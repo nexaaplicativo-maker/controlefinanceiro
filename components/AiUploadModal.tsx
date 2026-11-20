@@ -11,6 +11,7 @@ import { useModalA11y } from "../hooks/use-modal-a11y";
 import { reduzirImagem } from "../lib/imagem";
 import { expandirParcelamento, tituloBase, chaveParcela } from "../lib/parcelas";
 import { hojeEmSaoPaulo } from "../lib/data";
+import { novoId } from "../lib/ids";
 
 interface Candidato {
   /** Chave da cobrança parcelada, para não lançar a mesma parcela duas vezes.
@@ -105,7 +106,7 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       if (userId && Array.isArray(data) && data.length > 0) {
         // Marca tudo que saiu desta leitura com o mesmo grupo. É o que permite
         // apagar a fatura inteira depois, sem confirmar compra por compra.
-        const importGroup = crypto.randomUUID();
+        const importGroup = novoId();
 
         const candidatos: Candidato[] = [];
 
@@ -144,7 +145,7 @@ export function AiUploadModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
           // Parcelada: a cobrança deste mês mais as que já estão contratadas.
           // Todas no mesmo installment_group, para a tela de cartões e a
           // exclusão de série enxergarem a compra inteira.
-          const installmentGroup = crypto.randomUUID();
+          const installmentGroup = novoId();
           const base = tituloBase(item.description);
 
           for (const parcela of parcelas) {

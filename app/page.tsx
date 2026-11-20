@@ -8,13 +8,13 @@ import {
   Wallet, TrendingUp, TrendingDown,
   Bell, User, Plus, Home as HomeIcon, CreditCard, 
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
-  PieChart as PieChartIcon, Search, Trash2, Heart, CheckCircle2, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
+  PieChart as PieChartIcon, Search, Trash2, Heart, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
   PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
   WifiOff, RefreshCw, X, ArrowUpRight, MessageSquare
 } from "lucide-react";
 
 import { Money } from "../components/ui/Money";
-import { IconeSubcategoria } from "../components/ui/IconeSubcategoria";
+import { TransactionRow } from "../components/TransactionRow";
 import { EmptyState, Skeleton } from "../components/ui/Surface";
 
 
@@ -60,7 +60,6 @@ import { confirmDialog } from "../components/ConfirmDialog";
 import { getProfileInsights, type FinancialProfile } from "../lib/profile";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
-import { getReceiptUrl } from "../lib/receipts";
 import { resumoPorSubcategoria, normalizarSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
 import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
@@ -251,6 +250,15 @@ export default function Dashboard() {
   /** Seleção múltipla: uma importação traz dezenas de linhas, e apagar uma a
    *  uma é inviável. Vale para qualquer lançamento, não só os importados. */
   const [modoSelecao, setModoSelecao] = useState(false);
+  /** Um lançamento com as ações abertas por vez (modo toque). Guarda o id MAIS
+   *  a assinatura do recorte da lista: busca e filtros trocam o conteúdo da
+   *  lista, e sem isso a linha aberta que saía do recorte voltava ABERTA quando
+   *  o filtro saía (achado do QA da rodada 2). É derivado na leitura em vez de
+   *  um `useEffect` que zera: o lint proíbe setState em efeito
+   *  (`react-hooks/set-state-in-effect`), e com razão — isto não é sincronismo
+   *  de estado, é uma pergunta que a lista já sabe responder. */
+  const [acoesAbertas, setAcoesAbertas] = useState<{ id: string; recorte: string } | null>(null);
+  const recorteAtual = `${searchQuery}|${filterPending}|${subcategoriaFiltro ?? ''}|${mostrarTodos}`;
   const [selecionados, setSelecionados] = useState<string[]>([]);
   
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
@@ -263,6 +271,7 @@ export default function Dashboard() {
     // A seleção também sai. Sem isto dava para marcar 3 num grupo, trocar de
     // grupo, marcar mais 2, e apagar 5 — três deles fora da tela.
     setModoSelecao(false);
+    setAcoesAbertas(null);
     setSelecionados([]);
   };
 
@@ -689,6 +698,7 @@ export default function Dashboard() {
 
   function sairDaSelecao() {
     setModoSelecao(false);
+    setAcoesAbertas(null);
     setSelecionados([]);
   }
 
@@ -1587,7 +1597,7 @@ export default function Dashboard() {
                     )}
                     {recentTransactions.length > 0 && (
                       <button
-                        onClick={() => modoSelecao ? sairDaSelecao() : setModoSelecao(true)}
+                        onClick={() => { if (modoSelecao) { sairDaSelecao(); } else { setAcoesAbertas(null); setModoSelecao(true); } }}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
                       >
                         {modoSelecao ? 'Cancelar' : 'Selecionar'}
@@ -1645,20 +1655,6 @@ export default function Dashboard() {
                     A Vencer
                   </button>
                 </div>
-
-                {/* Legenda do ponto âmbar.
-                    O ponto já existia ao lado do título do lançamento, com a
-                    explicação só no atributo `title` — que não abre no
-                    celular, onde o app é usado. Quem via a bolinha amarela
-                    não tinha como descobrir o que ela queria dizer.
-                    Aparece só quando há pendência na lista: legenda de um
-                    estado ausente é ruído. */}
-                {recentTransactions.some((t: any) => t.is_paid === false) && (
-                  <p className="flex items-center gap-2 text-xs text-ink-2">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
-                    Ponto âmbar: conta ainda não paga.
-                  </p>
-                )}
               </div>
               <div className="flex flex-col gap-0.5">
                 {recentTransactions.length === 0 ? (
@@ -1678,12 +1674,16 @@ export default function Dashboard() {
                   />
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: '2-digit' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={!!acoesAbertas && acoesAbertas.id === tx.id && acoesAbertas.recorte === recorteAtual} onAlternarAcoes={() => setAcoesAbertas(atual => atual?.id === tx.id ? null : { id: tx.id, recorte: recorteAtual })} />
                   ))
                 )}
-
+                {/* Mesma medida do `pb-bottom-nav` (globals.css): a BottomNav é `fixed`
+                    e esta barra é `sticky`, que se ancora na viewport, então o
+                    espaçador do ChromeDoApp não a protege. Não virou token
+                    porque `pb-bottom-nav` é o respiro de rodapé do app inteiro
+                    e continua como está. Do `md` em diante a BottomNav some. */}
                 {modoSelecao && selecionados.length > 0 && (
-                  <div className="sticky bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]">
+                  <div className="sticky bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-2 z-10 flex items-center justify-between gap-3 bg-surface/95 backdrop-blur-xl border border-brand/30 rounded-inner p-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)]">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink">
                         {selecionados.length} {selecionados.length === 1 ? 'selecionado' : 'selecionados'}
@@ -1699,7 +1699,7 @@ export default function Dashboard() {
                     </div>
                     <button
                       onClick={handleDeleteSelecionados}
-                      className="shrink-0 inline-flex items-center gap-2 bg-neg/15 hover:bg-neg/25 text-neg border border-neg/30 px-4 py-2.5 rounded-field text-sm font-semibold transition-colors cursor-pointer"
+                      className="shrink-0 inline-flex min-h-11 items-center gap-2 bg-neg/15 hover:bg-neg/25 text-neg border border-neg/30 px-4 py-2.5 rounded-field text-sm font-semibold transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                       Apagar
@@ -2132,33 +2132,6 @@ function PillarCard({ title, value, visible = true, caption, icon, accent, badge
   );
 }
 
-function ReceiptButton({ stored }: { stored: string }) {
-  const [isOpening, setIsOpening] = useState(false);
-
-  const open = async () => {
-    setIsOpening(true);
-    const url = await getReceiptUrl(stored);
-    setIsOpening(false);
-    if (!url) {
-      toast("Não consegui abrir este comprovante.", "error");
-      return;
-    }
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  return (
-    <button
-      onClick={open}
-      disabled={isOpening}
-      aria-label="Abrir comprovante"
-      title="Abrir comprovante"
-      className="p-2 text-brand/50 hover:text-brand hover:bg-brand/10 rounded-field transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-    >
-      {isOpening ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-    </button>
-  );
-}
-
 /**
  * "Onde foi o dinheiro" — despesa do mês agrupada pelo segundo eixo.
  *
@@ -2281,92 +2254,5 @@ function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, fil
         Toque num grupo para ver as compras dele na lista abaixo.
       </p>
     </motion.div>
-  );
-}
-
-function TransactionRow({ title, category, date, amount, visible, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao }: any) {
-  const isIncome = type === 'income';
-
-  return (
-    <div
-      onClick={modoSelecao ? onToggleSelecao : undefined}
-      className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-3 overflow-hidden rounded-inner px-2 py-3 transition-colors ${modoSelecao ? 'cursor-pointer' : ''} ${
-        selecionado ? 'bg-brand/10' : 'hover:bg-white/[0.03]'
-      }`}
-    >
-
-      {/* Esquerda: Icone e Textos */}
-      <div className="flex min-w-0 flex-[1_1_180px] items-center gap-3">
-        {modoSelecao && (
-          <input
-            type="checkbox"
-            checked={!!selecionado}
-            onChange={onToggleSelecao}
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Selecionar ${title || 'lançamento'}`}
-            className="h-5 w-5 shrink-0 cursor-pointer rounded border-white/20 bg-white/5 text-brand"
-          />
-        )}
-        {/* Ícone do ASSUNTO, não da direção: a direção já está na cor do
-            valor, à direita. Trinta setas iguais numa fatura não ajudam a
-            achar nada; um carrinho e um carro, sim. */}
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2">
-          <IconeSubcategoria subcategoria={subcategoria} ehReceita={isIncome} />
-        </div>
-
-        <div className="flex min-w-0 flex-col">
-          <div className="flex min-w-0 items-center gap-1.5">
-            {/* Pendente vira um ponto de 6px: antes era fundo âmbar na linha
-                inteira mais uma etiqueta, para dizer uma coisa só. */}
-            {isPaid === false && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
-            )}
-            <h4 className="truncate text-[15px] font-medium leading-snug text-ink">
-              {title || "Sem título"}
-              {/* `title` não abre no toque e leitor de tela não anuncia cor.
-                  A legenda acima explica o ponto para quem enxerga; isto
-                  resolve para quem não. */}
-              {isPaid === false && <span className="sr-only"> (não paga)</span>}
-            </h4>
-          </div>
-          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-3">
-            <span className="truncate">{subcategoria || category || "Sem categoria"}</span>
-            <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-ink-3" />
-            <span className="shrink-0">{date || "Sem data"}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Direita: Valor e Botões */}
-      <div className="flex shrink-0 flex-[1_1_150px] items-center justify-end gap-1">
-        <Money
-          value={amount}
-          visible={visible}
-          sinal={isIncome ? 'entrada' : 'saida'}
-          tom={isIncome ? 'pos' : 'ink'}
-          className="mr-auto whitespace-nowrap text-[15px] font-semibold tracking-tight sm:mr-1"
-        />
-        {/* Em seleção a linha inteira é o alvo do toque. Manter lápis e lixeira
-            aqui só cria acidente: um deles apaga um item enquanto a pessoa
-            acha que está marcando. */}
-        {!modoSelecao && (
-          <>
-            {isPaid !== undefined && (
-              <button
-                onClick={onTogglePaid}
-                aria-label={isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
-                className={`shrink-0 cursor-pointer rounded-full p-2 transition-colors hover:bg-white/5 ${isPaid ? 'text-ink-3 hover:text-pos' : 'text-warn'}`}
-              >
-                {isPaid ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-              </button>
-            )}
-            {receiptUrl && <ReceiptButton stored={receiptUrl} />}
-            <button onClick={onEdit} aria-label="Editar" className="shrink-0 cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-white/5 hover:text-ink"><Edit2 className="h-4 w-4" /></button>
-            <button onClick={onDelete} aria-label="Excluir" className="shrink-0 cursor-pointer rounded-full p-2 text-ink-3 transition-colors hover:bg-neg/10 hover:text-neg"><Trash2 className="h-4 w-4" /></button>
-          </>
-        )}
-      </div>
-
-    </div>
   );
 }

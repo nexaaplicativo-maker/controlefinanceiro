@@ -225,11 +225,35 @@
   conserto é despachar o `openModal` só depois da folha fechar
   (`requestAnimationFrame` ou `onExitComplete`). Hoje não afeta produção: com a
   IA desligada o `+` abre o lançamento direto, sem folha.
-- **`prefers-reduced-motion` não existe no projeto** (zero ocorrências em todo o
-  repo, nem em CSS nem como `MotionConfig`). Pré-existente, não introduzido pela
-  rodada 1 — que até tirou animação. Uma regra global em `app/globals.css` ou
-  `<MotionConfig reducedMotion="user">` no layout resolve o app inteiro de uma
-  vez; é item próprio, não de uma rodada visual.
+- **`prefers-reduced-motion` quase não existe no projeto.** A rodada 2 da lista
+  de lançamentos trouxe a primeira ocorrência (`motion-reduce:transition-none`
+  na revelação das ações em `components/TransactionRow.tsx`); o resto do app
+  segue sem tratamento, nem em CSS nem como `MotionConfig`. Pré-existente. Uma
+  regra global em `app/globals.css` ou `<MotionConfig reducedMotion="user">` no
+  layout resolve o app inteiro de uma vez; é item próprio, não de uma rodada
+  visual.
+- **Linha de lançamento: dois resíduos conhecidos da rodada 2** (20/11/2026).
+  (a) Aparelho híbrido (notebook com tela de toque) reporta `pointer: fine`, e
+  ali o botão sobreposto não é renderizado: as ações dependem do `:hover` que o
+  navegador emula no toque. O teclado alcança sempre, e trocar para
+  `any-pointer` reabriria o problema no tablet. (b) Com cursor, em janela
+  abaixo de 360px, o bloco do valor ocupa a linha inteira e o grupo de ações
+  reservado cai numa terceira linha vazia (~40px). Os dois ficaram por decisão:
+  o conserto cobraria apertar o valor contra o texto em tela estreita.
+- **Ideia futura: número da parcela fora do título** (anotada em 20/11/2026,
+  depois do teste em Android real). Hoje o `TransactionModal` cola `(3/12)` no
+  fim do `title` (`components/TransactionModal.tsx:190`), e na lista o título
+  trunca com reticências — então doze parcelas da mesma compra ficam com o
+  rótulo visualmente idêntico, que é exatamente o que mais precisa distinguir.
+  O caminho já está quase todo pronto: **a coluna `installment_info` existe e
+  já é preenchida** pelos dois caminhos (`TransactionModal.tsx:205` no manual,
+  `AiUploadModal.tsx:159` na importação), **já vem na consulta do dashboard**
+  (`COLUNAS_TX`, `app/page.tsx:107`, sem query nova) e **já tem padrão visual
+  pronto** — o `CreditCardManagerModal.tsx:204` mostra o `3/12` como selo
+  `shrink-0` ao lado do título. Falta só exibir na linha de lançamento. Cuidado
+  ao fazer: o título continua carregando o `(3/12)` colado, então sem usar o
+  `tituloBase()` de `lib/parcelas.ts` (o mesmo que o `AiUploadModal` já usa) a
+  informação apareceria duas vezes.
 - **Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**,
   sob o piso de 44px do sistema de design. É troca consciente (20/11/2026): com
   44px a saudação não cabia e aparecia "Boa ...", e a alternativa era tirar um

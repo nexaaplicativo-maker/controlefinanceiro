@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
+import { novoId } from "../lib/ids";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -33,7 +34,7 @@ export function toast(message: string, type: ToastType = "success") {
  * clicar dentro da janela.
  */
 export function toastWithUndo(message: string, onUndo: () => void, durationMs = 7000) {
-  const actionId = crypto.randomUUID();
+  const actionId = novoId();
   const handler = () => { onUndo(); window.removeEventListener("nexa:toast-action:" + actionId, handler); };
   window.addEventListener("nexa:toast-action:" + actionId, handler);
   // Se o usuario nao desfizer, o listener morre junto com a janela do toast.
@@ -68,7 +69,7 @@ export function ToastContainer() {
   useEffect(() => {
     const handler = (e: Event) => {
       const { message, type, actionLabel, actionId, durationMs } = (e as CustomEvent).detail;
-      const id = crypto.randomUUID();
+      const id = novoId();
       setToasts((prev) => [...prev, { id, message, type, actionLabel, actionId }]);
       setTimeout(() => removeToast(id), durationMs ?? 4000);
     };

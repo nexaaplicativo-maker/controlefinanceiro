@@ -16,13 +16,20 @@
  *
  * Segundo nível de fallback: sem subcategoria reconhecida, o ícone vem da
  * categoria (`Contas Fixas`, `Cartões`...). O mapa por categoria segue
- * monocromático; categoria própria do usuário continua em `CircleDashed`.
+ * monocromático. Sem subcategoria E sem categoria conhecida (categoria própria
+ * do usuário, ou lançamento sem categoria), o último recurso é `Banknote`, um
+ * ícone neutro no mesmo traço dos outros: o `CircleDashed` que ficava aqui
+ * parecia o app não ter carregado o ícone, e foi o que apareceu em teste de
+ * celular em 20/11/2026. O `CircleDashed` saiu do arquivo inteiro: também era
+ * o ícone de `Outros`, e ali comunicava "vazio" ou "não carregou" para uma
+ * escolha que é explícita de quem lança. `Outros` passou a `Tag` — etiqueta,
+ * no mesmo traço dos outros quinze.
  */
 
 import {
   ShoppingCart, UtensilsCrossed, Bus, Fuel, Home, HeartPulse, GraduationCap,
   Repeat, Gamepad2, Shirt, Sparkles, PawPrint, Plane, Wrench, Receipt,
-  CircleDashed, TrendingUp, FileText, ShoppingBag, CreditCard, PiggyBank,
+  TrendingUp, FileText, ShoppingBag, CreditCard, PiggyBank, Banknote, Tag,
 } from 'lucide-react';
 import { normalizarSubcategoria } from '../../lib/subcategorias';
 
@@ -42,7 +49,7 @@ const ICONES = {
   'Viagem': Plane,
   'Serviços': Wrench,
   'Impostos e Tarifas': Receipt,
-  'Outros': CircleDashed,
+  'Outros': Tag,
 } as const;
 
 // Categorias do app (os `<select>` e lib/extracao.ts). String exata, sem normalizar.
@@ -76,7 +83,7 @@ export function IconeSubcategoria({
   const porCategoria = categoria && Object.prototype.hasOwnProperty.call(ICONES_CATEGORIA, categoria)
     ? ICONES_CATEGORIA[categoria as keyof typeof ICONES_CATEGORIA]
     : undefined;
-  const Icone = chave ? ICONES[chave] : (porCategoria ?? CircleDashed);
+  const Icone = chave ? ICONES[chave] : (porCategoria ?? Banknote);
 
   return <Icone className={className} />;
 }

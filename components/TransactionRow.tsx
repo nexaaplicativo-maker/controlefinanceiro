@@ -152,7 +152,15 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
           <h4 className="truncate text-[15px] font-medium leading-snug text-ink">
             {title || "Sem título"}
           </h4>
-          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-3">
+          {/* A linha de meta PODE quebrar (`flex-wrap`), e é de propósito: nos
+              "Resultados" de todos os meses a data carrega o ano, e em 360px o
+              conjunto selo + categoria + data não cabe ao lado do valor. Antes
+              quem descia era o bloco do valor inteiro — o sintoma relatado de
+              "o valor quebrou em duas linhas". Agora o valor fica cravado na
+              primeira linha e o excedente é este texto, que é o que pode
+              esperar. `categoria · data` é um item só para o ponto separador
+              nunca sobrar pendurado no fim de uma linha. */}
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-ink-3">
             {/* Pendência era um ponto âmbar de 6px (com legenda separada e um
                 `sr-only` "(não paga)" no título): cor sozinha, e a legenda
                 só ensinava o código. Agora é texto real, que dispensa
@@ -164,17 +172,19 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
                 {isIncome ? 'Não recebida' : 'Não paga'}
               </span>
             )}
-            {/* Ordem de degradação: só a subcategoria trunca. */}
-            <span className="truncate">{subcategoria || category || "Sem categoria"}</span>
-            <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-ink-3" />
-            <span className="shrink-0">{date || "Sem data"}</span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              {/* Ordem de degradação: só a subcategoria trunca. */}
+              <span className="truncate">{subcategoria || category || "Sem categoria"}</span>
+              <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-ink-3" />
+              <span className="shrink-0">{date || "Sem data"}</span>
+            </span>
           </div>
         </div>
       </div>
 
       {/* [2] Direita: valor e comprovante. O comprovante fica sempre visível
           (é informação, não só ação), fora do grupo que se revela. */}
-      <div className="pointer-events-none relative z-20 flex w-full shrink-0 items-center justify-end gap-1 xs:w-auto">
+      <div className="pointer-events-none relative z-20 flex w-full shrink-0 flex-nowrap items-center justify-end gap-1 xs:w-auto">
         <Money
           value={amount}
           visible={visible}

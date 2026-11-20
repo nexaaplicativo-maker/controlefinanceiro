@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import {
   Shield, Users, TrendingUp, TrendingDown, DollarSign,
-  ChevronLeft, RefreshCw, Search, CheckCircle2, XCircle, Loader2, MessageSquare
+  ChevronLeft, RefreshCw, Search, CheckCircle2, XCircle, Loader2, MessageSquare, MessageSquarePlus
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { abrirFeedback, ROTULO_FEEDBACK } from "../../components/FeedbackWidget";
 import { toast } from "../../components/Toast";
 import { ToastContainer } from "../../components/Toast";
 import { FeedbackInboxModal } from "../../components/FeedbackInboxModal";
@@ -180,10 +181,12 @@ export default function AdminPage() {
               <span className="text-xs bg-brand/20 text-brand border border-brand/30 px-2 py-0.5 rounded-full font-medium">NEXA</span>
             </div>
           </div>
+          {/* `min-h-11` na fileira: 44px é o piso de alvo de toque do sistema
+              de design, e `py-1.5` em volta de um texto de 14 dava 32. */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsInboxOpen(true)}
-              className="flex items-center gap-2 text-sm text-brand hover:text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer relative"
+              className="flex min-h-11 items-center gap-2 text-sm text-brand hover:text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer relative"
             >
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Feedback</span>
@@ -197,10 +200,29 @@ export default function AdminPage() {
             <button
               onClick={loadData}
               disabled={isRefreshing}
-              className="flex items-center gap-2 text-sm text-ink-2 hover:text-ink bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              className="flex min-h-11 items-center gap-2 text-sm text-ink-2 hover:text-ink bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Atualizar</span>
+            </button>
+
+            {/* Entrada do feedback abaixo de 1368px, onde o botão flutuante
+                não aparece (ver `components/FeedbackWidget.tsx`). Mesmo
+                gatilho e mesmo painel das outras telas.
+
+                O ícone é `MessageSquarePlus`, e não o `MessageSquare` das
+                outras três entradas, porque NESTA tela o `MessageSquare` já é
+                a caixa de entrada do feedback recebido, dois botões à
+                esquerda. Dois ícones idênticos lado a lado — um que lê, um que
+                escreve — seria pior que a pequena diferença de desenho; o
+                "+" diz que este manda uma mensagem nova. */}
+            <button
+              onClick={abrirFeedback}
+              aria-label={ROTULO_FEEDBACK}
+              title={ROTULO_FEEDBACK}
+              className="hidden h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-lg bg-white/5 text-ink-2 transition-colors hover:bg-white/10 hover:text-ink max-gutter:grid"
+            >
+              <MessageSquarePlus className="h-5 w-5" />
             </button>
           </div>
         </div>

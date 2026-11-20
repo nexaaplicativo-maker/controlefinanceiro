@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Home, CreditCard, BarChart3, Settings, Plus, Camera, PenTool } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { AI_ENABLED } from "../lib/features";
+import { Sheet } from "./ui/Sheet";
 
 function Ponto({ ativo }: { ativo: boolean }) {
   return (
@@ -18,6 +19,16 @@ export function BottomNav() {
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
+  /**
+   * O "+" só existe na Visão Geral.
+   *
+   * A barra é montada pelo `ChromeDoApp` em toda rota logada, mas quem escuta
+   * o evento `openModal` é só `app/page.tsx`. Em `/casais` e `/admin` o botão
+   * desenhava, animava, abria o menu — e nada acontecia ao escolher a opção.
+   * Botão que não faz nada é pior que botão ausente.
+   */
+  const naVisaoGeral = (usePathname() ?? '') === '/';
+
   const openModal = (name: string) => {
     setActiveTab(name);
     // 'home' não abre modal nenhum — antes o botão Início era decorativo.
@@ -30,8 +41,15 @@ export function BottomNav() {
   };
 
   return (
-    <div className="md:hidden block"> {/* <--- A CAPA DE INVISIBILIDADE NO PC ESTÁ AQUI */}
-      <div className="fixed bottom-0 left-0 w-full z-40 pb-safe px-safe">
+    <>
+      {/* O `md:hidden` esconde só a BARRA. A folha do "+" é irmã dela, não
+          filha, de propósito: quando a folha ficava dentro do mesmo wrapper,
+          abrir no celular em retrato e girar para paisagem (≥768px) a escondia
+          com o `use-modal-a11y` ainda montado — `body.overflow` travado, página
+          sem rolagem e nada visível para fechar. No iOS não há Esc nem botão
+          voltar, então só girando de volta se saía. Como irmã, ela continua
+          visível e fechável se a orientação mudar no meio do caminho. */}
+      <div className="fixed bottom-0 left-0 w-full z-40 pb-safe px-safe md:hidden">
         <div className="absolute inset-0 bg-canvas/85 backdrop-blur-xl border-t border-line-strong"></div>
         
         <div className="relative px-6 h-20 flex items-center justify-between">
@@ -48,16 +66,21 @@ export function BottomNav() {
             </button>
           </div>
 
-          <div className="absolute left-1/2 -top-6 -translate-x-1/2">
-            {/* Com a IA desligada sobraria uma opção só no leque — então o
-                botão lança direto, sem abrir menu de um item. */}
-            <button
-              onClick={() => AI_ENABLED ? setIsFabOpen(!isFabOpen) : openModal('manual')}
-              className={`w-14 h-14 rounded-full flex items-center justify-center text-canvas shadow-xl transition-all duration-300 cursor-pointer ${isFabOpen ? 'bg-white/5 border border-white/10 rotate-45' : 'bg-brand shadow-[0_8px_28px_rgba(143,189,211,0.35)] hover:scale-105 active:scale-95'}`}
-            >
-              <Plus className="h-6 w-6" />
-            </button>
-          </div>
+          {naVisaoGeral && (
+            <div className="absolute left-1/2 -top-6 -translate-x-1/2">
+              {/* Com a IA desligada sobraria uma opção só na folha — então o
+                  botão lança direto, sem abrir menu de um item. */}
+              <button
+                onClick={() => AI_ENABLED ? setIsFabOpen(true) : openModal('manual')}
+                aria-label={AI_ENABLED ? "Adicionar" : "Novo lançamento"}
+                aria-haspopup={AI_ENABLED ? "dialog" : undefined}
+                aria-expanded={AI_ENABLED ? isFabOpen : undefined}
+                className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-brand text-canvas shadow-[0_8px_28px_rgba(143,189,211,0.35)] transition-transform hover:scale-105 active:scale-95"
+              >
+                <Plus className="h-6 w-6" />
+              </button>
+            </div>
+          )}
 
           <div className="flex gap-8">
             <button onClick={() => openModal('relatorios')} className={`flex flex-col items-center gap-0.5 min-w-[56px] py-2 transition-colors cursor-pointer ${activeTab === 'relatorios' ? 'text-brand' : 'text-ink-3 hover:text-brand'}`}>
@@ -74,40 +97,42 @@ export function BottomNav() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {isFabOpen && AI_ENABLED && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md z-30"
-              onClick={() => setIsFabOpen(false)}
-            />
-            <div className="fixed bottom-above-nav left-1/2 -translate-x-1/2 z-30 flex gap-6">
-              <motion.button 
-                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0, transition: { duration: 0.1 } }}
-                onClick={() => { setIsFabOpen(false); openModal('manual'); }}
-                className="flex flex-col items-center gap-2 group cursor-pointer"
-              >
-                <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
-                  <PenTool className="w-6 h-6 text-brand" />
-                </div>
-                <span className="text-ink text-xs font-medium bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/5">Manual</span>
-              </motion.button>
-              
-              <motion.button 
-                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1, transition: { delay: 0.05 } }} exit={{ y: 20, opacity: 0, transition: { duration: 0.1 } }}
-                onClick={() => { setIsFabOpen(false); openModal('camera'); }}
-                className="flex flex-col items-center gap-2 group cursor-pointer"
-              >
-                <div className="w-14 h-14 bg-gradient-to-r from-brand to-brand rounded-full flex items-center justify-center shadow-lg shadow-brand/30 group-hover:scale-110 active:scale-95 transition-transform">
-                  <Camera className="w-6 h-6 text-ink" />
-                </div>
-                <span className="text-ink text-xs font-medium bg-black/50 px-2 py-1 rounded-md backdrop-blur-md border border-white/5">Câmera IA</span>
-              </motion.button>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+      {/* O menu do "+" é uma folha, não um leque à mão.
+          O leque anterior eram dois círculos soltos sobre um fundo escurecido:
+          sem `role="dialog"`, sem Esc, sem armadilha de foco, sem devolver o
+          foco ao fechar e sem responder ao botão voltar do Android. Pior, o
+          fundo escurecido ficava em z-30, ABAIXO do botão de feedback (z-40),
+          que continuava aceso e clicável por cima dele. A folha resolve os
+          cinco de uma vez (`use-modal-a11y`) e sobe da base, onde a mão está.
+
+          O "+" também deixou de girar 45°: com a folha por cima (z-50) ele
+          fica atrás do fundo escurecido e a rotação não era mais vista. */}
+      <Sheet
+        isOpen={isFabOpen && naVisaoGeral}
+        onClose={() => setIsFabOpen(false)}
+        title="Adicionar"
+        largura="sm"
+      >
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={() => { setIsFabOpen(false); openModal('manual'); }}
+            className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-field bg-brand px-4 py-3.5 text-left text-sm font-semibold text-canvas transition-colors hover:bg-brand-strong"
+          >
+            <PenTool className="h-5 w-5 shrink-0" />
+            Novo lançamento
+          </button>
+
+          {AI_ENABLED && (
+            <button
+              onClick={() => { setIsFabOpen(false); openModal('camera'); }}
+              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-field border border-line bg-white/5 px-4 py-3.5 text-left text-sm font-medium text-ink transition-colors hover:bg-white/10"
+            >
+              <Camera className="h-5 w-5 shrink-0 text-brand" />
+              Ler fatura
+            </button>
+          )}
+        </div>
+      </Sheet>
+    </>
   );
 }

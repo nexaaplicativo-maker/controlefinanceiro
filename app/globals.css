@@ -59,6 +59,43 @@
   --radius-card: 22px;
   --radius-inner: 16px;
   --radius-field: 14px;
+
+  /* Largura a partir da qual EXISTE goteira ao lado do conteúdo.
+
+     Abaixo dela a coluna central ocupa a tela toda e qualquer elemento
+     flutuante no canto esquerdo passa a cobrir o conteúdo durante a rolagem —
+     era o que o botão de feedback fazia em 360, 768, 1024 e 1152px.
+
+     A CONTA
+     Um flutuante em `left-4` ocupa de x=16 até x=16+44=60. A coluna de largura
+     C, centralizada numa viewport V, começa em (V−C)/2 e o conteúdo começa
+     24px depois (`px-6`). Não sobrepor exige:
+
+       (V − C)/2 + 24 >= 60   ->   V >= C + 72
+
+     O APP TEM DUAS COLUNAS DIFERENTES, e vale a maior:
+
+       `/`                 max-w-[1120px] -> V >= 1192
+       `/casais`, `/admin` max-w-7xl=1280 -> V >= 1352   <- esta manda
+
+     Em exatamente 1352 a folga é zero: o botão e a `shadow-xl` encostam na
+     aresta do primeiro card. Daí os +16px — que viram 8px de respiro de cada
+     lado, porque o acréscimo em V se divide entre as duas goteiras:
+
+       1280 + 72 + 16 = 1368   ->   (1368 − 1280)/2 − 36 = 8px de cada lado
+
+     Fica como breakpoint, e não como número solto, porque é a mesma conta para
+     qualquer flutuante que venha depois. Se alguma tela nova usar coluna mais
+     larga que 1280, este valor sobe junto. */
+  --breakpoint-gutter: 1368px;
+
+  /* Telas estreitas de verdade (iPhone SE de 1ª geração e Android antigo de
+     320px). Lá o par de cards de resumo em duas colunas deixa 26px para o
+     título do card "Renda Líquida" — o único que também tem o lápis de editar
+     receitas —, e nem "Renda" caberia. Abaixo deste ponto o par empilha em uma
+     coluna e o título ganha a largura inteira. De 360px para cima, duas
+     colunas cabem. */
+  --breakpoint-xs: 360px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -230,11 +267,4 @@ input, textarea, select, [contenteditable], .prose, .selectable {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
-}
-
-/* Flutuantes que precisam ficar acima da barra inferior sem colidir com a
-   barra de gestos do sistema. Antes usavam `bottom-28` fixo, que no iPhone
-   caía em cima da faixa de gestos. */
-@utility bottom-above-nav {
-  bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
 }

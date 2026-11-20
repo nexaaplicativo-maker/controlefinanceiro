@@ -64,8 +64,10 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
       }`}
     >
 
-      {/* Esquerda: Icone e Textos */}
-      <div className="flex min-w-0 flex-[1_1_180px] items-center gap-3">
+      {/* Esquerda: Icone e Textos. Em 360px+ o bloco divide a linha com o
+          valor; abaixo disso ocupa a linha toda e o valor desce, à direita,
+          de forma controlada (decisão de projeto, não regressão). */}
+      <div className="flex min-w-0 flex-[1_1_100%] items-center gap-2.5 xs:flex-[1_1_0%] xs:gap-3">
         {modoSelecao && (
           <input
             type="checkbox"
@@ -79,26 +81,28 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
         {/* Ícone do ASSUNTO, não da direção: a direção já está na cor do
             valor, à direita. Trinta setas iguais numa fatura não ajudam a
             achar nada; um carrinho e um carro, sim. */}
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2 xs:h-10 xs:w-10">
           <IconeSubcategoria subcategoria={subcategoria} categoria={category} ehReceita={isIncome} />
         </div>
 
         <div className="flex min-w-0 flex-col">
-          <div className="flex min-w-0 items-center gap-1.5">
-            {/* Pendente vira um ponto de 6px: antes era fundo âmbar na linha
-                inteira mais uma etiqueta, para dizer uma coisa só. */}
-            {isPaid === false && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
-            )}
-            <h4 className="truncate text-[15px] font-medium leading-snug text-ink">
-              {title || "Sem título"}
-              {/* `title` não abre no toque e leitor de tela não anuncia cor.
-                  A legenda acima explica o ponto para quem enxerga; isto
-                  resolve para quem não. */}
-              {isPaid === false && <span className="sr-only"> (não paga)</span>}
-            </h4>
-          </div>
+          {/* O título só trunca; o selo de pendência fica na linha de baixo. */}
+          <h4 className="truncate text-[15px] font-medium leading-snug text-ink">
+            {title || "Sem título"}
+          </h4>
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-3">
+            {/* Pendência era um ponto âmbar de 6px (com legenda separada e um
+                `sr-only` "(não paga)" no título): cor sozinha, e a legenda
+                só ensinava o código. Agora é texto real, que dispensa
+                legenda e vale para todo mundo. O `sr-only` saiu justamente
+                para o leitor de tela não anunciar a pendência duas vezes.
+                "Não recebida" porque `isPaid` também vale para entradas. */}
+            {isPaid === false && (
+              <span className="shrink-0 rounded-full bg-warn/15 px-1.5 py-0.5 text-[11px] font-medium text-warn">
+                {isIncome ? 'Não recebida' : 'Não paga'}
+              </span>
+            )}
+            {/* Ordem de degradação: só a subcategoria trunca. */}
             <span className="truncate">{subcategoria || category || "Sem categoria"}</span>
             <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-ink-3" />
             <span className="shrink-0">{date || "Sem data"}</span>
@@ -107,13 +111,13 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
       </div>
 
       {/* Direita: Valor e Botões */}
-      <div className="flex shrink-0 flex-[1_1_150px] items-center justify-end gap-1">
+      <div className="flex w-full shrink-0 items-center justify-end gap-1 xs:w-auto">
         <Money
           value={amount}
           visible={visible}
           sinal={isIncome ? 'entrada' : 'saida'}
           tom={isIncome ? 'pos' : 'ink'}
-          className="mr-auto whitespace-nowrap text-[15px] font-semibold tracking-tight sm:mr-1"
+          className="mr-auto whitespace-nowrap text-sm font-semibold tracking-tight xs:text-[15px] sm:mr-1"
         />
         {/* Em seleção a linha inteira é o alvo do toque. Manter lápis e lixeira
             aqui só cria acidente: um deles apaga um item enquanto a pessoa

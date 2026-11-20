@@ -1644,20 +1644,6 @@ export default function Dashboard() {
                     A Vencer
                   </button>
                 </div>
-
-                {/* Legenda do ponto âmbar.
-                    O ponto já existia ao lado do título do lançamento, com a
-                    explicação só no atributo `title` — que não abre no
-                    celular, onde o app é usado. Quem via a bolinha amarela
-                    não tinha como descobrir o que ela queria dizer.
-                    Aparece só quando há pendência na lista: legenda de um
-                    estado ausente é ruído. */}
-                {recentTransactions.some((t: any) => t.is_paid === false) && (
-                  <p className="flex items-center gap-2 text-xs text-ink-2">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden />
-                    Ponto âmbar: conta ainda não paga.
-                  </p>
-                )}
               </div>
               <div className="flex flex-col gap-0.5">
                 {recentTransactions.length === 0 ? (
@@ -1677,7 +1663,7 @@ export default function Dashboard() {
                   />
                 ) : (
                   recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
+                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => handleDeleteTransaction(tx.id)} onEdit={() => handleEditTransaction(tx)} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} />
                   ))
                 )}
 

@@ -80,7 +80,7 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
             valor, à direita. Trinta setas iguais numa fatura não ajudam a
             achar nada; um carrinho e um carro, sim. */}
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-ink-2">
-          <IconeSubcategoria subcategoria={subcategoria} ehReceita={isIncome} />
+          <IconeSubcategoria subcategoria={subcategoria} categoria={category} ehReceita={isIncome} />
         </div>
 
         <div className="flex min-w-0 flex-col">

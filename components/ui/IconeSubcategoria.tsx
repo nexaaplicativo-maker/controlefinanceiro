@@ -13,12 +13,16 @@
  * A tentação é dar uma cor a cada subcategoria. São dezesseis — seria o
  * arco-íris que acabamos de tirar do app, e as cores competiriam com verde e
  * vermelho, que ali significam entrada e saída.
+ *
+ * Segundo nível de fallback: sem subcategoria reconhecida, o ícone vem da
+ * categoria (`Contas Fixas`, `Cartões`...). O mapa por categoria segue
+ * monocromático; categoria própria do usuário continua em `CircleDashed`.
  */
 
 import {
   ShoppingCart, UtensilsCrossed, Bus, Fuel, Home, HeartPulse, GraduationCap,
   Repeat, Gamepad2, Shirt, Sparkles, PawPrint, Plane, Wrench, Receipt,
-  CircleDashed, TrendingUp,
+  CircleDashed, TrendingUp, FileText, ShoppingBag, CreditCard, PiggyBank,
 } from 'lucide-react';
 import { normalizarSubcategoria } from '../../lib/subcategorias';
 
@@ -41,12 +45,23 @@ const ICONES = {
   'Outros': CircleDashed,
 } as const;
 
+// Categorias do app (os `<select>` e lib/extracao.ts). String exata, sem normalizar.
+const ICONES_CATEGORIA = {
+  'Contas Fixas': FileText,
+  'Variáveis': ShoppingBag,
+  'Cartões': CreditCard,
+  'Cartões de Crédito': CreditCard,
+  'Investimentos': PiggyBank,
+} as const;
+
 export function IconeSubcategoria({
   subcategoria,
+  categoria,
   ehReceita = false,
   className = 'h-[18px] w-[18px]',
 }: {
   subcategoria?: string | null;
+  categoria?: string | null;
   ehReceita?: boolean;
   className?: string;
 }) {
@@ -54,7 +69,10 @@ export function IconeSubcategoria({
   if (ehReceita) return <TrendingUp className={className} />;
 
   const chave = normalizarSubcategoria(subcategoria);
-  const Icone = chave ? ICONES[chave] : CircleDashed;
+  const porCategoria = categoria
+    ? ICONES_CATEGORIA[categoria as keyof typeof ICONES_CATEGORIA]
+    : undefined;
+  const Icone = chave ? ICONES[chave] : (porCategoria ?? CircleDashed);
 
   return <Icone className={className} />;
 }

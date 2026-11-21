@@ -23,9 +23,8 @@ const GRUPOS_VISIVEIS = 5;
  * `ResumoOndeFoi`: declarada lá dentro, seria um componente novo a cada
  * render e o React remontaria todas as linhas.
  */
-function LinhaDoGrupo({ item, maior, ativo, showValues, onSelecionar }: {
+function LinhaDoGrupo({ item, ativo, showValues, onSelecionar }: {
   item: GastoPorSubcategoria;
-  maior: number;
   ativo: boolean;
   showValues: boolean;
   onSelecionar?: (rotulo: string) => void;
@@ -46,10 +45,12 @@ function LinhaDoGrupo({ item, maior, ativo, showValues, onSelecionar }: {
         </span>
       </div>
       <div className="flex items-center gap-2.5">
-        <div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
+        {/* Decorativa: valor, percentual e contagem já estão em texto. O piso
+            de 2% garante que o menor grupo ainda apareça como uma barra. */}
+        <div aria-hidden className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-brand"
-            style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
+            style={{ width: `${Math.max(item.percentual, 2)}%` }}
           />
         </div>
         {/* Abaixo de `xs` (360px) o percentual some: "100% · 142 gastos" mede
@@ -78,9 +79,14 @@ function LinhaDoGrupo({ item, maior, ativo, showValues, onSelecionar }: {
  * tudo cai em "Cartões" — útil para o orçamento, inútil para saber que metade
  * foi em delivery.
  *
- * A barra é relativa ao maior grupo, não ao total: com 12 grupos, barra sobre
- * o total fica toda minúscula e não se compara nada. O percentual sobre o
- * total vai em texto, ao lado.
+ * A LARGURA DA BARRA É O PERCENTUAL DO MÊS — o mesmo número do texto ao lado.
+ * Até a rodada 3 ela era relativa ao MAIOR grupo ("com 12 grupos, barra sobre o
+ * total fica toda minúscula"), e isso fazia a barra mais longa, sempre cheia,
+ * ao lado de um "15% do mês": duas escalas na mesma linha, e uma barra cheia
+ * rotulada 15% lê como "isto é tudo". Para quem está endividado é leitura
+ * errada do próprio diagnóstico. A troca custa comparação fina entre grupos
+ * pequenos — o preço aceito pelo dono na rodada 4, e o texto ao lado cobre. O
+ * piso de 2% (em `LinhaDoGrupo`) mantém visível até o menor grupo.
  */
 export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, filtroAtivo }: ResumoOndeFoiProps) {
   // Antes dos early-returns, por causa da regra dos hooks. Persiste ao trocar
@@ -144,12 +150,9 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
   }
 
   // "Não classificado" não entra na lista de barras: vira o destaque de baixo.
-  // Sem ele na lista, a barra mais longa é a do maior grupo NOMEADO — e
   // `nomeados` nunca é vazio aqui, o `semSinal` acima já cobriu esse caso.
   const semCategoria = resumo.find((i) => i.rotulo === NAO_CLASSIFICADO) ?? null;
   const nomeados = resumo.filter((i) => i.rotulo !== NAO_CLASSIFICADO);
-  // Escala de desenho, não cálculo.
-  const maior = nomeados[0].total;
   const naoClassificadoAtivo = filtroAtivo === NAO_CLASSIFICADO;
 
   // Derivado a cada render, sem efeito nem estado extra. Se o filtro ativo
@@ -168,14 +171,19 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
       transition={{ duration: 0.5, delay: 0.55 }}
       className="bg-white/5 border border-line-strong rounded-card p-6 backdrop-blur-sm"
     >
-      <h2 tabIndex={-1} className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 tabIndex={-1} className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
+        {/* Nomeia a coluna da direita. Some abaixo de `xs` junto com o percentual
+            que ela mostra: lá a coluna só tem a contagem. */}
+        <span aria-hidden className="hidden shrink-0 text-xs text-ink-3 xs:inline">% do mês</span>
+      </div>
       <p className="text-xs text-ink-3 mt-1 mb-5">
         Despesas deste mês por onde você gastou. O orçamento continua por categoria.
       </p>
 
       <div className="flex flex-col gap-1">
         {acima.map((item) => (
-          <LinhaDoGrupo key={item.rotulo} item={item} maior={maior} ativo={filtroAtivo === item.rotulo} showValues={showValues} onSelecionar={onSelecionar} />
+          <LinhaDoGrupo key={item.rotulo} item={item} ativo={filtroAtivo === item.rotulo} showValues={showValues} onSelecionar={onSelecionar} />
         ))}
       </div>
 
@@ -204,7 +212,7 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
 
       <div id="onde-foi-extras" className={abaixo.length > 0 ? 'mt-1 flex flex-col gap-1' : 'hidden'}>
         {abaixo.map((item) => (
-          <LinhaDoGrupo key={item.rotulo} item={item} maior={maior} ativo={filtroAtivo === item.rotulo} showValues={showValues} onSelecionar={onSelecionar} />
+          <LinhaDoGrupo key={item.rotulo} item={item} ativo={filtroAtivo === item.rotulo} showValues={showValues} onSelecionar={onSelecionar} />
         ))}
       </div>
 
@@ -243,9 +251,17 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
               <span className="block text-xs text-ink-2">
                 {semCategoria.itens} {semCategoria.itens === 1 ? 'gasto' : 'gastos'} · {semCategoria.percentual.toFixed(0)}% do mês
               </span>
-              <span className={`mt-1.5 inline-flex items-center gap-1 text-xs font-semibold ${naoClassificadoAtivo ? 'text-brand' : 'text-warn'}`}>
-                Ver estes gastos
-                <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+              {/* A pílula é o rótulo da ação e NÃO muda entre estados — quem
+                  carrega o estado é o `aria-pressed` do botão. A ação continua
+                  sendo FILTRAR; a linha "Ver estes gastos" explica o destino. */}
+              <span className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold ${naoClassificadoAtivo ? 'text-brand' : 'text-warn'}`}>
+                  Ver estes gastos
+                  <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+                </span>
+                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${naoClassificadoAtivo ? 'border-brand/40 bg-brand/15 text-brand' : 'border-warn/40 bg-warn/15 text-warn'}`}>
+                  Classificar
+                </span>
               </span>
             </span>
           </button>

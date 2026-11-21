@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { ChevronRight, Loader2, ShieldCheck } from "lucide-react";
 
 import { Card } from "./ui/Surface";
+import { toast } from "./Toast";
 import { EscadaEstagios } from "./EscadaEstagios";
 import { formatMoney } from "../lib/format";
 import type { ProximoPasso, Stage, StageStep } from "../lib/profile";
@@ -25,14 +26,17 @@ export interface JornadaCardProps {
   pedeCadastroDeDivida?: boolean;
   onVerCaminho: () => void;
   onResponderPerguntas: () => void;
-  /** Grava o aporte (`handleAddToReserve`). Só é chamado com a meta criada. */
-  onGuardar: (valor: number) => Promise<void>;
+  /** Grava o aporte (`handleAddToReserve`). Só é chamado com a meta criada.
+   *  Devolve se gravou: o campo só fecha e limpa em sucesso. */
+  onGuardar: (valor: number) => Promise<boolean>;
   /** Cria a meta (`handleCreateReserveGoal`). Ausente quando não há reserva ideal a propor. */
   onCriarReserva?: () => void;
 }
 
 const CTA =
   "inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-field bg-brand px-5 text-sm font-bold text-canvas transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40";
+
+const UMA_CASA = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /** Máscara de dinheiro com a mesma caixa nos dois modos; ver `formatMoney`. */
 const dinheiro = (v: number, showValues: boolean) => formatMoney(v, showValues);
@@ -126,7 +130,7 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
   temMeta: boolean;
   showValues: boolean;
   reserveMonths: number | null;
-  onGuardar: (valor: number) => Promise<void>;
+  onGuardar: (valor: number) => Promise<boolean>;
   onCriarReserva?: () => void;
 }) {
   const campoId = useId();
@@ -144,11 +148,24 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
     const v = parseFloat(valor);
     if (!v || v <= 0) return;
     setOcupado(true);
-    await onGuardar(v);
-    setOcupado(false);
-    setValor("");
-    setAbrindo(false);
+    try {
+      // Falha (já avisada pelo handler) mantém o campo e o valor digitado:
+      // fechar e limpar faria a pessoa achar que gravou.
+      if (await onGuardar(v)) {
+        setValor("");
+        setAbrindo(false);
+      }
+    } catch {
+      toast("Não consegui guardar agora. Tente de novo.", "error");
+    } finally {
+      setOcupado(false);
+    }
   };
+
+  const temCta = temMeta || !!onCriarReserva;
+  // Quando o alvo do degrau NÃO é a reserva (patrimônio, ou degraus sem alvo),
+  // "Guardar agora" sugeriria que o dinheiro vai para aquele alvo.
+  const rotuloGuardar = passo.alvoEhReserva ? "Guardar agora" : "Guardar na reserva";
 
   return (
     <div className="mt-2 border-t border-line pt-4">
@@ -156,26 +173,32 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
         <span className="text-xs font-semibold uppercase tracking-[0.06em] text-ink-2">Próximo passo</span>
         {temBarra && (
           <span className="text-right text-xs text-ink-2">
-            {reserveMonths !== null && reserveMonths > 0
-              ? `${reserveMonths.toFixed(1)} meses de custo cobertos`
-              : "Ainda sem aporte"}
+            {/* Meses de custo cobertos é reserva ÷ custo: proporção derivada de
+                dinheiro, então some com os valores ocultos. */}
+            {!showValues
+              ? "Reserva em andamento"
+              : reserveMonths !== null && reserveMonths > 0
+                ? `${UMA_CASA.format(reserveMonths)} meses de custo cobertos`
+                : "Ainda sem aporte"}
           </span>
         )}
       </div>
 
       {temBarra ? (
         <>
-          <div className="mt-2 flex items-baseline justify-between gap-3">
+          {/* Empilha abaixo de `xs`: "R$ 1.000,00 de R$ 3.985,00" mede ~195px e
+              em 320px o rótulo ficaria com ~25px, cortado pelo `overflow-hidden` do card. */}
+          <div className="mt-2 flex flex-col gap-0.5 xs:flex-row xs:items-baseline xs:justify-between xs:gap-3">
             <span className="min-w-0 text-sm font-semibold text-ink">{passo.rotulo}</span>
-            <span className="shrink-0 text-right text-sm tnum text-ink-2">
+            <span className="text-sm tnum text-ink-2 xs:shrink-0 xs:text-right">
               <span className="font-bold text-ink">{dinheiro(passo.atual, showValues)}</span>{" "}
               de {dinheiro(alvo, showValues)}
             </span>
           </div>
 
-          {/* Progresso: sem `aria-valuenow` com os valores ocultos — uma barra
-              indeterminada é válida, e o número exato não pode vazar pelo
-              atributo. O preenchimento segue desenhado: o que se esconde é
+          {/* Progresso: com os valores ocultos saem `aria-valuenow`, `valuemax` e
+              `valuetext` — uma barra indeterminada é válida, o `aria-label` a
+              nomeia, e o número exato não pode vazar por atributo. O preenchimento segue desenhado: o que se esconde é
               valor, não o estágio. A trilha usa `line-contrast` para existir
               mesmo em 0%. */}
           <div
@@ -184,7 +207,7 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
             aria-valuemin={0}
             aria-valuemax={showValues ? alvo : undefined}
             aria-valuenow={showValues ? passo.atual : undefined}
-            aria-valuetext={showValues ? `${formatMoney(passo.atual)} de ${formatMoney(alvo)}` : "Valores ocultos"}
+            aria-valuetext={showValues ? `${formatMoney(passo.atual)} de ${formatMoney(alvo)}` : undefined}
             className="mt-3 h-3 overflow-hidden rounded-full border border-line-contrast bg-surface-2"
           >
             <div
@@ -207,14 +230,13 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
         </p>
       )}
 
+      {temCta && (
       <div className="mt-4">
         {!temMeta ? (
-          onCriarReserva && (
-            <button type="button" onClick={onCriarReserva} className={CTA}>
-              <ShieldCheck aria-hidden className="h-4 w-4" />
-              Criar minha reserva
-            </button>
-          )
+          <button type="button" onClick={onCriarReserva} className={CTA}>
+            <ShieldCheck aria-hidden className="h-4 w-4" />
+            Criar minha reserva
+          </button>
         ) : abrindo ? (
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -245,10 +267,11 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
           </div>
         ) : (
           <button type="button" onClick={() => setAbrindo(true)} className={CTA}>
-            Guardar agora
+            {rotuloGuardar}
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -496,6 +496,12 @@ describe('getProximoPasso', () => {
     expect(p.semCusto).toBe(true);
   });
 
+  it('só os degraus 2 e 3 têm a própria reserva como alvo', () => {
+    const ehReserva = (id: keyof typeof STAGES) => getProximoPasso(insights(id)).alvoEhReserva;
+    expect(['emergencia', 'estabilidade', 'reserva', 'acumulacao', 'independencia'].map(id => ehReserva(id as keyof typeof STAGES)))
+      .toEqual([false, true, true, false, false]);
+  });
+
   it('bate com o degrau atual da escada que o modal desenha', () => {
     const i = insights('reserva', { reserveAmount: 8000 });
     const degrau = getStageLadder(i).find(d => d.status === 'current');

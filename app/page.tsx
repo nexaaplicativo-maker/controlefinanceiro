@@ -549,11 +549,11 @@ export default function Dashboard() {
    * novo saldo dela. O `goal_id` é o que impede o patrimônio de contar esse
    * dinheiro duas vezes.
    */
-  async function handleAddToReserve(value: number) {
-    if (!reservaGoal) return;
+  async function handleAddToReserve(value: number): Promise<boolean> {
+    if (!reservaGoal) return false;
 
     const uid = await getUserId();
-    if (!uid) return;
+    if (!uid) return false;
 
     const r = moverNaMeta({
       userId: uid,
@@ -565,25 +565,26 @@ export default function Dashboard() {
       data: hojeEmSaoPaulo(),
     });
 
-    if (!r.ok) { toast(r.erro, "warning"); return; }
+    if (!r.ok) { toast(r.erro, "warning"); return false; }
 
     const { data: nova, error } = await supabase
       .from('transactions')
       .insert([r.movimento.transacao])
       .select(COLUNAS_TX);
 
-    if (error) { toast("Erro ao registrar o aporte: " + error.message, "error"); return; }
+    if (error) { toast("Erro ao registrar o aporte: " + error.message, "error"); return false; }
 
     const { error: erroMeta } = await supabase
       .from('goals')
       .update({ current_amount: r.movimento.novoSaldoDaMeta })
       .eq('id', reservaGoal.id);
 
-    if (erroMeta) { toast("Erro ao atualizar a reserva: " + erroMeta.message, "error"); return; }
+    if (erroMeta) { toast("Erro ao atualizar a reserva: " + erroMeta.message, "error"); return false; }
 
     if (nova?.length) setAllTransactions(prev => [...nova, ...prev]);
     setGoals(prev => prev.map(g => g.id === reservaGoal.id ? { ...g, current_amount: r.movimento.novoSaldoDaMeta } : g));
     toast(`+${formatMoney(value)} na sua reserva. 🛡️`, "success");
+    return true;
   }
 
   // Recarrega só as posições — usado quando o modal de Patrimônio salva, para

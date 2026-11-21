@@ -39,7 +39,8 @@ const BOTAO_BASE =
  *
  * MÊS SEM RENDA: não existe "quanto sobra" sem o que entrou, e a divisão sobre
  * renda zero não faz sentido. O card vira um convite com dois caminhos — e o
- * contorno tracejado ocupa o lugar da barra, para o card manter a forma.
+ * contorno tracejado ocupa o lugar da barra, para o card manter a forma. Se há
+ * saídas, a lista dos itens continua abaixo, sem barra.
  */
 export function CardQuantoSobra({
   mes, sobra, rendaLiquida, divisao, valores, showValues,
@@ -47,6 +48,10 @@ export function CardQuantoSobra({
 }: CardQuantoSobraProps) {
   const tituloId = useId();
   const semRenda = rendaLiquida <= 0;
+  // Mês sem renda mas com saídas: os valores não dependem da renda, e a lista é
+  // a única porta para o detalhe de fixos e cartões (os `PillarCard` antigos
+  // estavam lá com ou sem renda).
+  const temSaidas = valores.fixos > 0 || valores.gargalo > 0 || valores.guardado > 0;
 
   return (
     <section aria-labelledby={tituloId} className="mb-6">
@@ -70,6 +75,11 @@ export function CardQuantoSobra({
                 </button>
               )}
             </div>
+            {temSaidas && (
+              <div className="mt-5">
+                <DivisaoRenda divisao={divisao} semBarra valores={valores} showValues={showValues} onAbrir={onAbrirSegmento} />
+              </div>
+            )}
           </>
         ) : (
           <>

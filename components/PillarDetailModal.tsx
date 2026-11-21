@@ -91,6 +91,10 @@ export function PillarDetailModal({
   const ordenadas = [...transactions].sort((a, b) => b.amount - a.amount);
   const total = totalRecebido ?? transactions.reduce((acc, t) => acc + t.amount, 0);
   const maior = ordenadas[0]?.amount ?? 0;
+  // Lista com entradas E saídas ("Livre na conta", "Já guardado"): sem o sinal
+  // por linha ninguém fecha a soma — o ícone sozinho não tem texto. As listas
+  // só de saídas (fixos, gargalo) ficam exatamente como eram.
+  const mistura = transactions.some(t => t.type === 'income') && transactions.some(t => t.type === 'expense');
 
   const dinheiro = (v: number) => (showValues ? formatMoney(v) : 'R$ •••••');
 
@@ -116,7 +120,7 @@ export function PillarDetailModal({
       {/* O total abre o corpo em vez de morar no cabeçalho: a folha reserva o
           cabeçalho para título, apoio e ação, e é ele que mantém as 26 telas
           parecidas entre si. */}
-      <p className="mb-4 text-[32px] font-semibold tracking-[-0.02em] text-ink tnum">
+      <p className={`mb-4 text-[32px] font-semibold tracking-[-0.02em] tnum ${totalRecebido !== undefined && total < 0 ? 'text-neg' : 'text-ink'}`}>
         {dinheiro(total)}
       </p>
 
@@ -177,7 +181,15 @@ export function PillarDetailModal({
 
                   <div className="flex shrink-0 items-center gap-1">
                     <div className="text-right">
-                      <p className="whitespace-nowrap text-[15px] font-semibold text-ink tnum">{dinheiro(t.amount)}</p>
+                      <p className={`whitespace-nowrap text-[15px] font-semibold tnum ${mistura && isIncome ? 'text-pos' : 'text-ink'}`}>
+                        {mistura && showValues && (
+                          <>
+                            <span aria-hidden>{isIncome ? '+ ' : '− '}</span>
+                            <span className="sr-only">{isIncome ? 'entrada ' : 'saída '}</span>
+                          </>
+                        )}
+                        {dinheiro(t.amount)}
+                      </p>
                       {totalRecebido === undefined && total > 0 && showValues && (
                         <p className="mt-0.5 text-xs text-ink-2">{fatia.toFixed(0)}% do total</p>
                       )}

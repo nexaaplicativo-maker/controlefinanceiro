@@ -37,12 +37,12 @@ describe('dividirRenda', () => {
 
   it('estouro sem nenhuma saída listada não desenha fatia nenhuma', () => {
     const d = dividirRenda({ rendaLiquida: 3000, custosFixos: 0, gargalo: 0, guardado: 0, livre: -500 });
-    expect(d).toEqual({ segmentos: [], estourou: true, normalizado: false });
+    expect(d).toEqual({ segmentos: [], estourou: true, normalizado: false, base: 0 });
   });
 
   it('renda zero ou negativa não tem divisão', () => {
     expect(dividirRenda({ rendaLiquida: 0, custosFixos: 100, gargalo: 100, guardado: 0, livre: -200 }))
-      .toEqual({ segmentos: [], estourou: false, normalizado: false });
+      .toEqual({ segmentos: [], estourou: false, normalizado: false, base: 0 });
     expect(dividirRenda({ rendaLiquida: -50, custosFixos: 0, gargalo: 0, guardado: 0, livre: 0 }).segmentos).toEqual([]);
   });
 
@@ -83,5 +83,26 @@ describe('dividirRenda', () => {
   it('quando as fatias cobrem a renda toda, a soma é exatamente 100', () => {
     const d = dividirRenda({ rendaLiquida: 7, custosFixos: 1, gargalo: 2, guardado: 1, livre: 3 });
     expect(soma(d.segmentos.map(s => s.percentual))).toBe(100);
+  });
+
+  it('livre maior que a renda (resgate lançado como receita): a base cresce e nada passa de 100%', () => {
+    const d = dividirRenda({ rendaLiquida: 1000, custosFixos: 500, gargalo: 0, guardado: 0, livre: 1500 });
+    expect(d.estourou).toBe(false);
+    expect(d.normalizado).toBe(true);
+    expect(d.base).toBe(2000);
+    expect(d.segmentos.map(s => s.percentual)).toEqual([25, 0, 0, 75]);
+    expect(soma(d.segmentos.map(s => s.percentual))).toBe(100);
+  });
+
+  it('a base é a renda quando as fatias não a passam, e a barra pode ficar com resto vazio', () => {
+    const d = dividirRenda({ rendaLiquida: 1000, custosFixos: 200, gargalo: 200, guardado: 0, livre: 100 });
+    expect(d.base).toBe(1000);
+    expect(d.normalizado).toBe(false);
+    expect(soma(d.segmentos.map(s => s.percentual))).toBe(50);
+  });
+
+  it('no estouro a base é o total das saídas', () => {
+    const d = dividirRenda({ rendaLiquida: 3000, custosFixos: 1000, gargalo: 3000, guardado: 0, livre: -1000 });
+    expect(d.base).toBe(4000);
   });
 });

@@ -30,8 +30,12 @@ export interface DivisaoDaRenda {
   segmentos: SegmentoDaRenda[];
   /** As saídas passaram da renda: não existe sobra para mostrar. */
   estourou: boolean;
-  /** Os percentuais foram calculados sobre o total das saídas, não sobre a renda. */
+  /** Os percentuais foram calculados sobre outra base que não a renda. */
   normalizado: boolean;
+  /** A base de TUDO: percentual em texto e largura da barra (valor ÷ base).
+   *  A renda; o total das saídas no estouro; ou a soma das fatias quando ela
+   *  passa da renda. 0 quando não há segmentos. */
+  base: number;
 }
 
 export interface EntradaDaDivisao {
@@ -81,7 +85,7 @@ function percentuaisInteiros(valores: number[], base: number): number[] {
 
 export function dividirRenda(entrada: EntradaDaDivisao): DivisaoDaRenda {
   const renda = finito(entrada.rendaLiquida);
-  if (renda <= 0) return { segmentos: [], estourou: false, normalizado: false };
+  if (renda <= 0) return { segmentos: [], estourou: false, normalizado: false, base: 0 };
 
   const fixos = naoNegativo(entrada.custosFixos);
   const gargalo = naoNegativo(entrada.gargalo);
@@ -95,14 +99,20 @@ export function dividirRenda(entrada: EntradaDaDivisao): DivisaoDaRenda {
 
   // Estouro sem nenhuma saída listada (o buraco veio de categoria própria do
   // usuário): não há fatia a mostrar, só o aviso de que gastou mais do que ganhou.
-  if (estourou && saidas === 0) return { segmentos: [], estourou: true, normalizado: false };
+  if (estourou && saidas === 0) return { segmentos: [], estourou: true, normalizado: false, base: 0 };
 
-  const base = estourou ? saidas : renda;
+  // A soma das fatias pode passar da renda sem estouro: um resgate lançado
+  // como receita em Investimentos infla o saldo (`livre`) sem entrar na renda.
+  // Nesse caso a base cresce junto, senão o texto diria "250% livre" e a barra
+  // — que desenha cada fatia como valor ÷ base — discordaria dele.
+  const soma = itens.reduce((acc, [, v]) => acc + v, 0);
+  const base = estourou ? saidas : Math.max(renda, soma);
   const percentuais = percentuaisInteiros(itens.map(([, v]) => v), base);
 
   return {
     segmentos: itens.map(([id, valor], i) => ({ id, rotulo: ROTULO_DO_SEGMENTO[id], valor, percentual: percentuais[i] })),
     estourou,
-    normalizado: estourou,
+    normalizado: base !== renda,
+    base,
   };
 }

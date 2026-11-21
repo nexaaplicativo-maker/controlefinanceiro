@@ -765,6 +765,9 @@ export interface ProximoPasso {
   semAlvo: boolean;
   /** O degrau TEM alvo financeiro, mas ele não existe ainda por falta de custo de vida apurado. */
   semCusto: boolean;
+  /** O alvo do degrau é a própria reserva (degraus 2 e 3). A tela usa isto para
+   *  não prometer, no botão de aporte, um alvo que o aporte não persegue. */
+  alvoEhReserva: boolean;
 }
 
 const ROTULO_DO_PASSO: Record<StageId, string> = {
@@ -790,7 +793,7 @@ export function getProximoPasso(insights: InsightsDaEscada): ProximoPasso {
   // O estágio vem de STAGES e a escada cobre os cinco: o `find` não falha. O
   // retorno abaixo existe só para o tipo, e é o mesmo "sem alvo" do degrau 5.
   if (!degrau) {
-    return { rotulo: ROTULO_DO_PASSO.independencia, frase: '', alvo: null, atual: 0, restante: 0, concluido: false, semAlvo: true, semCusto: false };
+    return { rotulo: ROTULO_DO_PASSO.independencia, frase: '', alvo: null, atual: 0, restante: 0, concluido: false, semAlvo: true, semCusto: false, alvoEhReserva: false };
   }
 
   const alvo = degrau.target;
@@ -804,6 +807,7 @@ export function getProximoPasso(insights: InsightsDaEscada): ProximoPasso {
     concluido: alvo !== null && degrau.current >= alvo,
     semAlvo: alvo === null,
     semCusto: alvo === null && ESTAGIOS_COM_ALVO.includes(id),
+    alvoEhReserva: id === 'estabilidade' || id === 'reserva',
   };
 }
 

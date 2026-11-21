@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { MESES_PARA_INDEPENDENCIA } from './constantes-financeiras';
 import {
   getReferenceIncome,
   getMonthlyCost,
@@ -7,6 +8,8 @@ import {
   computeStage,
   getProfileInsights,
   getStageLadder,
+  getProximoPasso,
+  type InsightsDaEscada,
   STAGES,
   type FinancialProfile,
 } from './profile';
@@ -418,6 +421,87 @@ describe('getStageLadder', () => {
       expect(step.target).toBeNull();
       expect(step.remaining).toBeNull();
     }
+  });
+});
+
+describe('getProximoPasso', () => {
+  const insights = (id: keyof typeof STAGES, o: Partial<InsightsDaEscada> = {}): InsightsDaEscada => ({
+    stage: STAGES[id],
+    monthlyCost: 4000,
+    reserveAmount: 0,
+    reserveIdeal: 24000,
+    investedTotal: 0,
+    gargaloCritical: 50,
+    ...o,
+  });
+
+  it('estágio 1: sem alvo financeiro, só a frase', () => {
+    const p = getProximoPasso(insights('emergencia'));
+    expect(p.semAlvo).toBe(true);
+    expect(p.semCusto).toBe(false);
+    expect(p.alvo).toBeNull();
+    expect(p.frase.length).toBeGreaterThan(0);
+  });
+
+  it('estágio 2: o alvo é UM mês de custo, não a reserva mínima', () => {
+    // Correção do design pelo dono: o mockup mostrava a reserva mínima (3
+    // meses) aqui, mas a frase do estágio fala em "primeiro mês de reserva".
+    const p = getProximoPasso(insights('estabilidade', { monthlyCost: 3985, reserveAmount: 1000 }));
+    expect(p.alvo).toBe(3985);
+    expect(p.atual).toBe(1000);
+    expect(p.restante).toBe(2985);
+    expect(p.concluido).toBe(false);
+    expect(p.semAlvo).toBe(false);
+    expect(p.rotulo).toBe('Primeiro mês de reserva');
+  });
+
+  it('estágio 3: o alvo é a reserva ideal, mesmo já acima do mínimo', () => {
+    // Mínimo de 3 meses = 12.000; a reserva de 15.000 já o passou.
+    const p = getProximoPasso(insights('reserva', { reserveAmount: 15000 }));
+    expect(p.alvo).toBe(24000);
+    expect(p.restante).toBe(9000);
+    expect(p.concluido).toBe(false);
+  });
+
+  it('estágio 3 com a reserva acima do ideal: concluído, nada a faltar', () => {
+    const p = getProximoPasso(insights('reserva', { reserveAmount: 30000 }));
+    expect(p.concluido).toBe(true);
+    expect(p.restante).toBe(0);
+  });
+
+  it('estágio 4: o alvo é o patrimônio, somando reserva e investido', () => {
+    const p = getProximoPasso(insights('acumulacao', { reserveAmount: 30000, investedTotal: 5000 }));
+    expect(p.alvo).toBe(4000 * MESES_PARA_INDEPENDENCIA);
+    expect(p.atual).toBe(35000);
+    expect(p.restante).toBe(4000 * MESES_PARA_INDEPENDENCIA - 35000);
+  });
+
+  it('estágio 5: sem alvo financeiro, só a frase', () => {
+    const p = getProximoPasso(insights('independencia'));
+    expect(p.semAlvo).toBe(true);
+    expect(p.semCusto).toBe(false);
+  });
+
+  it('custo de vida zero: sem alvo e marcado como falta de custo, não como estágio sem alvo', () => {
+    const p = getProximoPasso(insights('reserva', { monthlyCost: 0, reserveIdeal: 0 }));
+    expect(p.alvo).toBeNull();
+    expect(p.semAlvo).toBe(true);
+    expect(p.semCusto).toBe(true);
+    expect(p.restante).toBe(0);
+  });
+
+  it('estágio 2 sem custo de vida também cai em falta de custo', () => {
+    const p = getProximoPasso(insights('estabilidade', { monthlyCost: 0 }));
+    expect(p.semAlvo).toBe(true);
+    expect(p.semCusto).toBe(true);
+  });
+
+  it('bate com o degrau atual da escada que o modal desenha', () => {
+    const i = insights('reserva', { reserveAmount: 8000 });
+    const degrau = getStageLadder(i).find(d => d.status === 'current');
+    const p = getProximoPasso(i);
+    expect(p.alvo).toBe(degrau?.target);
+    expect(p.restante).toBe(degrau?.remaining);
   });
 });
 

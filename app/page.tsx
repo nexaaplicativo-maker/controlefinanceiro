@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 
 import { TransactionRow } from "../components/TransactionRow";
-import { EmptyState, Skeleton } from "../components/ui/Surface";
+import { EmptyState, SkeletonRow } from "../components/ui/Surface";
+import { EsqueletoVisaoGeral } from "../components/EsqueletoVisaoGeral";
 
 
 /**
@@ -1422,7 +1423,9 @@ export default function Dashboard() {
 
         </div>
 
-        {pronto && (
+        {/* Com o onboarding pendente o card Jornada já é o convite; o checklist
+            voltaria a pedir a mesma coisa duas vezes na mesma tela. */}
+        {pronto && !insights.needsOnboarding && (
           <OnboardingChecklist
             transactions={allTransactions}
             hasDebtsRegistered={hasRegisteredDebts}
@@ -1432,13 +1435,7 @@ export default function Dashboard() {
           />
         )}
         {isLoading ? (
-          /* Mesmo grid do estado carregado, senão o esqueleto desenha duas
-             colunas em 320px e o conteúdo chega em uma. */
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            {[1,2,3,4].map(i => (
-              <Skeleton key={i} className={`h-36 rounded-card ${i === 1 ? "xs:col-span-2 md:col-span-3 h-44" : ""}`} />
-            ))}
-          </div>
+          <EsqueletoVisaoGeral />
         ) : erroCarregamento ? (
           <div className="pb-6 md:pb-8">
             <div className="bg-warn/5 border border-warn/25 rounded-card p-6 md:p-8 text-center">
@@ -1544,6 +1541,9 @@ export default function Dashboard() {
             {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
           </div>
 
+          {/* Com erro de carga a lista não existe: um "Nenhum lançamento" aqui
+              diria "você não tem nada" justamente quando não se conseguiu ler. */}
+          {!erroCarregamento && (
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="card h-full p-5">
               <div className="flex flex-col gap-4 mb-6">
@@ -1637,7 +1637,11 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
-                {recentTransactions.length === 0 ? (
+                {isLoading ? (
+                  <div aria-hidden>
+                    {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+                  </div>
+                ) : recentTransactions.length === 0 ? (
                   <EmptyState
                     icon={<FileText className="h-6 w-6" />}
                     title={subcategoriaFiltro
@@ -1722,6 +1726,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
           </div>
+          )}
 
         </div>
       </main>

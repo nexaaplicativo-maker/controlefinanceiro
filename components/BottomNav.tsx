@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Home, CreditCard, BarChart3, Settings, Plus, Camera, PenTool } from "lucide-react";
 import { AI_ENABLED } from "../lib/features";
 import { Sheet } from "./ui/Sheet";
+
+/**
+ * Avisa a barra que a lista de lançamentos entrou ou saiu do modo de seleção
+ * (`detail: { ativo: boolean }`). Sentido página -> barra; o inverso é o
+ * `openModal`. Evento no `window` e não context: `modoSelecao` vive em
+ * `app/page.tsx`, e subi-lo criaria o primeiro estado global do app.
+ */
+export const EVENTO_MODO_SELECAO = 'nexa:modo-selecao';
 
 function Ponto({ ativo }: { ativo: boolean }) {
   return (
@@ -18,6 +26,20 @@ function Ponto({ ativo }: { ativo: boolean }) {
 export function BottomNav() {
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const [selecaoAtiva, setSelecaoAtiva] = useState(false);
+
+  useEffect(() => {
+    const aoMudar = (e: Event) => {
+      const ativo = (e as CustomEvent<{ ativo: boolean }>).detail?.ativo === true;
+      setSelecaoAtiva(ativo);
+      // Fechamento imperativo, e não um guard em `isOpen`: o guard deixaria
+      // `isFabOpen` em `true` e a folha reabriria sozinha ao sair da seleção.
+      // Ela não pode ficar aberta sobre um "+" que sumiu.
+      if (ativo) setIsFabOpen(false);
+    };
+    window.addEventListener(EVENTO_MODO_SELECAO, aoMudar);
+    return () => window.removeEventListener(EVENTO_MODO_SELECAO, aoMudar);
+  }, []);
 
   /**
    * O "+" só existe na Visão Geral.
@@ -66,7 +88,9 @@ export function BottomNav() {
             </button>
           </div>
 
-          {naVisaoGeral && (
+          {/* Some em vez de desabilitar: botão desabilitado continua ocupando a
+              zona do polegar sobre a barra de seleção da lista. */}
+          {naVisaoGeral && !selecaoAtiva && (
             <div className="absolute left-1/2 -top-6 -translate-x-1/2">
               {/* Com a IA desligada sobraria uma opção só na folha — então o
                   botão lança direto, sem abrir menu de um item. */}

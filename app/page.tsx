@@ -69,6 +69,7 @@ import { hojeEmSaoPaulo } from "../lib/data";
 import { primeiroNome, saudacao } from "../lib/saudacao";
 import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { ResumoOndeFoi } from "../components/ResumoOndeFoi";
+import { EVENTO_MODO_SELECAO } from "../components/BottomNav";
 import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
@@ -414,6 +415,20 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   }
+
+  // Avisa a BottomNav para esconder o "+" enquanto a seleção está ligada: ele
+  // ficaria sobre a barra de ações da seleção, na zona do polegar.
+  // A emissão `false` na limpeza existe porque sair da Visão Geral com a
+  // seleção ligada desmonta esta página sem passar por `setModoSelecao(false)`;
+  // sem ela o "+" ficaria escondido nas outras rotas. A primeira emissão se
+  // perde (o ouvinte da barra ainda não existe), e é inofensiva: o valor
+  // inicial dos dois lados é `false`.
+  useEffect(() => {
+    const emitir = (ativo: boolean) =>
+      window.dispatchEvent(new CustomEvent(EVENTO_MODO_SELECAO, { detail: { ativo } }));
+    emitir(modoSelecao);
+    return () => { emitir(false); };
+  }, [modoSelecao]);
 
   useEffect(() => {
     // O service worker é registrado pelo InstallPrompt, que vive no layout e
@@ -1606,6 +1621,11 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
+
+                {/* Região viva sempre montada e vazia: uma região criada junto com
+                    o texto não é anunciada. Não cita o "+" — do `md:` em diante a
+                    barra não existe e o aviso seria falso. */}
+                <p role="status" className="sr-only">{modoSelecao ? 'Modo de seleção ligado. Toque em Cancelar para sair.' : ''}</p>
 
                 {modoSelecao && (
                   <div className="flex flex-wrap items-center gap-2 -mt-1">

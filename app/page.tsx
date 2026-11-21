@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useId } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
@@ -64,7 +64,8 @@ import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
 import { linhasDaMesmaFatura } from "../lib/fatura";
 import { moverNaMeta } from "../lib/aporte-meta";
-import { hojeEmSaoPaulo } from "../lib/data";
+import { hojeEmSaoPaulo, rotuloDoDia } from "../lib/data";
+import { agruparPorDia } from "../lib/lancamentos";
 import { primeiroNome, saudacao } from "../lib/saudacao";
 import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { ResumoOndeFoi } from "../components/ResumoOndeFoi";
@@ -150,6 +151,7 @@ function buscarTransacoesDaJanela(userId: string) {
 export default function Dashboard() {
   // Meses ja buscados fora da janela, para nao repetir consulta ao voltar.
   const mesesExtras = useRef(new Set<string>());
+  const idBusca = useId();
   // Contêiner do card "Onde foi o dinheiro": destino do "Ver onde cortar".
   const ondeFoiRef = useRef<HTMLDivElement>(null);
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth());
@@ -1545,11 +1547,14 @@ export default function Dashboard() {
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="card h-full p-5">
               <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center gap-3">
+                {/* "Ver tudo", "A vencer" e "Selecionar" ficam todos aqui, e o
+                    `flex-wrap` deixa o grupo descer para uma segunda linha em
+                    320px em vez de espremer o título. */}
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                   <h2 className="text-base font-semibold tracking-tight text-ink">
                     {buscaForaDoMes ? 'Resultados' : `Lançamentos de ${MONTHS[activeMonth]}`}
                   </h2>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     {buscaForaDoMes && !modoSelecao && (
                       <span className="text-xs text-ink-3">de todos os meses</span>
                     )}
@@ -1559,15 +1564,23 @@ export default function Dashboard() {
                     {ocultos > 0 && !modoSelecao && (
                       <button
                         onClick={() => setMostrarTodos(true)}
-                        className="shrink-0 cursor-pointer rounded-full px-2 py-1 text-xs font-medium text-ink-2 transition-colors hover:text-ink"
+                        className="inline-flex min-h-9 shrink-0 cursor-pointer items-center rounded-field px-2 text-xs font-medium text-ink-2 transition-colors hover:text-ink"
                       >
                         Ver tudo
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setFilterPending(!filterPending)}
+                      aria-pressed={filterPending}
+                      className={`min-h-9 cursor-pointer whitespace-nowrap rounded-field border px-3 text-xs font-medium transition-colors ${filterPending ? 'bg-warn/15 text-warn border-warn/30' : 'border-line bg-white/5 text-ink-2 hover:text-ink'}`}
+                    >
+                      A vencer
+                    </button>
                     {recentTransactions.length > 0 && (
                       <button
                         onClick={() => { if (modoSelecao) { sairDaSelecao(); } else { setAcoesAbertas(null); setModoSelecao(true); } }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
+                        className={`min-h-9 cursor-pointer whitespace-nowrap rounded-field border px-3 text-xs font-medium transition-colors ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'border-line bg-white/5 text-ink-2 hover:text-ink'}`}
                       >
                         {modoSelecao ? 'Cancelar' : 'Selecionar'}
                       </button>
@@ -1617,17 +1630,10 @@ export default function Dashboard() {
                     </span>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
-                    <input type="text" placeholder="Buscar gastos..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-line rounded-field py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand/60 transition-colors" />
-                  </div>
-                  <button 
-                    onClick={() => setFilterPending(!filterPending)}
-                    className={`px-3 py-2 rounded-field text-xs font-medium transition-colors border whitespace-nowrap ${filterPending ? 'bg-warn/15 text-warn border-warn/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
-                  >
-                    A Vencer
-                  </button>
+                <div className="relative">
+                  <label htmlFor={idBusca} className="sr-only">Buscar lançamentos</label>
+                  <Search aria-hidden className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+                  <input id={idBusca} type="text" placeholder="Buscar lançamentos" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-line rounded-field py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand/60 transition-colors" />
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
@@ -1647,8 +1653,23 @@ export default function Dashboard() {
                       : { label: "Lançar", onClick: handleOpenModal }}
                   />
                 ) : (
-                  recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: '2-digit' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={!!acoesAbertas && acoesAbertas.id === tx.id && acoesAbertas.recorte === recorteAtual} onAlternarAcoes={() => setAcoesAbertas(atual => atual?.id === tx.id ? null : { id: tx.id, recorte: recorteAtual })} />
+                  /* Um grupo por dia, cada um com o próprio `h3` e uma lista de
+                     verdade: o leitor de tela anuncia "lista, 4 itens" e o dia
+                     vem do cabeçalho, não de cada linha. O ano só aparece
+                     quando a busca atravessa meses. Sem `sticky` nesta rodada. */
+                  agruparPorDia(recentTransactions).map((grupo) => (
+                    <div key={grupo.dia || 'sem-data'} className="mt-3 first:mt-0">
+                      <h3 className="px-2 pb-1 text-xs font-bold uppercase tracking-[0.06em] text-ink-2">
+                        {rotuloDoDia(grupo.dia, { comAno: buscaForaDoMes })}
+                      </h3>
+                      <ul className="flex flex-col gap-0.5">
+                        {grupo.itens.map((tx) => (
+                          <li key={tx.id}>
+                            <TransactionRow title={tx.title} category={tx.category} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={!!acoesAbertas && acoesAbertas.id === tx.id && acoesAbertas.recorte === recorteAtual} onAlternarAcoes={() => setAcoesAbertas(atual => atual?.id === tx.id ? null : { id: tx.id, recorte: recorteAtual })} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))
                 )}
                 {/* Mesma medida do `pb-bottom-nav` (globals.css): a BottomNav é `fixed`

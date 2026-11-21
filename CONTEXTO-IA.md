@@ -65,7 +65,7 @@ cron, webhook, gateway de pagamento.
 
 ```
 app/
-  page.tsx              Dashboard — ~2.100 linhas, o coração do app
+  page.tsx              Dashboard — ~1.850 linhas, o coração do app
   layout.tsx            Layout raiz: fonte, PWA, Toast, ConfirmDialog, ErrorBoundary
   globals.css           Tokens de design (@theme) + utilitários próprios
   login/ casais/ admin/ recuperar-senha/ privacidade/ termos/
@@ -75,8 +75,8 @@ app/
     auto-budget/route.ts  POST — renda -> orçamento em JSON
     health/route.ts       GET  — estado da configuração e commit servido
 
-components/   46 arquivos: 29 modais + moldura do app + `TransactionRow` + `ResumoOndeFoi` + 4 primitivas em ui/
-lib/          32 arquivos de regra de negócio + 23 de teste
+components/   29 modais + moldura do app + `TransactionRow` + `ResumoOndeFoi` + os 6 blocos da Visão Geral (ver abaixo) + 4 primitivas em ui/
+lib/          35 arquivos de regra de negócio + 27 de teste
 hooks/        use-mobile, use-modal-a11y
 supabase/     17 scripts SQL idempotentes, rodados À MÃO no painel
 e2e/          smoke.spec.ts
@@ -97,6 +97,50 @@ com o Supabase pelo navegador.
 
 **As rotas em `app/api/` existem por um motivo só: manter a `GEMINI_API_KEY`
 fora do navegador.** Não são camada de negócio.
+
+### A Visão Geral (`/`), de cima para baixo
+
+Redesenhada na rodada 4. Cada bloco novo vive em `components/` e recebe números
+por props — **nenhum fala com o Supabase nem calcula regra de negócio**; a regra
+está em `lib/`, com teste.
+
+| Bloco | Arquivo | O que é |
+|---|---|---|
+| Cabeçalho (< md) | `app/page.tsx` | `h1` "Visão geral", saudação como apoio, olho + sino + feedback, **todos 44×44** |
+| Mês + "⋯" | `app/page.tsx` | Trilho `h-11` com setas 44×44 abaixo de `md`; de `md` em diante a pílula antiga |
+| Jornada | `JornadaCard` + `EscadaEstagios` | Estágio, escada de 5 degraus e "Próximo passo". Único herói (`card-hero`) da tela |
+| Quanto sobra | `CardQuantoSobra` + `DivisaoRenda` | `capacidadePoupanca`, a renda (botão que abre `IncomeListModal`), barra única e 4 itens que abrem o `PillarDetailModal` |
+| Alerta | `AlertaGargalo` | Só com tier ≠ saudável, gargalo > 0 e renda > 0. "Ver onde cortar" rola e move o foco |
+| Onde foi o dinheiro | `ResumoOndeFoi` | Ver abaixo |
+| Lançamentos | `app/page.tsx` + `TransactionRow` | `ul/li` agrupados por dia (`agruparPorDia`, `rotuloDoDia`) |
+
+- **`PillarCard` e `ReserveWidget` deixaram de existir.** Quem os procurar no
+  `app/page.tsx` não os acha de propósito. A reserva sai da tela: o "Próximo
+  passo" do card Jornada a substitui, e o ideal segue no `StageRoadmapModal` e em
+  Metas. Os cards "Renda Líquida", "Custos Fixos" e "Cartões & Variáveis" viraram
+  itens do "Quanto sobra"; a Renda Líquida é o botão "de R$ X que entraram no mês".
+- **O "Próximo passo" é SEMPRE o alvo do degrau atual de `getStageLadder()`**
+  (`getProximoPasso`, em `lib/profile.ts`), sem exceção por estágio. No estágio 2
+  o alvo é **um mês de custo**, não a reserva mínima — o mockup do design mostrava a
+  mínima e estava errado (correção do dono). Estágios 1 e 5 não têm alvo financeiro:
+  só a frase, sem barra. Sem custo de vida apurado também não há barra
+  (`aria-valuemax="0"` seria inválido).
+- **Três CTAs no card Jornada**: `needsOnboarding` → "Responder as 4 perguntas";
+  sem meta de reserva → "Criar minha reserva"; com meta → "Guardar agora".
+  "Guardar agora" **nunca** aparece sem a meta: `handleAddToReserve` sai calado
+  quando ela não existe e o botão seria morto. Com `needsOnboarding` o
+  `OnboardingChecklist` some (o card já é o convite).
+- **`dividirRenda`** (`lib/divisao-renda.ts`): se as saídas passam da renda ou o
+  saldo é negativo, o segmento "livre" **não existe** e os percentuais são
+  normalizados pelo total das saídas — nunca se desenha sobra que não há. Com
+  `showValues` desligado a barra é um bloco cinza único, sem percentual em texto
+  nem em `aria-*`.
+- **Mês sem renda**: o "Quanto sobra" vira convite ("Lançar renda" / "Ler uma
+  fatura", este só com `AI_ENABLED`) e **os 4 itens que abrem o detalhe somem**
+  junto. Os lançamentos continuam acessíveis pela lista.
+- O `PillarDetailModal` aceita `total?: number`: "Já guardado" e "Livre na conta"
+  passam o valor exato da página (líquido de resgates / entradas menos saídas) e o
+  modal suprime o "% do total" por item.
 
 ### A navegação NÃO usa rotas
 As ~14 "telas" do menu (Poupar, Cartões, Relatórios, Orçamentos, Metas,
@@ -143,7 +187,7 @@ invisível. (3) **A expansão PERSISTE ao trocar de mês**, de propósito — qu
 a lista inteira está comparando meses, e recolher a cada navegação briga com ele.
 Não "conserte" isso com `useEffect` que zera o estado: `set-state-in-effect` é
 erro de lint aqui, e resetar por `key` remontaria o card e repetiria a animação
-de entrada a cada mês. O "Não classificado" fica **depois** das barras, não
+de entrada a cada mês. A **largura de cada barra é o percentual do mês** — o mesmo número do texto "N% do mês" (até a rodada 3 era relativa ao maior grupo, e uma barra cheia rotulada 15% lia como "isto é tudo"). Piso de 2%, barras `aria-hidden`; a escala é o preço aceito pelo dono. O destaque sem categoria tem a pílula "Classificar" no mesmo botão, que **filtra** (não classifica) e não muda de texto entre estados. O "Não classificado" fica **depois** das barras, não
 antes: o card responde "onde foi o dinheiro", e a ausência de resposta não pode
 empurrar o ranking para baixo da dobra em 320px.
 
@@ -342,7 +386,7 @@ sem expor valor nenhum.
 
 ## 8. Limitações conhecidas — não replicar, não reportar como descoberta
 
-1. **`app/page.tsx` tem ~2.100 linhas** e ~30 flags de modal. É a maior fonte
+1. **`app/page.tsx` tem ~1.850 linhas** (eram ~2.150 antes da rodada 4) e ~30 flags de modal. É a maior fonte
    de atrito do projeto.
 2. **44 de 46 queries não têm `limit()`** — o dashboard baixa o histórico
    inteiro do usuário a cada abertura.
@@ -391,6 +435,12 @@ sem expor valor nenhum.
 - **Cor e raio vêm dos tokens** de `app/globals.css`: `bg-canvas`, `bg-surface`,
   `text-ink`/`-2`/`-3`, `brand`, `pos`, `neg`, `warn`, `rounded-card`.
   Não escreva `bg-neutral-900` nem `indigo-500`.
+- **`--color-line-contrast`** (branco a 42%, 3,65:1 a 4,09:1 medidos) é a borda de
+  COMPONENTE GRÁFICO que precisa de 3:1 (WCAG 1.4.11): `line` e `line-strong`
+  (1,3:1) são só para separar superfícies. Três usos — contorno e conector da
+  escada de estágios, trilha do "Próximo passo", contorno tracejado do mês sem
+  renda. Um quarto uso pede decisão, não cópia. **Sobre o `card-hero` evite
+  `ink-3` em texto pequeno**: mede 3,83:1 na abertura clara do gradiente (#24323c); `ink-2` mede 5,94:1.
 - Além dos padrões do Tailwind, há **dois breakpoints próprios**:
   - `--breakpoint-gutter` (1368px) = a largura a partir da qual sobra margem
     externa ao lado da **maior** coluna do app (`max-w-7xl` = 1280px, usada em
@@ -432,7 +482,7 @@ sem expor valor nenhum.
 ```bash
 npm install
 npm run dev        # desenvolvimento
-npm test           # 501 testes unitários em lib/ (Vitest)
+npm test           # 543 testes unitários em lib/ (Vitest)
 npm run test:e2e   # fumaça (Playwright) — sobe o servidor
 npx tsc --noEmit   # tipos
 npm run lint       # ESLint — NÃO roda no build nem no CI

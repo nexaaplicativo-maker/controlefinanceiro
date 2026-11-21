@@ -55,7 +55,7 @@ const dinheiro = (v: number, showValues: boolean) => formatMoney(v, showValues);
  * de botão é inválido.
  *
  * Sem `ink-3` aqui: sobre a abertura clara do `card-hero` (#24323c) ele mede
- * ~4,0:1 e reprova o AA de texto.
+ * 3,83:1 (`ink-2` mede 5,94:1) e reprova o AA de texto.
  */
 export function JornadaCard({
   stage, degraus, proximoPasso, needsOnboarding, temMeta, showValues, reserveMonths,

@@ -1,6 +1,18 @@
 # Status
 
 ## Em andamento
+- **Rodada 4: nova Visão Geral**, branch `design/visao-geral-rodada-4`
+  (21/11/2026). Implementa o design aprovado pelo dono (tema escuro, brand
+  atual, Inter; visual da proposta A + jornada da C), em 12 tarefas e um
+  commit por tarefa. Sem SQL, sem dependência nova, sem query nova, sem mudança
+  de tema. Novos: `JornadaCard`, `EscadaEstagios`, `CardQuantoSobra`,
+  `DivisaoRenda`, `AlertaGargalo`, `EsqueletoVisaoGeral`; em `lib/`:
+  `partesDoValor`, `rotuloDoDia`, `agruparPorDia`, `dividirRenda`,
+  `getProximoPasso` (42 testes novos: 501 -> 543). `PillarCard` e
+  `ReserveWidget` deixaram de existir. **`app/page.tsx`: 2.154 -> 1.857
+  linhas** (-297), mesmo com a tela ganhando blocos, porque todo bloco novo
+  nasceu em `components/`. Falta: conferência visual por largura (ver
+  Pendências), que depende de navegador. Commitada na branch, **sem push**.
 - **Rodada 1 de melhorias visuais da "Visão Geral"**, branch
   `design/visao-geral-rodada-1` (saiu da `main`, `7e6a548`). Quatro itens, sem
   tocar em cálculo, regra de negócio ou texto explicativo e sem nenhum SQL:
@@ -37,6 +49,50 @@
   Commitada na branch, **sem push**. Falta: PR e deploy.
 
 ## Decisões
+- 21/11/2026 **Rodada 4, CORREÇÃO DO DESIGN pelo dono: o "Próximo passo" do
+  estágio 2 é UM mês de custo, não a reserva mínima.** O mockup
+  (`final-mes-com-dados`) mostrava "Reserva mínima R$ 0,00 de R$ 11.954,00" no
+  estágio 2, mas a frase do estágio fala em "primeiro mês de reserva". Regra
+  fechada: o alvo é **sempre** o do degrau atual de `getStageLadder()`, sem
+  exceção por estágio (`getProximoPasso`, `lib/profile.ts`). Estágios 1 e 5 não
+  têm alvo financeiro e mostram só a frase, sem barra. Efeito colateral
+  assumido: a régua exibida muda de "ideal" (a antiga `ReserveWidget`) para o
+  alvo do degrau; o ideal continua no `StageRoadmapModal` e em Metas.
+- 21/11/2026 Rodada 4, decisões do dono como foram resolvidas: **D1** a
+  `ReserveWidget` saiu, o "Próximo passo" a substitui. **D4**
+  `PillarDetailModal` ganhou `total?: number`; "Já guardado"
+  (`sumCategory(investimentos)`) e "Livre na conta" (`balance`) o passam, e o
+  "% do total" por item some quando ele vem. **D5** "Onde foi o dinheiro"
+  mantém 5 grupos (`GRUPOS_VISIVEIS = 5`) e o fundo antigo do card — trocar
+  pelo utilitário `card` quebraria as bordas /50 do destaque. **D6**
+  `OnboardingChecklist` e "Dica do Nexa" continuam; o checklist some só com
+  `needsOnboarding` (o card Jornada já é o convite) e a dica fica logo abaixo
+  do card. **D7** "Ver tudo", "A vencer" e "Selecionar" no cabeçalho dos
+  lançamentos, com `flex-wrap`. **D8** rótulo "Classificar" no destaque sem
+  categoria; a ação segue sendo filtrar, a linha "Ver estes gastos" explica o
+  destino e o rótulo não muda entre estados (`aria-pressed` carrega o estado).
+- 21/11/2026 Rodada 4, **a barra de "Onde foi o dinheiro" passa a medir o % do
+  mês** (era relativa ao maior grupo). Uma barra cheia ao lado de "15% do mês"
+  eram duas escalas na mesma linha. Custo: comparar grupos pequenos entre si
+  fica mais difícil; o texto ao lado cobre, e o piso de 2% mantém a menor barra
+  visível. O comentário do topo de `ResumoOndeFoi.tsx` foi reescrito junto.
+- 21/11/2026 Rodada 4, **token novo `--color-line-contrast`** (branco a 42%):
+  `line-strong` mede 1,34:1 e reprova 1.4.11 para componente gráfico. Medido
+  3,65:1 (pior ponto, abertura do `card-hero`) a 4,09:1. Três usos: escada de
+  estágios, trilha do "Próximo passo", contorno do mês sem renda.
+- 21/11/2026 Rodada 4, **a borda do `AlertaGargalo` sobe para /60, não /50**:
+  a nota de `ResumoOndeFoi` (/50 = 3,33:1) vale sobre `bg-white/5`; sobre o
+  canvas, `neg/50` mede 2,55:1 e só `/60` fecha 3:1 (neg 3,16:1; warn 4,31:1).
+- 21/11/2026 Rodada 4, **o cabeçalho do celular não tem mais avatar** e os três
+  ícones ficam em **44px em toda largura**, inclusive abaixo de 360px: com o
+  avatar fora, 3×44 + 2×8 = 148px deixam ~124px dos 272px internos; "Visão
+  geral" a 22px/700 mede ~120px, então abaixo de 360px o `h1` usa 20px (~103px).
+  **Estimativa por métrica média da Inter, não medida em navegador** — ver
+  Pendências.
+- 21/11/2026 Rodada 4, a diretiva `eslint-disable` de
+  `react-hooks/preserve-manual-memoization` no `useMemo` de `insights` foi
+  removida: depois da troca dos cards o lint passou a acusá-la como "unused"
+  (a regra não reporta mais nada ali). O comportamento do `useMemo` não mudou.
 - 20/11/2026 **O service worker não é mais registrado em desenvolvimento** —
   e, em dev, o `RegistraServiceWorker` agora remove registro e caches que já
   existam. Motivo: `public/sw.js` trata `/_next/static/` como imutável e
@@ -180,6 +236,27 @@
   dono; a flag existe em `lib/features.ts` e está documentada no `CONTEXTO-IA.md`.
 
 ## Pendências e riscos
+- **Rodada 4: conferência visual NÃO feita** (nenhum navegador no ambiente de
+  implementação). Roteiro em `docs/roteiro-teste-visao-geral-rodada-4.md`.
+  O que mais precisa de olho: cabeçalho em 320px (o título em 20px cabe ao lado
+  dos três ícones de 44px?), o herói "R$ 11.954,00" em 360px, a lista de 4
+  itens em 320px, as bordas do alerta, a escada em 320px e o foco indo para o
+  `h2` de "Onde foi o dinheiro" depois de "Ver onde cortar".
+- **Rodada 4: "Guardar agora" também aparece nos estágios 4 e 5**, onde o
+  dinheiro novo não deveria ir para a reserva (já completa) e sim para
+  investimento. A barra do estágio 4 mede patrimônio, mas o aporte continua
+  indo para a meta "Reserva de Emergência" (`handleAddToReserve`). Decisão de
+  produto: esconder o botão nesses estágios, ou apontar para Patrimônio?
+- **Rodada 4: mês sem renda esconde os 4 itens do "Quanto sobra"** — e com eles a
+  porta para o detalhe de fixos e cartões. É o que o design pede ("frase +
+  Lançar renda"); os lançamentos seguem na lista. Reavaliar se atrapalhar quem
+  lança despesa antes da renda.
+- **Rodada 4: `TransactionRow` não recebe mais `date`** da página (o dia vem
+  do cabeçalho do grupo). A prop ficou opcional, como o plano pedia, mas hoje
+  nenhum chamador a usa: pode sair se continuar assim.
+- **Rodada 4: o título "% da renda" do alerta usa uma casa decimal** ("68,6%"),
+  como o plano pediu; o selo antigo arredondava ("69%"). Se o dono preferir
+  inteiro, é uma linha em `AlertaGargalo`.
 - **Coletar o nome do usuário — pré-requisito para a saudação mostrar nome.**
   Hoje o nome não existe em lugar nenhum: o `signUp` não manda `options.data`
   (`app/login/page.tsx`), o `handle_new_user` grava só `id` e `role`,
@@ -265,13 +342,14 @@
   `truncate` + `min-w-0` no chip; ou encurtar "Mostrando apenas" para
   "Filtrando:", que devolve ~60px. Não foi feito na rodada 3 porque o card
   "Onde foi o dinheiro" era o escopo, e esta faixa é da lista de lançamentos.
-- **Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**,
+- ~~**Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**~~ **FECHADA na rodada 4** (por estimativa, falta conferir em 320px): os três são 44×44 em toda largura. Texto original:
+  **Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**,
   sob o piso de 44px do sistema de design. É troca consciente (20/11/2026): com
   44px a saudação não cabia e aparecia "Boa ...", e a alternativa era tirar um
   ícone da tela. Vale só nessa faixa; de 360px para cima os três voltam a 44px.
   Se um dia a saudação ganhar nome de verdade, reavaliar — com nome o texto
   cresce e a conta aperta de novo.
-- O lápis "Editar receitas" do card de pilar tem **26×26px**, abaixo do piso de
+- ~~O lápis "Editar receitas" do card de pilar tem **26×26px**~~ **FECHADA na rodada 4**: o card de pilar não existe mais; editar receita é o botão "de R$ X que entraram no mês" (44px). Texto original: O lápis "Editar receitas" do card de pilar tem **26×26px**, abaixo do piso de
   44px que a rodada 1 adotou para alvo de toque. Não foi tocado porque mexer
   nele mudaria o layout do card que a rodada acabou de ajustar.
 - **Painel do Supabase, bucket `receipts`: `allowed_mime_types` EM ESPERA** —

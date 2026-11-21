@@ -179,10 +179,15 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
         ))}
       </div>
 
-      {/* O controle fica ANTES do conteúdo revelado: assim o gatilho não se
-          move um pixel ao expandir ou recolher, e dispensa scrollIntoView e
-          foco programático. Só `aria-expanded` aqui — `aria-pressed` é das
-          barras e do destaque, e os dois nunca andam juntos no mesmo controle.
+      {/* O controle fica ANTES do conteúdo revelado: assim o gatilho fica
+          parado ao expandir e recolher, e dispensa scrollIntoView e foco
+          programático. UMA exceção, conhecida e aceita: quando o filtro ativo
+          é um grupo fora dos 5, ele é promovido a 6ª linha acima daqui, e ao
+          expandir ele volta para a lista de baixo — então o gatilho sobe uma
+          linha. Corrigir exigiria fixar o grupo ativo fora de ordem dentro da
+          lista expandida, o que é pior que o deslocamento.
+          Só `aria-expanded` aqui — `aria-pressed` é das barras e do destaque,
+          e os dois nunca andam juntos no mesmo controle.
           O "Não classificado" não conta no N: está sempre visível no destaque. */}
       {nomeados.length > GRUPOS_VISIVEIS && (
         <button

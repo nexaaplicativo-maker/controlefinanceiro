@@ -133,6 +133,20 @@ global do app, que este documento declara não existir. A primeira emissão se
 perde (o `{children}` monta antes do `ChromeDoApp`), o que é inofensivo porque o
 valor inicial dos dois lados é `false`.
 
+O card **"Onde foi o dinheiro"** (`components/ResumoOndeFoi.tsx`) tem três
+decisões que parecem bug e não são. (1) Mostra só os **5 maiores grupos
+nomeados**, com um "Ver todas (N)" em que **N é o total de grupos nomeados**, não
+o de ocultos — e o "Não classificado" não entra nessa conta porque vive no
+destaque, sempre visível. (2) Se o filtro ativo for um grupo fora dos 5, ele é
+promovido a **6ª linha visível**, derivado no render: filtro ligado não pode ficar
+invisível. (3) **A expansão PERSISTE ao trocar de mês**, de propósito — quem abriu
+a lista inteira está comparando meses, e recolher a cada navegação briga com ele.
+Não "conserte" isso com `useEffect` que zera o estado: `set-state-in-effect` é
+erro de lint aqui, e resetar por `key` remontaria o card e repetiria a animação
+de entrada a cada mês. O "Não classificado" fica **depois** das barras, não
+antes: o card responde "onde foi o dinheiro", e a ausência de resposta não pode
+empurrar o ranking para baixo da dobra em 320px.
+
 A entrada do **feedback** não é mais um flutuante em toda largura, e a regra
 vale para **toda rota autenticada**: o botão `fixed` só aparece a partir de
 `--breakpoint-gutter` (1368px), onde existe margem externa para ele; abaixo

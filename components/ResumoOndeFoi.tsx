@@ -32,6 +32,7 @@ function LinhaDoGrupo({ item, maior, ativo, showValues, onSelecionar }: {
 }) {
   return (
     <button
+      type="button"
       onClick={() => onSelecionar?.(item.rotulo)}
       aria-pressed={ativo}
       className={`text-left rounded-field px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-brand/10' : 'hover:bg-white/5'}`}
@@ -54,10 +55,13 @@ function LinhaDoGrupo({ item, maior, ativo, showValues, onSelecionar }: {
         {/* Abaixo de `xs` (360px) o percentual some: "100% · 142 gastos" mede
             ~104px e alargar a coluna em 320px comeria a barra de progresso,
             que é a informação. A barra já comunica a proporção; a contagem
-            não tem substituto visual.
+            não tem substituto visual. `whitespace-nowrap` porque com 4
+            dígitos ("100% · 1023 gastos", fatura grande importada) o texto
+            quebraria dentro da caixa de largura fixa e desalinharia a barra
+            desta linha das vizinhas.
             `ink-2` na linha ativa: `ink-3` mede 4,35:1 sobre `bg-brand/10` e
             reprova AA; `ink-2` dá 6,75:1. */}
-        <span className={`w-[4.75rem] xs:w-[6.75rem] shrink-0 text-right text-xs tabular-nums ${ativo ? 'text-ink-2' : 'text-ink-3'}`}>
+        <span className={`w-[4.75rem] xs:w-[6.75rem] shrink-0 whitespace-nowrap text-right text-xs tabular-nums ${ativo ? 'text-ink-2' : 'text-ink-3'}`}>
           <span className="hidden xs:inline">{item.percentual.toFixed(0)}% · </span>
           {item.itens} {item.itens === 1 ? 'gasto' : 'gastos'}
         </span>
@@ -205,8 +209,12 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
               linha 3 NÃO mudam entre os estados: quem carrega o estado é o
               `aria-pressed` — trocar texto e atributo juntos faz o leitor de
               tela anunciar coisa trocada. As bordas são /50 e não /30: /30
-              mede 1,9:1 contra o fundo do card e reprova o 3:1 de componente
-              gráfico; /50 dá ~3,2:1. */}
+              mede 1,98:1 contra o fundo do card e reprova o 3:1 de componente
+              gráfico. /50 dá 3,33:1 (warn) e 3,15:1 (brand) — e esses números
+              dependem de o fundo deste card ser `bg-white/5` sobre o canvas,
+              que resolve em rgb(20,23,27). Se o card clarear (virar o
+              utilitário `card`, ou `bg-white/8`), o brand/50 cai abaixo de 3:1
+              e as bordas têm de subir junto. */}
           <button
             type="button"
             onClick={() => onSelecionar?.(NAO_CLASSIFICADO)}

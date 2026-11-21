@@ -45,7 +45,8 @@ export interface EntradaDaDivisao {
   livre: number;
 }
 
-const ROTULOS: Record<IdDoSegmento, string> = {
+/** Rótulo de cada fatia, único para a legenda, o `aria-label` e o modal de destino. */
+export const ROTULO_DO_SEGMENTO: Record<IdDoSegmento, string> = {
   fixos: 'Contas fixas',
   gargalo: 'Cartões e variáveis',
   guardado: 'Já guardado',
@@ -100,7 +101,7 @@ export function dividirRenda(entrada: EntradaDaDivisao): DivisaoDaRenda {
   const percentuais = percentuaisInteiros(itens.map(([, v]) => v), base);
 
   return {
-    segmentos: itens.map(([id, valor], i) => ({ id, rotulo: ROTULOS[id], valor, percentual: percentuais[i] })),
+    segmentos: itens.map(([id, valor], i) => ({ id, rotulo: ROTULO_DO_SEGMENTO[id], valor, percentual: percentuais[i] })),
     estourou,
     normalizado: estourou,
   };

@@ -5,15 +5,14 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
 import { 
-  Wallet, TrendingUp, TrendingDown,
-  Bell, User, Plus, Home as HomeIcon, CreditCard, 
+  Wallet, TrendingDown,
+  Bell, User, Plus, CreditCard, 
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
-  PieChart as PieChartIcon, Search, Trash2, Heart, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
+  PieChart as PieChartIcon, Search, Trash2, Heart, Clock, Calendar, FileText, Eye, EyeOff,
   PiggyBank, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
-  WifiOff, RefreshCw, X, ArrowUpRight, MessageSquare
+  WifiOff, RefreshCw, X, MessageSquare
 } from "lucide-react";
 
-import { Money } from "../components/ui/Money";
 import { TransactionRow } from "../components/TransactionRow";
 import { EmptyState, Skeleton } from "../components/ui/Surface";
 
@@ -70,6 +69,8 @@ import { primeiroNome, saudacao } from "../lib/saudacao";
 import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { ResumoOndeFoi } from "../components/ResumoOndeFoi";
 import { JornadaCard } from "../components/JornadaCard";
+import { CardQuantoSobra } from "../components/CardQuantoSobra";
+import { dividirRenda, type IdDoSegmento } from "../lib/divisao-renda";
 import { EVENTO_MODO_SELECAO } from "../components/BottomNav";
 import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
@@ -153,8 +154,8 @@ export default function Dashboard() {
   const [showValues, setShowValues] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
-  // Qual card do topo teve os lançamentos abertos.
-  const [pilarAberto, setPilarAberto] = useState<null | 'renda' | 'fixos' | 'gargalo'>(null);
+  // Qual item da divisão da renda teve os lançamentos abertos.
+  const [pilarAberto, setPilarAberto] = useState<null | IdDoSegmento>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false); 
   const [isPlannerOpen, setIsPlannerOpen] = useState(false); 
   const [isTrackerOpen, setIsTrackerOpen] = useState(false); 
@@ -961,21 +962,6 @@ export default function Dashboard() {
     reserveAmount: reservaAtual,
     positions,
     debts,
-    /* eslint-disable-next-line react-hooks/preserve-manual-memoization -- O
-       compilador não consegue provar que `gargalo` e `custosFixos` não mudam
-       depois: eles saem de `somar(lista)`, e as mesmas listas são passadas
-       adiante para os modais de detalhe. Elas não são mutadas em lugar nenhum
-       (o modal ordena uma cópia), mas isso a análise não enxerga.
-
-       A saída seria remover este useMemo e deixar o compilador memorizar
-       sozinho. Não dá hoje: o React Compiler não está ligado no
-       next.config.ts, então o aviso é consultivo e tirar o useMemo faria
-       `getProfileInsights` — que varre TODO o histórico do usuário — rodar a
-       cada render do painel, e o painel re-renderiza a cada um dos ~30
-       interruptores de modal. Trocar perda de desempenho real por um aviso
-       sobre otimização que não está ativa seria o negócio errado.
-
-       Quando o compilador for ligado, reavaliar: aí vale tirar o useMemo. */
   }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, custosFixos, reservaAtual, positions, debts]);
 
   const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);
@@ -996,13 +982,18 @@ export default function Dashboard() {
     critico:  { hex: '#f0776e', accent: 'rose',    text: 'text-neg',   glow: 'bg-neg',   panel: 'bg-neg/5 border-neg/20' },
   }[gargaloTier];
 
-  // Título, lista e cor de cada card clicável num lugar só. A cor do gargalo
-  // acompanha o tier para o modal abrir na mesma cor do card que foi tocado —
-  // abrir em cor diferente faz duvidar se é o mesmo número.
-  const PILARES = {
-    renda:   { title: 'Renda Líquida',       subtitle: 'tudo que entrou no mês',   list: receitasList,    accent: 'emerald' },
-    fixos:   { title: 'Custos Fixos',        subtitle: 'o que você paga todo mês', list: custosFixosList, accent: 'blue' },
-    gargalo: { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',   list: gargaloList,     accent: GARGALO_THEME.accent },
+  // Título, lista e cor de cada item clicável da divisão da renda num lugar só.
+  // A cor do gargalo acompanha o tier para o modal abrir na mesma cor do item
+  // que foi tocado — abrir em cor diferente faz duvidar se é o mesmo número.
+  //
+  // `total` só existe onde a soma bruta da lista NÃO é o número do item: o
+  // "já guardado" é líquido de resgates e o "livre" mistura entradas e saídas.
+  // Nos dois o modal usa o valor exato da página em vez de recalcular.
+  const PILARES: Record<IdDoSegmento, { title: string; subtitle: string; list: any[]; accent: string; total?: number }> = {
+    fixos:    { title: 'Custos Fixos',        subtitle: 'o que você paga todo mês',            list: custosFixosList,          accent: 'blue' },
+    gargalo:  { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',              list: gargaloList,              accent: GARGALO_THEME.accent },
+    guardado: { title: 'Já guardado',         subtitle: 'aportes menos resgates do mês',       list: investimentos,            accent: 'padrao', total: sumCategory(investimentos) },
+    livre:    { title: 'Livre na conta',      subtitle: 'tudo que entrou menos tudo que saiu', list: currentMonthTransactions, accent: 'padrao', total: balance },
   };
   const pilarAtivo = pilarAberto ? PILARES[pilarAberto] : null;
 
@@ -1109,6 +1100,20 @@ export default function Dashboard() {
   const dividaCaraNoEstagio1 = insights.stage.id === 'emergencia' && debtSummary.expensiveTotal > 0
     ? { total: debtSummary.expensiveTotal, jurosPorMes: debtSummary.expensiveMonthlyInterest }
     : undefined;
+  const valoresDaRenda: Record<IdDoSegmento, number> = {
+    fixos: custosFixos,
+    gargalo,
+    guardado: sumCategory(investimentos),
+    livre: balance,
+  };
+  const divisaoDaRenda = dividirRenda({
+    rendaLiquida,
+    custosFixos,
+    gargalo,
+    guardado: valoresDaRenda.guardado,
+    livre: balance,
+  });
+
   const pedeCadastroDeDivida = insights.stage.id === 'emergencia' && !dividaCaraNoEstagio1
     && !hasRegisteredDebts && !!profile?.has_debt;
 
@@ -1453,74 +1458,7 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-        ) : (
-          /* Uma coluna abaixo de 360px: ver `--breakpoint-xs` no globals.css.
-             Em 320px o par lado a lado deixava 26px para o título do card
-             "Renda Líquida", e nem a primeira palavra caberia. */
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            <div className="xs:col-span-2 md:col-span-3">
-              <PillarCard
-                title="Capacidade de Poupança"
-                value={capacidadePoupanca}
-                visible={showValues}
-                caption={capacidadePoupanca >= 0 ? 'Disponível para construir patrimônio' : 'Você gastou mais do que ganhou'}
-                icon={<PiggyBank className={`h-[18px] w-[18px] ${capacidadePoupanca >= 0 ? 'text-brand' : 'text-neg'}`} />}
-                accent={capacidadePoupanca >= 0 ? 'padrao' : 'rose'}
-                hero
-                delay={0.16}
-                secondary={{
-                  label: 'Saldo em conta',
-                  value: balance,
-                  positive: balance >= 0,
-                  hint: sumCategory(investimentos) > 0
-                    ? `Já descontados ${showValues ? formatMoney(sumCategory(investimentos)) : 'R$ •••••'} que você guardou`
-                    : undefined,
-                }}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Renda Líquida"
-                value={rendaLiquida}
-                visible={showValues}
-                caption="Tudo que entrou no mês"
-                icon={<TrendingUp className="h-[18px] w-[18px] text-pos" />}
-                delay={0.04}
-                onEditClick={() => setIsIncomeModalOpen(true)}
-                onClick={() => setPilarAberto('renda')}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Custos Fixos"
-                value={custosFixos}
-                visible={showValues}
-                caption="O que você paga todo mês"
-                icon={<HomeIcon className="h-[18px] w-[18px] text-ink-2" />}
-                delay={0.08}
-                onClick={() => setPilarAberto('fixos')}
-              />
-            </div>
-            <div className="xs:col-span-2 md:col-span-1">
-              <PillarCard
-                title="Cartões & Variáveis"
-                value={gargalo}
-                visible={showValues}
-                caption={gargaloTier === 'critico' ? 'Bem acima do seu teto — corte aqui primeiro' : gargaloTier === 'atencao' ? 'Acima do seu teto de consumo' : 'Onde o dinheiro escapa'}
-                icon={<CreditCard className={`h-[18px] w-[18px] ${GARGALO_THEME.text}`} />}
-                accent={GARGALO_THEME.accent}
-                /* A badge mostra o dado, não um rótulo: "38% da renda" responde
-                   "isso está bom ou ruim?" — "Gargalo" exigia decorar o jargão.
-                   Some quando não há gasto ou quando não há renda para comparar. */
-                badge={gargalo > 0 && rendaLiquida > 0
-                  ? (showValues ? `${comprometimentoRaw.toFixed(0)}% da renda` : '••% da renda')
-                  : undefined}
-                delay={0.12}
-                onClick={() => setPilarAberto('gargalo')}
-              />
-            </div>
-          </div>
-        )}
+        ) : null}
 
         {/* Jornada: o estágio, a escada e o próximo passo. Substituiu o card de
             estágio e a `ReserveWidget` — o "próximo passo" é o alvo do degrau
@@ -1558,6 +1496,21 @@ export default function Dashboard() {
               {dicaDoMes}
             </motion.p>
           )}
+
+        {pronto && (
+          <CardQuantoSobra
+            mes={MONTHS[activeMonth].toLowerCase()}
+            sobra={capacidadePoupanca}
+            rendaLiquida={rendaLiquida}
+            divisao={divisaoDaRenda}
+            valores={valoresDaRenda}
+            showValues={showValues}
+            onAbrirRenda={() => setIsIncomeModalOpen(true)}
+            onAbrirSegmento={setPilarAberto}
+            onLancarRenda={handleOpenModal}
+            onLerFatura={() => setIsAiModalOpen(true)}
+          />
+        )}
 
 
         {/* Organização saiu da home: os 4 cards listavam cada lançamento e
@@ -1741,6 +1694,7 @@ export default function Dashboard() {
           subtitle={pilarAtivo.subtitle}
           transactions={pilarAtivo.list}
           accent={pilarAtivo.accent}
+          total={pilarAtivo.total}
           showValues={showValues}
           /* A lista fica aberta atrás da edição: ao salvar, o valor corrigido
              aparece aqui mesmo e o total do topo se recalcula, sem precisar
@@ -1851,115 +1805,5 @@ export default function Dashboard() {
       />
     </div>
     </BetaGate>
-  );
-}
-
-/**
- * Etiqueta do card. Das seis cores anteriores sobraram três, e cada uma passou
- * a significar um estado — não a identidade do card.
- */
-const PILLAR_BADGE: Record<string, string> = {
-  rose:   'text-neg bg-neg/10',
-  amber:  'text-warn bg-warn/10',
-  padrao: 'text-ink-2 bg-white/5',
-};
-
-function PillarCard({ title, value, visible = true, caption, icon, accent, badge, hero, delay, onEditClick, secondary, onClick }: any) {
-  const badgeTom = PILLAR_BADGE[accent] ?? PILLAR_BADGE.padrao;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.26, delay, ease: [0.22, 1, 0.36, 1] }}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      // Card inteiro como alvo: no celular, um botãozinho "ver detalhes" seria
-      // alvo pequeno justo onde o dedo erra mais.
-      onKeyDown={onClick ? (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
-      } : undefined}
-      className={`${hero ? 'card-hero' : 'card'} relative flex h-full flex-col overflow-hidden p-5 transition-colors ${onClick ? 'cursor-pointer hover:border-white/15' : ''}`}
-    >
-      {hero && <span aria-hidden className="hero-mist" />}
-
-      {/* Em 360px a coluna do card deixa 108px internos. Descontando o ícone
-          (18 + 10 de vão) e o grupo da direita, o título ficava com 22px no
-          card "Renda Líquida" — o único que tem lápis E seta (26 + 8 + 16 =
-          50px) — e chegava cortado. Encolher a fonte não é saída: 12px já é o
-          piso do sistema e este é um app de dinheiro lido no celular.
-
-          Então: duas linhas para o título, e a seta sai no celular. Ela é
-          redundante ali, porque o card inteiro já é um botão; no desktop
-          continua, como pista visual de que dá para abrir. Isso devolve 24px e
-          leva o título a 46px em 360px.
-
-          O `xs:min-h-10` reserva as duas linhas quando os cards ficam lado a
-          lado, mesmo com título de uma linha ("Custos Fixos"), senão o valor de
-          um card da dupla nasceria ~18px acima do outro entre 414 e 767px. Vai
-          no wrapper, e não no `<p>`: o `<p>` é `line-clamp-2`, ou seja
-          `display:-webkit-box`, e o texto se cola no topo da caixa de 40px —
-          no wrapper, o `items-center` centra ícone e texto juntos. Abaixo de
-          360px o grid é de uma coluna e não há par para alinhar; no desktop o
-          título sempre cabe em uma linha. Nos dois casos o mínimo sai. */}
-      <div className="relative mb-4 flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5 text-ink-2 xs:min-h-10 md:min-h-0">
-          <span className="shrink-0">{icon}</span>
-          <p className="line-clamp-2 text-[13px] font-medium leading-snug">{title}</p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {onEditClick && (
-            <button
-              /* Sem o stopPropagation, o clique no lápis subiria para o card e
-                 abriria o modal de lançamentos junto com o de edição. */
-              onClick={(e) => { e.stopPropagation(); onEditClick(); }}
-              className="cursor-pointer rounded-full bg-white/5 p-1.5 text-ink-2 transition-colors hover:text-ink"
-              title="Editar receitas"
-              aria-label="Editar receitas"
-            >
-              <Edit2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {badge && (
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badgeTom}`}>{badge}</span>
-          )}
-          {onClick && <ArrowUpRight className="hidden h-4 w-4 text-ink-3 md:block" />}
-        </div>
-      </div>
-
-      <Money
-        value={value}
-        visible={visible}
-        tom={value === 0 ? 'muted' : 'ink'}
-        className={hero ? 'text-[40px] font-semibold tracking-[-0.03em]' : 'text-[28px] font-semibold tracking-[-0.02em]'}
-      />
-
-      {caption && <p className="relative mt-1.5 text-xs leading-snug text-ink-3">{caption}</p>}
-
-      {/* Linha secundária: um segundo número que pertence ao mesmo assunto,
-          em vez de virar um bloco separado na página. */}
-      {secondary && (
-        <div className="relative mt-auto pt-4">
-          {/* Rótulo e valor LADO A LADO, não nas duas pontas.
-              Com `justify-between`, no card herói — que ocupa a largura toda —
-              "Saldo em conta" ficava na borda esquerda e o número na direita,
-              a quase mil pixels de distância no desktop. São uma informação
-              só e precisam ser lidos como uma frase. No celular a diferença
-              quase não aparecia; era no monitor que os dois se desgarravam. */}
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-xs text-ink-3">{secondary.label}</span>
-            <Money
-              value={secondary.value}
-              visible={visible}
-              tom={secondary.positive === false ? 'neg' : secondary.positive === true ? 'pos' : 'ink'}
-              className="text-[15px] font-semibold tracking-tight"
-            />
-          </div>
-          {secondary.hint && <p className="mt-1 text-xs leading-snug text-ink-3">{secondary.hint}</p>}
-        </div>
-      )}
-    </motion.div>
   );
 }

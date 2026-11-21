@@ -52,3 +52,35 @@ export function formatPercent(value: number | null | undefined, visible = true, 
   const n = Number(value);
   return `${(Number.isFinite(n) ? n : 0).toFixed(decimals)}%`;
 }
+
+/** O valor em reais quebrado em duas partes, para quem desenha os centavos menores. */
+export interface PartesDoValor {
+  /** "R$ 1.234" — com o símbolo e os separadores de milhar, sem os centavos. */
+  reais: string;
+  /** ",56" — com a vírgula. Vazio quando `oculto`. */
+  centavos: string;
+  /** true no modo privado: `reais` carrega a máscara inteira e não há centavos. */
+  oculto: boolean;
+}
+
+/**
+ * Quebra o texto de `formatMoney` em reais e centavos.
+ *
+ * Parte do que `formatMoney` devolveu, de propósito: o `Money` tinha esta
+ * lógica por conta própria, e qualquer tela que quisesse os centavos menores
+ * teria de reimplementar a formatação, que é o que este arquivo existe para
+ * impedir. Corta na ÚLTIMA vírgula — o separador decimal do pt-BR.
+ *
+ * No modo privado a máscara é uma coisa só: não há centavos para recuar.
+ */
+export function partesDoValor(value: number | null | undefined, visible = true): PartesDoValor {
+  const texto = formatMoney(value, visible);
+  if (!visible) return { reais: texto, centavos: '', oculto: true };
+
+  const corte = texto.lastIndexOf(',');
+  return {
+    reais: corte === -1 ? texto : texto.slice(0, corte),
+    centavos: corte === -1 ? '' : texto.slice(corte),
+    oculto: false,
+  };
+}

@@ -73,6 +73,38 @@ export function somarMeses(iso: string, meses: number): string {
   return alvo.toISOString().slice(0, 10);
 }
 
+const ROTULO_DIA = {
+  semAno: new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }),
+  comAno: new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+};
+
+/** Texto do cabeçalho de dia quando a data não existe ou não é de calendário. */
+export const ROTULO_SEM_DATA = 'Sem data';
+
+/**
+ * "Domingo, 23 de novembro" para uma data ISO, com o ano ("... de 2026") sob
+ * pedido.
+ *
+ * Constrói a data com `Date.UTC` e formata com `timeZone: 'UTC'`, o mesmo
+ * caminho de `domingoDaSemana`: o fuso da máquina não participa, então 23/11
+ * não vira 22/11 em quem está atrás de UTC. Data impossível (30/02) não é
+ * empurrada para março — `Date.UTC` rola o mês em silêncio, e o teste de ida
+ * e volta abaixo recusa isso.
+ */
+export function rotuloDoDia(iso: string | null | undefined, { comAno = false } = {}): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
+  if (!m) return ROTULO_SEM_DATA;
+
+  const [a, mes, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(a, mes - 1, d));
+  if (dt.getUTCFullYear() !== a || dt.getUTCMonth() !== mes - 1 || dt.getUTCDate() !== d) {
+    return ROTULO_SEM_DATA;
+  }
+
+  const texto = (comAno ? ROTULO_DIA.comAno : ROTULO_DIA.semAno).format(dt);
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 /** Dias inteiros entre duas datas de calendário. Negativo se `ate` for antes. */
 export function diasEntre(de: string, ate: string): number {
   const ms = (iso: string) => {

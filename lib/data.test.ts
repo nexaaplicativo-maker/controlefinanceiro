@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { hojeEmSaoPaulo, mesAtual, mesDe, somarDias, somarMeses, diasEntre, domingoDaSemana } from './data';
+import { hojeEmSaoPaulo, mesAtual, mesDe, somarDias, somarMeses, diasEntre, domingoDaSemana, rotuloDoDia } from './data';
 
 describe('hojeEmSaoPaulo', () => {
   it('21h de 31/10 em Brasília ainda é 31/10', () => {
@@ -140,5 +140,44 @@ describe('somarMeses — a regra que o lançamento manual não seguia', () => {
 
   it('dia 30 em fevereiro também é preso', () => {
     expect(somarMeses('2026-01-30', 1)).toBe('2026-02-28');
+  });
+});
+
+describe('rotuloDoDia', () => {
+  it('escreve dia da semana, dia e mês, com a primeira letra maiúscula', () => {
+    expect(rotuloDoDia('2026-11-23', { comAno: false })).toBe('Segunda-feira, 23 de novembro');
+    expect(rotuloDoDia('2026-11-22')).toBe('Domingo, 22 de novembro');
+  });
+
+  it('não desloca o dia por fuso: 1º de dezembro continua 1º', () => {
+    expect(rotuloDoDia('2026-12-01')).toBe('Terça-feira, 1 de dezembro');
+  });
+
+  it('virada de mês: último dia e primeiro dia seguinte', () => {
+    expect(rotuloDoDia('2026-10-31')).toBe('Sábado, 31 de outubro');
+    expect(rotuloDoDia('2026-11-01')).toBe('Domingo, 1 de novembro');
+  });
+
+  it('29 de fevereiro existe em ano bissexto', () => {
+    expect(rotuloDoDia('2028-02-29')).toBe('Terça-feira, 29 de fevereiro');
+  });
+
+  it('29 de fevereiro fora de ano bissexto não vira março', () => {
+    expect(rotuloDoDia('2026-02-29')).toBe('Sem data');
+  });
+
+  it('com ano, em dezembro', () => {
+    expect(rotuloDoDia('2026-12-31', { comAno: true })).toBe('Quinta-feira, 31 de dezembro de 2026');
+  });
+
+  it('aceita timestamp: só a data conta', () => {
+    expect(rotuloDoDia('2026-11-23T23:59:00Z')).toBe('Segunda-feira, 23 de novembro');
+  });
+
+  it('ausente ou inválida vira "Sem data", sem lançar', () => {
+    expect(rotuloDoDia(null)).toBe('Sem data');
+    expect(rotuloDoDia(undefined)).toBe('Sem data');
+    expect(rotuloDoDia('')).toBe('Sem data');
+    expect(rotuloDoDia('abc')).toBe('Sem data');
   });
 });

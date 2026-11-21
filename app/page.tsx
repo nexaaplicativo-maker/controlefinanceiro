@@ -1181,57 +1181,44 @@ export default function Dashboard() {
           exatamente o que acontecia com "Saldo em conta". */}
       <main className="mx-auto max-w-md px-6 pt-safe py-8 md:max-w-[1120px] md:py-12">
         
-        {/* No celular este é o ÚNICO cabeçalho.
-            Antes vinha ele e, logo abaixo, "Visão Geral / Acompanhe e gerencie
-            seu patrimônio" — duas apresentações seguidas, dizendo a mesma
-            coisa, ocupando quase uma tela antes do primeiro número. O título
-            de página sobrou só no desktop, onde há altura sobrando. */}
-        <header className="flex md:hidden justify-between items-center gap-3 mb-6">
-          {/* `min-w-0` + `truncate`: texto longo (antes era o e-mail inteiro)
-              empurrava o sino para fora da tela, porque texto não encolhe
-              sozinho em flex. Vale igual para um primeiro nome comprido. */}
-          <div className="flex min-w-0 items-center gap-2 xs:gap-3">
-            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/5 xs:h-11 xs:w-11">
-              <Image src="/icon-192.png" alt="" width={44} height={44} priority className="h-full w-full object-cover" />
-            </div>
-            {/* Sem nome, a saudação é a linha principal e não sobra vírgula
-                pendurada. Com nome, ela vira a linha de apoio do `h1`. Em
-                qualquer um dos dois casos existe UM `h1` nesta largura — no
-                desktop o `h1` é "Visão Geral", e este cabeçalho não aparece. */}
-            <div className="min-w-0">
-              {nomeParaSaudacao && (
-                <p className="truncate text-xs text-ink-2">{saudacao()},</p>
-              )}
-              <h1 className="truncate text-xl font-semibold tracking-tight text-ink">
-                {nomeParaSaudacao || saudacao()}
-              </h1>
-            </div>
+        {/* No celular este é o ÚNICO cabeçalho: a saudação é a linha de apoio e
+            o título da tela é "Visão geral", o `h1`. No desktop o `h1` é o da
+            faixa abaixo, e este cabeçalho não aparece — sempre UM `h1`.
+            O avatar decorativo saiu: não era botão, não dizia nada, e tomava
+            ~40px de uma linha que precisa do espaço para os três alvos de 44px. */}
+        <header className="mb-4 flex items-center justify-between gap-2 md:hidden">
+          {/* `min-w-0`: texto não encolhe sozinho em flex. Sem `truncate` no
+              título de propósito — se um dia faltar largura, ele quebra em duas
+              linhas em vez de perder letras. */}
+          <div className="min-w-0">
+            <p className="truncate text-xs text-ink-2">
+              {nomeParaSaudacao ? `${saudacao()}, ${nomeParaSaudacao}` : saudacao()}
+            </p>
+            {/* 20px abaixo de 360px: "Visão geral" a 22px/700 mede ~120px e em
+                320px sobram ~116px ao lado dos três alvos de 44px. A 20px
+                (com o `tracking-tight`) são ~103px. Estimativa por métrica
+                média da Inter, não medida em navegador. */}
+            <h1 className="text-xl font-bold tracking-tight text-ink xs:text-[22px]">Visão geral</h1>
           </div>
 
           {/* Assinaturas e Conselheiro saíram daqui: ambos vivem no menu "Mais",
-              e os ícones (lupa, alvo) não diziam o que abriam. */}
-          {/* 44x44 nos três a partir de 360px: é o piso de alvo de toque do
-              sistema de design, o mesmo que o botão "Mais ferramentas" segue.
-              Estavam em 40px (`p-2.5` + ícone de 20).
-
-              ABAIXO de 360px eles caem para 36px e o vão para 4px. Com três
-              alvos de 44 e vão de 8 sobravam ~56px para a saudação, e "Boa
-              noite" pede ~95px: aparecia "Boa ...". Encolher aqui devolve 40px
-              e mantém os três ícones na tela, que foi a decisão do dono —
-              a alternativa era esconder um deles no menu. Abaixo de 360px,
-              portanto, o alvo fica sob o piso de propósito. */}
-          <div className="flex shrink-0 gap-1 xs:gap-2">
+              e os ícones (lupa, alvo) não diziam o que abriam.
+              44x44 nos três em TODA largura. Com o avatar fora, 3×44 + 2×8 =
+              148px deixam 124px dos 272px internos de 320px — a regra de 36px
+              abaixo de 360px, que existia por causa da saudação, não é mais
+              necessária. */}
+          <div className="flex shrink-0 gap-2">
             <button
               onClick={() => setShowValues(!showValues)}
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink"
             >
-              {showValues ? <Eye className="h-4 w-4 xs:h-5 xs:w-5" /> : <EyeOff className="h-4 w-4 xs:h-5 xs:w-5" />}
+              {showValues ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
             </button>
-            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11">
-                <Bell className="h-4 w-4 xs:h-5 xs:w-5"/>
-                {hasUnread && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-neg rounded-full xs:top-2.5 xs:right-2.5"></span>}
-             </button>
+            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink">
+              <Bell className="h-5 w-5" />
+              {hasUnread && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-neg"></span>}
+            </button>
             {/* Entrada do feedback abaixo de 1368px.
                 O botão flutuante cobria o conteúdo nessas larguras (ver
                 `FeedbackWidget`), então aqui ele deixa de pairar e passa a
@@ -1241,9 +1228,9 @@ export default function Dashboard() {
             <button
               onClick={abrirFeedback}
               aria-label={ROTULO_FEEDBACK}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink"
             >
-              <MessageSquare className="h-4 w-4 xs:h-5 xs:w-5" />
+              <MessageSquare className="h-5 w-5" />
             </button>
           </div>
         </header>
@@ -1254,7 +1241,7 @@ export default function Dashboard() {
             card, e entre 768 e 1279px "Lançar"/"Ler Fatura" caíam numa linha
             própria esticados a meia largura cada. Agora o grupo da esquerda
             encolhe (`min-w-0 flex-1`) e o da direita acompanha o título. */}
-        <div className="flex items-center justify-between gap-3 md:gap-6 mb-8 relative z-10 min-w-0">
+        <div className="relative z-10 mb-6 flex min-w-0 items-center justify-between gap-3 md:mb-8 md:gap-6">
           {/* No celular isto era uma linha só, sem poder encolher: título +
               olho + seletor de mês passavam da largura da tela e empurravam a
               página inteira para o lado. O `flex-wrap` deixa o seletor descer
@@ -1293,10 +1280,13 @@ export default function Dashboard() {
                 da página — o usuário trocava os quatro cards do topo sem
                 perceber de onde vinha a mudança. Aqui ele fica junto do título,
                 deixando claro que escopa tudo. */}
-            <div className="flex w-full items-center justify-between gap-1 bg-white/5 p-1 rounded-full border border-line-strong sm:w-fit sm:justify-start">
-              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-              <div className="flex-1 text-center font-medium text-xs text-ink tracking-wider uppercase sm:w-32 sm:flex-none">{MONTHS[activeMonth]} <span className="text-ink-3">{activeYear}</span></div>
-              <button onClick={handleNextMonth} aria-label="Próximo mês" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+            {/* Abaixo de `md` é um trilho de 44px com setas de 44×44 (eram 28×28)
+                e o rótulo em corpo de leitura; de `md` em diante continua a
+                pílula compacta em caixa alta. O "⋯" ao lado já é `h-11 w-11`. */}
+            <div className="flex h-11 w-full items-center justify-between rounded-field border border-line-strong bg-white/5 md:h-auto md:w-fit md:justify-start md:gap-1 md:rounded-full md:p-1">
+              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-field text-ink-2 transition-colors hover:text-ink md:h-auto md:w-auto md:rounded-full md:p-1.5"><ChevronLeft className="h-5 w-5 md:h-4 md:w-4" /></button>
+              <div className="flex-1 text-center text-sm font-semibold text-ink md:w-32 md:flex-none md:text-xs md:font-medium md:uppercase md:tracking-wider">{MONTHS[activeMonth]} <span className="font-normal text-ink-3 md:font-medium">{activeYear}</span></div>
+              <button onClick={handleNextMonth} aria-label="Próximo mês" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-field text-ink-2 transition-colors hover:text-ink md:h-auto md:w-auto md:rounded-full md:p-1.5"><ChevronRight className="h-5 w-5 md:h-4 md:w-4" /></button>
             </div>
           </div>
           

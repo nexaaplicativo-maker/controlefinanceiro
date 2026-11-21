@@ -75,7 +75,7 @@ app/
     auto-budget/route.ts  POST — renda -> orçamento em JSON
     health/route.ts       GET  — estado da configuração e commit servido
 
-components/   45 arquivos: 29 modais + moldura do app + `TransactionRow` + 4 primitivas em ui/
+components/   46 arquivos: 29 modais + moldura do app + `TransactionRow` + `ResumoOndeFoi` + 4 primitivas em ui/
 lib/          32 arquivos de regra de negócio + 23 de teste
 hooks/        use-mobile, use-modal-a11y
 supabase/     17 scripts SQL idempotentes, rodados À MÃO no painel
@@ -120,6 +120,18 @@ O **`+` central da barra só aparece em `/`** (`usePathname`): quem escuta
 menu que não levava a nada. Com a IA ligada, o `+` abre uma folha ("Adicionar")
 com "Novo lançamento" e "Ler fatura"; com a IA desligada sobraria uma opção só,
 então ele lança direto, sem menu. Essa folha é o `components/ui/Sheet.tsx`.
+
+Existe um **segundo evento no `window`**, `nexa:modo-selecao`
+(`EVENTO_MODO_SELECAO`, exportado de `components/BottomNav.tsx`), no sentido
+**página -> barra**: `app/page.tsx` o emite com `detail: { ativo }` quando a
+lista de lançamentos entra ou sai do modo de seleção, e a barra esconde o `+`
+(some, não desabilita) e fecha a folha se estiver aberta. Ao desmontar, a página
+emite `ativo: false`, senão sair da Visão Geral com a seleção ligada deixaria o
+`+` escondido nas outras rotas. **Não virou context de propósito:** `modoSelecao`
+é estado local da página, e movê-lo para um provider criaria o primeiro estado
+global do app, que este documento declara não existir. A primeira emissão se
+perde (o `{children}` monta antes do `ChromeDoApp`), o que é inofensivo porque o
+valor inicial dos dois lados é `false`.
 
 A entrada do **feedback** não é mais um flutuante em toda largura, e a regra
 vale para **toda rota autenticada**: o botão `fixed` só aparece a partir de
@@ -331,7 +343,7 @@ sem expor valor nenhum.
    `components/BottomNav.tsx` (quarta adoção, não a primeira: as outras três já
    estavam na `main`). Ainda são **26 arquivos** repetindo `role="dialog"` à
    mão. `EmptyState` e `Skeleton` (`ui/Surface.tsx`) são importados em 4
-   arquivos de 45.
+   arquivos de 46.
 5. ~~`--color-ink-3` reprova no contraste~~ **RESOLVIDO.** `--color-ink-3` e
    `--color-cents` estão em **#7f8c98**, que mede **5,74:1 sobre
    `--color-canvas`** e **5,00:1 sobre o gradiente do `card`** — passa AA para
@@ -406,7 +418,7 @@ sem expor valor nenhum.
 ```bash
 npm install
 npm run dev        # desenvolvimento
-npm test           # 496 testes unitários em lib/ (Vitest)
+npm test           # 501 testes unitários em lib/ (Vitest)
 npm run test:e2e   # fumaça (Playwright) — sobe o servidor
 npx tsc --noEmit   # tipos
 npm run lint       # ESLint — NÃO roda no build nem no CI

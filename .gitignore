@@ -43,3 +43,9 @@ next-env.d.ts
 
 # claude code — anotacoes locais, nunca versionadas
 CLAUDE.local.md
+
+# material de design e auditoria — contem dados reais da conta do dono
+# e descricao de falha de seguranca ainda aberta. Nunca versionar.
+docs/design/
+propostas-visao-geral/
+docs/auditoria-seguranca-*.md

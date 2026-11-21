@@ -110,7 +110,7 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
         transition={{ duration: 0.5, delay: 0.55 }}
         className="bg-white/5 border border-line-strong rounded-card p-6 backdrop-blur-sm"
       >
-        <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
+        <h2 tabIndex={-1} className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
         <p className="text-sm text-ink-2 mt-2 leading-relaxed">
           As despesas deste mês ainda não estão separadas por onde aconteceram.
           Um lançamento manual vira <strong className="text-ink-2">um item só</strong> —
@@ -168,7 +168,7 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
       transition={{ duration: 0.5, delay: 0.55 }}
       className="bg-white/5 border border-line-strong rounded-card p-6 backdrop-blur-sm"
     >
-      <h2 className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
+      <h2 tabIndex={-1} className="text-lg font-semibold tracking-tight">Onde foi o dinheiro</h2>
       <p className="text-xs text-ink-3 mt-1 mb-5">
         Despesas deste mês por onde você gastou. O orçamento continua por categoria.
       </p>

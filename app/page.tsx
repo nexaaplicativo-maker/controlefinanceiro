@@ -70,6 +70,7 @@ import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { ResumoOndeFoi } from "../components/ResumoOndeFoi";
 import { JornadaCard } from "../components/JornadaCard";
 import { CardQuantoSobra } from "../components/CardQuantoSobra";
+import { AlertaGargalo } from "../components/AlertaGargalo";
 import { dividirRenda, type IdDoSegmento } from "../lib/divisao-renda";
 import { EVENTO_MODO_SELECAO } from "../components/BottomNav";
 import { buscarTudo, PAGINA } from "../lib/consultas";
@@ -149,6 +150,8 @@ function buscarTransacoesDaJanela(userId: string) {
 export default function Dashboard() {
   // Meses ja buscados fora da janela, para nao repetir consulta ao voltar.
   const mesesExtras = useRef(new Set<string>());
+  // Contêiner do card "Onde foi o dinheiro": destino do "Ver onde cortar".
+  const ondeFoiRef = useRef<HTMLDivElement>(null);
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth());
   const [activeYear, setActiveYear] = useState(new Date().getFullYear());
   const [showValues, setShowValues] = useState(true);
@@ -974,13 +977,10 @@ export default function Dashboard() {
     : comprometimentoRaw > insights.gargaloWarn
       ? 'atencao'
       : 'saudavel';
-  const isGargaloCritico = gargaloTier === 'critico';
 
-  const GARGALO_THEME = {
-    saudavel: { hex: '#5fd39b', accent: 'padrao',  text: 'text-ink-2', glow: 'bg-pos',   panel: 'bg-white/5 border-line' },
-    atencao:  { hex: '#e8b75d', accent: 'amber',   text: 'text-warn',  glow: 'bg-warn',  panel: 'bg-warn/5 border-warn/20' },
-    critico:  { hex: '#f0776e', accent: 'rose',    text: 'text-neg',   glow: 'bg-neg',   panel: 'bg-neg/5 border-neg/20' },
-  }[gargaloTier];
+  // Cor do modal de detalhe do gargalo. As cores do ALERTA moram em
+  // `AlertaGargalo`, que é quem as desenha.
+  const accentDoGargalo = { saudavel: 'padrao', atencao: 'amber', critico: 'rose' }[gargaloTier];
 
   // Título, lista e cor de cada item clicável da divisão da renda num lugar só.
   // A cor do gargalo acompanha o tier para o modal abrir na mesma cor do item
@@ -991,7 +991,7 @@ export default function Dashboard() {
   // Nos dois o modal usa o valor exato da página em vez de recalcular.
   const PILARES: Record<IdDoSegmento, { title: string; subtitle: string; list: any[]; accent: string; total?: number }> = {
     fixos:    { title: 'Custos Fixos',        subtitle: 'o que você paga todo mês',            list: custosFixosList,          accent: 'blue' },
-    gargalo:  { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',              list: gargaloList,              accent: GARGALO_THEME.accent },
+    gargalo:  { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',              list: gargaloList,              accent: accentDoGargalo },
     guardado: { title: 'Já guardado',         subtitle: 'aportes menos resgates do mês',       list: investimentos,            accent: 'padrao', total: sumCategory(investimentos) },
     livre:    { title: 'Livre na conta',      subtitle: 'tudo que entrou menos tudo que saiu', list: currentMonthTransactions, accent: 'padrao', total: balance },
   };
@@ -1027,6 +1027,22 @@ export default function Dashboard() {
   const LIMITE_LISTA = 8;
   const recentTransactions = mostrarTodos ? listaFiltrada : listaFiltrada.slice(0, LIMITE_LISTA);
   const ocultos = listaFiltrada.length - recentTransactions.length;
+
+  /**
+   * "Ver onde cortar": rola até "Onde foi o dinheiro" e LEVA O FOCO junto.
+   * Rolar sem mover o foco deixa quem usa teclado ou leitor de tela parado no
+   * alerta, a uma tela de distância do conteúdo que acabou de pedir. O `h2` do
+   * card tem `tabIndex={-1}`: é alvo de foco programático, não entra no Tab.
+   */
+  function irParaOndeFoi() {
+    const destino = ondeFoiRef.current;
+    if (!destino) return;
+    const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    destino.scrollIntoView({ block: 'start', behavior: reduzMovimento ? 'auto' : 'smooth' });
+    // `preventScroll`: a rolagem acima já é a que vale, e o foco não pode
+    // cancelá-la nem duplicá-la.
+    destino.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+  }
 
   function abrirGrupo(rotulo: string) {
     const mesmo = subcategoriaFiltro === rotulo;
@@ -1512,13 +1528,29 @@ export default function Dashboard() {
           />
         )}
 
+        {/* Só com algo a dizer: teto passado, gasto real e renda para comparar.
+            Sem renda o percentual não existe, e "saudável" não é alerta. */}
+        {pronto && gargaloTier !== 'saudavel' && gargalo > 0 && rendaLiquida > 0 && (
+          <AlertaGargalo
+            tier={gargaloTier}
+            percentual={comprometimentoRaw}
+            showValues={showValues}
+            onVerOndeCortar={irParaOndeFoi}
+          />
+        )}
+
 
         {/* Organização saiu da home: os 4 cards listavam cada lançamento e
             ocupavam meia tela repetindo o que o "Raio-x dos gastos" já faz
             melhor, comparando cada categoria com a própria mediana. */}
         <div className="flex flex-col gap-8">
 
-          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
+          {/* `empty:hidden`: o card devolve `null` num mês sem despesa, e um
+              contêiner vazio ainda gastaria um `gap-8` do flex. `md:scroll-mt-24`
+              desconta a barra superior (h-20) que é `sticky` no desktop. */}
+          <div ref={ondeFoiRef} id="onde-foi-o-dinheiro" className="scroll-mt-4 empty:hidden md:scroll-mt-24">
+            {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
+          </div>
 
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="card h-full p-5">

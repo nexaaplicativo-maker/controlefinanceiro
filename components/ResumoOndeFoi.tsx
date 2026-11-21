@@ -124,8 +124,15 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
                     style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
                   />
                 </div>
-                <span className="text-xs text-ink-3 w-[4.5rem] text-right shrink-0 tabular-nums">
-                  {item.percentual.toFixed(0)}% · {item.itens}x
+                {/* Abaixo de `xs` (360px) o percentual some: "100% · 142 gastos" mede
+                    ~104px e alargar a coluna em 320px comeria a barra de
+                    progresso, que é a informação. A barra já comunica a
+                    proporção; a contagem não tem substituto visual.
+                    `ink-2` na linha ativa: `ink-3` mede 4,35:1 sobre
+                    `bg-brand/10` e reprova AA; `ink-2` dá 6,75:1. */}
+                <span className={`w-[4.75rem] xs:w-[6.75rem] shrink-0 text-right text-xs tabular-nums ${ativo ? 'text-ink-2' : 'text-ink-3'}`}>
+                  <span className="hidden xs:inline">{item.percentual.toFixed(0)}% · </span>
+                  {item.itens} {item.itens === 1 ? 'gasto' : 'gastos'}
                 </span>
               </div>
             </button>

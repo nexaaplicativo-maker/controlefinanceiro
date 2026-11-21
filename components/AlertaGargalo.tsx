@@ -1,4 +1,4 @@
-import { CircleAlert } from "lucide-react";
+import { ArrowRight, CircleAlert } from "lucide-react";
 
 export interface AlertaGargaloProps {
   /** O alerta não existe no tier saudável: quem renderiza decide isso. */
@@ -63,9 +63,10 @@ export function AlertaGargalo({ tier, percentual, showValues, onVerOndeCortar }:
         <button
           type="button"
           onClick={onVerOndeCortar}
-          className="mt-1 inline-flex min-h-11 cursor-pointer items-center text-[13px] font-semibold text-brand transition-colors hover:text-ink"
+          className="mt-1 inline-flex min-h-11 cursor-pointer items-center gap-1 text-[13px] font-semibold text-brand transition-colors hover:text-ink"
         >
-          Ver onde cortar →
+          Ver onde cortar
+          <ArrowRight aria-hidden className="h-4 w-4" />
         </button>
       </div>
     </div>

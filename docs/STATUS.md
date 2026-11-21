@@ -89,6 +89,25 @@
   geral" a 22px/700 mede ~120px, então abaixo de 360px o `h1` usa 20px (~103px).
   **Estimativa por métrica média da Inter, não medida em navegador** — ver
   Pendências.
+- 21/11/2026 Rodada 4, correções da revisão (sem achado crítico ou alto):
+  (a) o "N meses de custo cobertos" do card Jornada vazava proporção com o
+  olho fechado — agora vira "Reserva em andamento" e usa vírgula decimal; (b) a
+  barra da divisão da renda e o percentual em texto passam a ter a **mesma base**
+  (`DivisaoDaRenda.base`): com um resgate lançado como receita em Investimentos
+  o saldo passa da renda e o texto chegava a dizer "250% livre"; (c) o modal de
+  "Livre na conta" e de "Já guardado" mostra `+`/`−` por linha (e "entrada"/
+  "saída" só para leitor de tela) e o total negativo sai em vermelho — fixos e
+  cartões ficam como eram; (d) mês sem renda mantém a lista dos 4 itens (sem
+  barra) quando há saídas; (e) o aporte só fecha e limpa o campo em sucesso;
+  (f) 320px: o par rótulo/valor do "Próximo passo" empilha e a seta dos itens da
+  divisão some abaixo de `xs`; (g) `TransactionRow` perdeu a prop `date`
+  (código morto).
+- 21/11/2026 Rodada 4, **desvio consciente do texto aprovado: o botão de aporte
+  diz "Guardar na reserva"** (e não "Guardar agora") quando o alvo do degrau
+  atual não é a própria reserva (estágios 1, 4 e 5). O aporte não é defeito —
+  entra em `goals.current_amount`, que compõe o patrimônio do degrau 4 —, mas
+  "Guardar agora" sob "Patrimônio para a independência" sugeria que o dinheiro
+  ia para aquele alvo. Nos estágios 2 e 3 segue "Guardar agora".
 - 21/11/2026 Rodada 4, a diretiva `eslint-disable` de
   `react-hooks/preserve-manual-memoization` no `useMemo` de `insights` foi
   removida: depois da troca dos cards o lint passou a acusá-la como "unused"
@@ -242,18 +261,31 @@
   dos três ícones de 44px?), o herói "R$ 11.954,00" em 360px, a lista de 4
   itens em 320px, as bordas do alerta, a escada em 320px e o foco indo para o
   `h2` de "Onde foi o dinheiro" depois de "Ver onde cortar".
-- **Rodada 4: "Guardar agora" também aparece nos estágios 4 e 5**, onde o
-  dinheiro novo não deveria ir para a reserva (já completa) e sim para
-  investimento. A barra do estágio 4 mede patrimônio, mas o aporte continua
-  indo para a meta "Reserva de Emergência" (`handleAddToReserve`). Decisão de
-  produto: esconder o botão nesses estágios, ou apontar para Patrimônio?
+- **Rodada 4: o botão de aporte aparece também nos estágios 4 e 5**, rotulado
+  "Guardar na reserva". O dinheiro vai de fato para a reserva (e a barra do
+  degrau 4 anda, porque patrimônio inclui a reserva), mas o dono pode preferir
+  esconder o botão ali ou apontá-lo para Patrimônio.
+- **Rodada 4, DECISÃO DO DONO: política de privacidade inconsistente nas
+  barras.** Com os valores ocultos, a `DivisaoRenda` colapsa a barra num bloco
+  cinza (o argumento: uma barra 69% vermelha vaza o que o olho escondeu) e o
+  `JornadaCard` mantém o preenchimento da barra de progresso desenhado (o
+  argumento: o que se esconde é valor, não o estágio). As duas escolhas seguem o
+  plano aprovado, mas não podem coexistir como regra — o preenchimento do
+  "Próximo passo" também é uma proporção reserva ÷ alvo. Nenhum comportamento
+  foi mudado; falta o dono escolher uma política.
+- **Rodada 4, DECISÃO DO DONO: o herói e o item "Livre na conta" podem não
+  fechar.** O herói é `capacidadePoupanca` (renda − fixos − gargalo) e o item é
+  `balance`; com despesa em categoria própria do usuário, ou com resgate, a
+  identidade `sobra = guardado + livre` quebra em silêncio, e a linha "Já
+  descontados R$ X que você guardou" saiu com o `PillarCard`. As saídas
+  possíveis mudam número exibido ou texto aprovado.
+- **Rodada 4, A MEDIR EM NAVEGADOR: o herói a `text-[40px] font-extrabold`** sem
+  plano B. Com 6 dígitos ou sinal negativo pode passar dos 232px internos em
+  320px e causar rolagem horizontal.
 - **Rodada 4: mês sem renda esconde os 4 itens do "Quanto sobra"** — e com eles a
   porta para o detalhe de fixos e cartões. É o que o design pede ("frase +
   Lançar renda"); os lançamentos seguem na lista. Reavaliar se atrapalhar quem
   lança despesa antes da renda.
-- **Rodada 4: `TransactionRow` não recebe mais `date`** da página (o dia vem
-  do cabeçalho do grupo). A prop ficou opcional, como o plano pedia, mas hoje
-  nenhum chamador a usa: pode sair se continuar assim.
 - **Rodada 4: o título "% da renda" do alerta usa uma casa decimal** ("68,6%"),
   como o plano pediu; o selo antigo arredondava ("69%"). Se o dono preferir
   inteiro, é uma linha em `AlertaGargalo`.

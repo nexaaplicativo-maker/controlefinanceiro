@@ -41,8 +41,6 @@ function ReceiptButton({ stored }: { stored: string }) {
 interface TransactionRowProps {
   title: string | null;
   category: string | null;
-  /** Opcional: na lista da Visão Geral o dia está no cabeçalho do grupo. */
-  date?: string;
   amount: number;
   visible: boolean;
   type: 'income' | 'expense';
@@ -91,7 +89,7 @@ const BOTAO_ACAO =
  * Trocar `group-hover:` por um seletor de classe única mata a revelação com
  * cursor, e o sintoma seria "as ações nunca aparecem no desktop".
  */
-export function TransactionRow({ title, category, date, amount, visible, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao, acoesVisiveis, onAlternarAcoes }: TransactionRowProps) {
+export function TransactionRow({ title, category, amount, visible, type, isPaid, onTogglePaid, onDelete, onEdit, receiptUrl, subcategoria, modoSelecao, selecionado, onToggleSelecao, acoesVisiveis, onAlternarAcoes }: TransactionRowProps) {
   const isIncome = type === 'income';
   const idAcoes = useId();
   const botaoRef = useRef<HTMLButtonElement>(null);
@@ -154,13 +152,11 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
             {title || "Sem título"}
           </h4>
           {/* A linha de meta PODE quebrar (`flex-wrap`), e é de propósito: em 360px
-              o conjunto selo + categoria (+ data, quando quem usa a linha a
-              passa) não cabe ao lado do valor. Antes quem descia era o bloco do
-              valor inteiro — o sintoma relatado de
-              "o valor quebrou em duas linhas". Agora o valor fica cravado na
-              primeira linha e o excedente é este texto, que é o que pode
-              esperar. `categoria · data` é um item só para o ponto separador
-              nunca sobrar pendurado no fim de uma linha. */}
+              o selo + a categoria não cabem ao lado do valor. Antes quem descia
+              era o bloco do valor inteiro — o sintoma relatado de "o valor
+              quebrou em duas linhas". Agora o valor fica cravado na primeira
+              linha e o excedente é este texto, que é o que pode esperar. A data
+              não está aqui: o dia vem do cabeçalho do grupo na página. */}
           <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-ink-3">
             {/* Pendência era um ponto âmbar de 6px (com legenda separada e um
                 `sr-only` "(não paga)" no título): cor sozinha, e a legenda
@@ -176,12 +172,6 @@ export function TransactionRow({ title, category, date, amount, visible, type, i
             <span className="flex min-w-0 items-center gap-1.5">
               {/* Ordem de degradação: só a subcategoria trunca. */}
               <span className="truncate">{subcategoria || category || "Sem categoria"}</span>
-              {date && (
-                <>
-                  <span aria-hidden className="h-0.5 w-0.5 shrink-0 rounded-full bg-ink-3" />
-                  <span className="shrink-0">{date}</span>
-                </>
-              )}
             </span>
           </div>
         </div>

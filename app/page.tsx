@@ -919,7 +919,6 @@ export default function Dashboard() {
     .filter(t => t.type === 'expense' && categories.includes(t.category));
 
   const somar = (list: any[]) => list.reduce((acc, t) => acc + t.amount, 0);
-  const sumExpenseIn = (categories: string[]) => somar(expensesIn(categories));
 
   const custosFixosList = expensesIn(['Contas Fixas']);
   const gargaloList = expensesIn(GARGALO_CATEGORIES);
@@ -933,16 +932,13 @@ export default function Dashboard() {
   // terceira cópia do mesmo predicado.
   const rendaLiquida = somar(receitasList);
   const custosFixos = somar(custosFixosList);
-  const gastoCartoes = sumExpenseIn(['Cartões', 'Cartões de Crédito']);
-  const gastoVariaveis = sumExpenseIn(['Variáveis']);
   const gargalo = somar(gargaloList);
   const capacidadePoupanca = rendaLiquida - custosFixos - gargalo;
 
   // % da renda comprometida com o gargalo (cartões + variáveis).
-  // O valor bruto pode passar de 100%; o anel é limitado a 100 só no visual.
+  // O valor bruto pode passar de 100%.
   const percentOf = (val: number) => rendaLiquida > 0 ? (val / rendaLiquida) * 100 : 0;
   const comprometimentoRaw = percentOf(gargalo);
-  const comprometimentoPercent = Math.min(100, comprometimentoRaw);
 
   // Reserva de emergência atual (meta homônima na tabela goals).
   const reservaGoal = goals.find(g => g.title === 'Reserva de Emergência');
@@ -958,6 +954,15 @@ export default function Dashboard() {
   // cada render, mas vira de dia junto com o usuário.
   const hoje = hojeEmSaoPaulo();
 
+  // O `useMemo` fica por desempenho: `getProfileInsights` varre TODO o
+  // histórico do usuário, e o painel re-renderiza a cada um dos ~30 interruptores
+  // de modal. O React Compiler não está ligado no next.config.ts; quando for
+  // ligado, reavaliar — aí vale tirar o `useMemo` e deixá-lo memorizar sozinho.
+  // (Até a rodada 4 havia aqui um `eslint-disable` de
+  // `react-hooks/preserve-manual-memoization`: a regra acusava `gargalo` e
+  // `custosFixos`, que saíam de `somar(lista)` com a mesma lista indo para os
+  // modais. Depois da troca dos cards ela deixou de reportar e a diretiva foi
+  // removida; se o aviso voltar, é a mesma causa.)
   const insights = useMemo(() => getProfileInsights({
     hoje,
     profile,

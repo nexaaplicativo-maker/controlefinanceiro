@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "motion/react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, CircleHelp, Check, ChevronRight } from "lucide-react";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
 import { resumoPorSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
@@ -84,7 +84,14 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
     );
   }
 
-  const maior = resumo[0].total;
+  // "Não classificado" não entra na lista de barras: vira o destaque de baixo.
+  // Sem ele na lista, a barra mais longa é a do maior grupo NOMEADO — e
+  // `nomeados` nunca é vazio aqui, o `semSinal` acima já cobriu esse caso.
+  const semCategoria = resumo.find((i) => i.rotulo === NAO_CLASSIFICADO) ?? null;
+  const nomeados = resumo.filter((i) => i.rotulo !== NAO_CLASSIFICADO);
+  // Escala de desenho, não cálculo.
+  const maior = nomeados[0].total;
+  const naoClassificadoAtivo = filtroAtivo === NAO_CLASSIFICADO;
 
   return (
     <motion.div
@@ -99,8 +106,7 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
       </p>
 
       <div className="flex flex-col gap-1">
-        {resumo.map((item) => {
-          const semNome = item.rotulo === NAO_CLASSIFICADO;
+        {nomeados.map((item) => {
           const ativo = filtroAtivo === item.rotulo;
           return (
             <button
@@ -110,7 +116,7 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
               className={`text-left rounded-field px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-brand/10' : 'hover:bg-white/5'}`}
             >
               <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className={`text-sm font-medium truncate ${semNome ? 'text-ink-3 italic' : ativo ? 'text-brand' : 'text-ink-2'}`}>
+                <span className={`text-sm font-medium truncate ${ativo ? 'text-brand' : 'text-ink-2'}`}>
                   {item.rotulo}
                 </span>
                 <span className="text-sm font-bold text-ink whitespace-nowrap">
@@ -120,7 +126,7 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
               <div className="flex items-center gap-2.5">
                 <div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${semNome ? 'bg-white/10' : 'bg-brand'}`}
+                    className={`h-full rounded-full bg-brand`}
                     style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
                   />
                 </div>
@@ -139,6 +145,46 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
           );
         })}
       </div>
+
+      {semCategoria && (
+        <div className="mt-4 pt-4 border-t border-line">
+          {/* Um único botão, sem elemento interativo aninhado. O rótulo e a
+              linha 3 NÃO mudam entre os estados: quem carrega o estado é o
+              `aria-pressed` — trocar texto e atributo juntos faz o leitor de
+              tela anunciar coisa trocada. As bordas são /50 e não /30: /30
+              mede 1,9:1 contra o fundo do card e reprova o 3:1 de componente
+              gráfico; /50 dá ~3,2:1. */}
+          <button
+            type="button"
+            onClick={() => onSelecionar?.(NAO_CLASSIFICADO)}
+            aria-pressed={naoClassificadoAtivo}
+            className={`w-full text-left rounded-inner px-3 py-3 min-h-11 flex items-start gap-3 transition-colors cursor-pointer border ${naoClassificadoAtivo ? 'border-brand/50 bg-brand/10' : 'border-warn/50 bg-warn/10 hover:bg-warn/15'}`}
+          >
+            {naoClassificadoAtivo ? (
+              <Check aria-hidden className="h-5 w-5 text-brand shrink-0" />
+            ) : (
+              <CircleHelp aria-hidden className="h-5 w-5 text-warn shrink-0" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline justify-between gap-3">
+                <span className={`text-sm font-medium ${naoClassificadoAtivo ? 'text-brand' : 'text-ink'}`}>
+                  {NAO_CLASSIFICADO}
+                </span>
+                <span className="text-sm font-bold text-ink whitespace-nowrap">
+                  {formatMoney(semCategoria.total, showValues)}
+                </span>
+              </span>
+              <span className="block text-xs text-ink-2">
+                {semCategoria.itens} {semCategoria.itens === 1 ? 'gasto' : 'gastos'} · {semCategoria.percentual.toFixed(0)}% do mês
+              </span>
+              <span className={`mt-1.5 inline-flex items-center gap-1 text-xs font-semibold ${naoClassificadoAtivo ? 'text-brand' : 'text-warn'}`}>
+                Ver estes gastos
+                <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+              </span>
+            </span>
+          </button>
+        </div>
+      )}
 
       <p className="text-xs text-ink-3 mt-4">
         Toque num grupo para ver as compras dele na lista abaixo.

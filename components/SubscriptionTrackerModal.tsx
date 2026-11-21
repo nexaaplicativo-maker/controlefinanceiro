@@ -137,8 +137,12 @@ export function SubscriptionTrackerModal({ isOpen, onClose, transactions }: { is
                           </div>
                           <div className="min-w-0">
                             <span className="text-ink font-medium block truncate">{sub.title}</span>
+                            {/* "3x em 6 meses" se lia como parcelamento —
+                                mesma ambiguidade tratada na rodada 3
+                                (20/11/2026). Aqui é ocorrência de uma
+                                assinatura, então é "vezes". */}
                             <span className="text-xs text-ink-3">
-                              {sub.category} · {sub.occurrences}x em {sub.monthsSpan} {sub.monthsSpan === 1 ? 'mês' : 'meses'}
+                              {sub.category} · {sub.occurrences} {sub.occurrences === 1 ? 'vez' : 'vezes'} em {sub.monthsSpan} {sub.monthsSpan === 1 ? 'mês' : 'meses'}
                               {sub.confidence < 0.7 && ' · possível'}
                             </span>
                           </div>

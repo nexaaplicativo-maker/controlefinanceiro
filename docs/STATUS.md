@@ -254,6 +254,17 @@
   ao fazer: o título continua carregando o `(3/12)` colado, então sem usar o
   `tituloBase()` de `lib/parcelas.ts` (o mesmo que o `AiUploadModal` já usa) a
   informação apareceria duas vezes.
+- **Melhoria futura: a linha do filtro ativo aperta em ~360px** (anotada em
+  20/11/2026, depois do teste em Android real da rodada 3). A faixa
+  "Mostrando apenas · [chip] · N compras" (`app/page.tsx:1653-1665`) é um
+  `flex items-center gap-2` **sem `flex-wrap`**, e o chip **não trunca**. Com
+  uma subcategoria longa (`Impostos e Tarifas` é a maior do vocabulário) mais
+  "12 compras", os três itens disputam a largura em 360px e o chip encolhe o
+  texto que é justamente o nome do filtro ligado. Caminhos possíveis, em ordem
+  de custo: `flex-wrap` com `gap-y-1` (deixa quebrar em duas linhas);
+  `truncate` + `min-w-0` no chip; ou encurtar "Mostrando apenas" para
+  "Filtrando:", que devolve ~60px. Não foi feito na rodada 3 porque o card
+  "Onde foi o dinheiro" era o escopo, e esta faixa é da lista de lançamentos.
 - **Abaixo de 360px, os três ícones do cabeçalho da Visão Geral têm 36×36px**,
   sob o piso de 44px do sistema de design. É troca consciente (20/11/2026): com
   44px a saudação não cabia e aparecia "Boa ...", e a alternativa era tirar um

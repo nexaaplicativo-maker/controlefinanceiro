@@ -205,8 +205,13 @@ export function SpendingInsightsModal({
                           <div key={r.pattern} className="flex items-center justify-between gap-3 bg-white/5 border border-white/5 rounded-field p-3">
                             <div className="min-w-0 flex-1">
                               <p className="text-sm text-ink truncate">{r.displayName}</p>
+                              {/* "3x em 6 meses" se lia como parcelamento —
+                                  mesma ambiguidade que saiu da lista e do
+                                  resumo na rodada 3 (20/11/2026). Aqui é
+                                  ocorrência de um gasto recorrente, então a
+                                  palavra certa é "vezes", não "gastos". */}
                               <p className="text-xs text-ink-3">
-                                {r.occurrences}x em {r.monthsSpan} {r.monthsSpan === 1 ? 'mês' : 'meses'} · {r.category}
+                                {r.occurrences} {r.occurrences === 1 ? 'vez' : 'vezes'} em {r.monthsSpan} {r.monthsSpan === 1 ? 'mês' : 'meses'} · {r.category}
                                 {r.confidence < 0.7 && <span className="text-ink-3"> · possível</span>}
                               </p>
                             </div>

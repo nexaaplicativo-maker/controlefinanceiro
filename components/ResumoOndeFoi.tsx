@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Sparkles, CircleHelp, Check, ChevronRight } from "lucide-react";
+import { Sparkles, CircleHelp, Check, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
-import { resumoPorSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
+import { resumoPorSubcategoria, NAO_CLASSIFICADO, type GastoPorSubcategoria } from "../lib/subcategorias";
 
 export interface ResumoOndeFoiProps {
   transactions: Array<{ type?: string; amount?: number; subcategoria?: string | null }>;
@@ -13,6 +13,57 @@ export interface ResumoOndeFoiProps {
   onImportar?: () => void;
   onSelecionar?: (rotulo: string) => void;
   filtroAtivo: string | null;
+}
+
+/** Quantos grupos nomeados aparecem antes do "Ver todas". */
+const GRUPOS_VISIVEIS = 5;
+
+/**
+ * Uma barra do resumo. Vive no escopo do módulo, não dentro de
+ * `ResumoOndeFoi`: declarada lá dentro, seria um componente novo a cada
+ * render e o React remontaria todas as linhas.
+ */
+function LinhaDoGrupo({ item, maior, ativo, showValues, onSelecionar }: {
+  item: GastoPorSubcategoria;
+  maior: number;
+  ativo: boolean;
+  showValues: boolean;
+  onSelecionar?: (rotulo: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelecionar?.(item.rotulo)}
+      aria-pressed={ativo}
+      className={`text-left rounded-field px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-brand/10' : 'hover:bg-white/5'}`}
+    >
+      <div className="flex items-baseline justify-between gap-3 mb-1.5">
+        <span className={`text-sm font-medium truncate ${ativo ? 'text-brand' : 'text-ink-2'}`}>
+          {item.rotulo}
+        </span>
+        <span className="text-sm font-bold text-ink whitespace-nowrap">
+          {formatMoney(item.total, showValues)}
+        </span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full bg-brand"
+            style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
+          />
+        </div>
+        {/* Abaixo de `xs` (360px) o percentual some: "100% · 142 gastos" mede
+            ~104px e alargar a coluna em 320px comeria a barra de progresso,
+            que é a informação. A barra já comunica a proporção; a contagem
+            não tem substituto visual.
+            `ink-2` na linha ativa: `ink-3` mede 4,35:1 sobre `bg-brand/10` e
+            reprova AA; `ink-2` dá 6,75:1. */}
+        <span className={`w-[4.75rem] xs:w-[6.75rem] shrink-0 text-right text-xs tabular-nums ${ativo ? 'text-ink-2' : 'text-ink-3'}`}>
+          <span className="hidden xs:inline">{item.percentual.toFixed(0)}% · </span>
+          {item.itens} {item.itens === 1 ? 'gasto' : 'gastos'}
+        </span>
+      </div>
+    </button>
+  );
 }
 
 /**
@@ -28,6 +79,10 @@ export interface ResumoOndeFoiProps {
  * total vai em texto, ao lado.
  */
 export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecionar, filtroAtivo }: ResumoOndeFoiProps) {
+  // Antes dos early-returns, por causa da regra dos hooks. Persiste ao trocar
+  // de mês de propósito (decisão do dono): sem efeito que zera, sem `key`.
+  const [expandido, setExpandido] = useState(false);
+
   // Agrupa e ordena todos os gastos do mês. Como este card vive no painel,
   // rodava de novo a cada tecla da busca e a cada folha aberta.
   const resumo = useMemo(() => resumoPorSubcategoria(transactions), [transactions]);
@@ -93,6 +148,15 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
   const maior = nomeados[0].total;
   const naoClassificadoAtivo = filtroAtivo === NAO_CLASSIFICADO;
 
+  // Derivado a cada render, sem efeito nem estado extra. Se o filtro ativo
+  // estiver entre os escondidos, ele sobe para junto das 5 maiores enquanto
+  // recolhido: a pessoa nunca fica com filtro ligado sem ver qual é.
+  const topo = nomeados.slice(0, GRUPOS_VISIVEIS);
+  const resto = nomeados.slice(GRUPOS_VISIVEIS);
+  const ativoNoResto = resto.find((i) => i.rotulo === filtroAtivo) ?? null;
+  const acima = !expandido && ativoNoResto ? [...topo, ativoNoResto] : topo;
+  const abaixo = expandido ? resto : [];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -106,44 +170,33 @@ export function ResumoOndeFoi({ transactions, showValues, onImportar, onSelecion
       </p>
 
       <div className="flex flex-col gap-1">
-        {nomeados.map((item) => {
-          const ativo = filtroAtivo === item.rotulo;
-          return (
-            <button
-              key={item.rotulo}
-              onClick={() => onSelecionar?.(item.rotulo)}
-              aria-pressed={ativo}
-              className={`text-left rounded-field px-2.5 py-2 -mx-2.5 transition-colors cursor-pointer ${ativo ? 'bg-brand/10' : 'hover:bg-white/5'}`}
-            >
-              <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className={`text-sm font-medium truncate ${ativo ? 'text-brand' : 'text-ink-2'}`}>
-                  {item.rotulo}
-                </span>
-                <span className="text-sm font-bold text-ink whitespace-nowrap">
-                  {formatMoney(item.total, showValues)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full bg-brand`}
-                    style={{ width: `${Math.max((item.total / maior) * 100, 2)}%` }}
-                  />
-                </div>
-                {/* Abaixo de `xs` (360px) o percentual some: "100% · 142 gastos" mede
-                    ~104px e alargar a coluna em 320px comeria a barra de
-                    progresso, que é a informação. A barra já comunica a
-                    proporção; a contagem não tem substituto visual.
-                    `ink-2` na linha ativa: `ink-3` mede 4,35:1 sobre
-                    `bg-brand/10` e reprova AA; `ink-2` dá 6,75:1. */}
-                <span className={`w-[4.75rem] xs:w-[6.75rem] shrink-0 text-right text-xs tabular-nums ${ativo ? 'text-ink-2' : 'text-ink-3'}`}>
-                  <span className="hidden xs:inline">{item.percentual.toFixed(0)}% · </span>
-                  {item.itens} {item.itens === 1 ? 'gasto' : 'gastos'}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        {acima.map((item) => (
+          <LinhaDoGrupo key={item.rotulo} item={item} maior={maior} ativo={filtroAtivo === item.rotulo} showValues={showValues} onSelecionar={onSelecionar} />
+        ))}
+      </div>
+
+      {/* O controle fica ANTES do conteúdo revelado: assim o gatilho não se
+          move um pixel ao expandir ou recolher, e dispensa scrollIntoView e
+          foco programático. Só `aria-expanded` aqui — `aria-pressed` é das
+          barras e do destaque, e os dois nunca andam juntos no mesmo controle.
+          O "Não classificado" não conta no N: está sempre visível no destaque. */}
+      {nomeados.length > GRUPOS_VISIVEIS && (
+        <button
+          type="button"
+          onClick={() => setExpandido((v) => !v)}
+          aria-expanded={expandido}
+          aria-controls="onde-foi-extras"
+          className="mt-1 -mx-2.5 flex min-h-11 w-[calc(100%+1.25rem)] cursor-pointer items-center justify-center gap-1.5 rounded-field px-2.5 text-xs font-semibold text-ink-2 transition-colors hover:bg-white/5 hover:text-ink"
+        >
+          {expandido ? 'Ver menos' : `Ver todas (${nomeados.length})`}
+          {expandido ? <ChevronUp aria-hidden className="h-3.5 w-3.5" /> : <ChevronDown aria-hidden className="h-3.5 w-3.5" />}
+        </button>
+      )}
+
+      <div id="onde-foi-extras" className={abaixo.length > 0 ? 'mt-1 flex flex-col gap-1' : 'hidden'}>
+        {abaixo.map((item) => (
+          <LinhaDoGrupo key={item.rotulo} item={item} maior={maior} ativo={filtroAtivo === item.rotulo} showValues={showValues} onSelecionar={onSelecionar} />
+        ))}
       </div>
 
       {semCategoria && (

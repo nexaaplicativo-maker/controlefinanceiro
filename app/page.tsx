@@ -9,7 +9,7 @@ import {
   Bell, User, Plus, Home as HomeIcon, CreditCard, 
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
   PieChart as PieChartIcon, Search, Trash2, Heart, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
-  PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
+  PiggyBank, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
   WifiOff, RefreshCw, X, ArrowUpRight, MessageSquare
 } from "lucide-react";
 
@@ -57,7 +57,7 @@ const InvestmentsModal = dynamic(() => import("../components/InvestmentsModal").
 import { supabase } from "../lib/supabase";
 import { toast, toastWithUndo } from "../components/Toast";
 import { confirmDialog } from "../components/ConfirmDialog";
-import { getProfileInsights, type FinancialProfile } from "../lib/profile";
+import { getProfileInsights, getStageLadder, getProximoPasso, type FinancialProfile } from "../lib/profile";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
 import { normalizarSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
@@ -69,6 +69,7 @@ import { hojeEmSaoPaulo } from "../lib/data";
 import { primeiroNome, saudacao } from "../lib/saudacao";
 import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { ResumoOndeFoi } from "../components/ResumoOndeFoi";
+import { JornadaCard } from "../components/JornadaCard";
 import { EVENTO_MODO_SELECAO } from "../components/BottomNav";
 import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
@@ -1102,6 +1103,15 @@ export default function Dashboard() {
   const hasUnread = dueBills.length > 0 && dispensadoCom !== dueBills.length;
   const dispensarAvisos = () => setDispensadoCom(dueBills.length);
 
+  // No Estágio 1 a prioridade do card Jornada vira número (dívida cara e juros
+  // por mês) ou um pedido de cadastro — os dois ramos que o card de estágio
+  // antigo já tinha, agora calculados aqui e só desenhados lá.
+  const dividaCaraNoEstagio1 = insights.stage.id === 'emergencia' && debtSummary.expensiveTotal > 0
+    ? { total: debtSummary.expensiveTotal, jurosPorMes: debtSummary.expensiveMonthlyInterest }
+    : undefined;
+  const pedeCadastroDeDivida = insights.stage.id === 'emergencia' && !dividaCaraNoEstagio1
+    && !hasRegisteredDebts && !!profile?.has_debt;
+
   return (
     <BetaGate>
     <div className="min-h-[100dvh] bg-canvas text-ink font-sans selection:bg-brand/30">
@@ -1512,38 +1522,25 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Estágio financeiro: define o que o app prioriza para ESTE usuário */}
+        {/* Jornada: o estágio, a escada e o próximo passo. Substituiu o card de
+            estágio e a `ReserveWidget` — o "próximo passo" é o alvo do degrau
+            atual, e o ideal segue visível no mapa do caminho e em Metas. */}
         {pronto && (
-          <motion.button
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            onClick={() => setIsRoadmapOpen(true)}
-            // Virou cartão de leitura, no formato da referência: um rótulo
-            // discreto em cima e a frase embaixo. Antes era uma faixa colorida
-            // de ponta a ponta, com etiqueta em caixa alta — gritava mais que
-            // o saldo, logo acima.
-            className="card mb-6 block w-full cursor-pointer p-5 text-left transition-colors hover:border-white/15"
-          >
-            <div className="mb-2 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 shrink-0 text-brand" />
-              <span className="text-[13px] font-medium text-ink">{insights.stage.label}</span>
-              <span className="text-xs text-ink-3">· Estágio {insights.stage.level}/5</span>
-              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-ink-3" />
-            </div>
-            <p className="text-[13px] leading-relaxed text-ink-2">
-              {insights.needsOnboarding
-                ? 'Responda 4 perguntas rápidas no seu perfil para o Nexa calibrar os limites ao seu caso.'
-                : insights.stage.id === 'emergencia' && debtSummary.expensiveTotal > 0
-                  // No Estágio 1 a prioridade vira número: dívida cara restante
-                  // e o que ela cobra por mês. "Quite a dívida" sem valor é
-                  // conselho; com valor é meta.
-                  ? <>Dívida cara restante: <strong className="text-neg">{showValues ? formatMoney(debtSummary.expensiveTotal) : 'R$ •••••'}</strong>, custando <strong className="text-neg">{showValues ? formatMoney(debtSummary.expensiveMonthlyInterest) : 'R$ •••••'}</strong> por mês só de juros.</>
-                  : insights.stage.id === 'emergencia' && !hasRegisteredDebts && profile?.has_debt
-                    ? 'Você indicou ter dívida. Cadastre-a para o Nexa calcular quanto custa e quando acaba.'
-                    : insights.stage.priority}
-            </p>
-          </motion.button>
+          <JornadaCard
+            stage={insights.stage}
+            degraus={getStageLadder(insights)}
+            proximoPasso={getProximoPasso(insights)}
+            needsOnboarding={insights.needsOnboarding}
+            temMeta={!!reservaGoal}
+            showValues={showValues}
+            reserveMonths={insights.reserveMonths}
+            dividaCara={dividaCaraNoEstagio1}
+            pedeCadastroDeDivida={pedeCadastroDeDivida}
+            onVerCaminho={() => setIsRoadmapOpen(true)}
+            onResponderPerguntas={() => setIsProfileSettingsOpen(true)}
+            onGuardar={handleAddToReserve}
+            onCriarReserva={insights.reserveIdeal > 0 ? () => handleCreateReserveGoal(insights.reserveIdeal) : undefined}
+          />
         )}
 
           {/* A "Dica do Nexa" vivia num card próprio, na coluna da direita.
@@ -1562,25 +1559,6 @@ export default function Dashboard() {
             </motion.p>
           )}
 
-
-        {/* Termômetro removido: o anel repetia o % que o card de Cartões &
-            Variáveis já mostra no badge, ocupando uma faixa inteira. */}
-        {pronto && (
-          <div className="mb-8">
-          <ReserveWidget
-            goal={reservaGoal}
-            current={reservaAtual}
-            minimum={insights.reserveMinimum}
-            ideal={insights.reserveIdeal}
-            monthlyCost={insights.monthlyCost}
-            reserveMonths={insights.reserveMonths}
-            showValues={showValues}
-            formatMoney={formatMoney}
-            onCreate={handleCreateReserveGoal}
-            onAddFunds={handleAddToReserve}
-          />
-          </div>
-        )}
 
         {/* Organização saiu da home: os 4 cards listavam cada lançamento e
             ocupavam meia tela repetindo o que o "Raio-x dos gastos" já faz
@@ -1873,173 +1851,6 @@ export default function Dashboard() {
       />
     </div>
     </BetaGate>
-  );
-}
-
-/**
- * Reserva de Emergência — a barra que mede o app inteiro.
- *
- * Os marcos NÃO são fixos: `minimum` e `ideal` vêm do lib/profile.ts, calculados
- * sobre o CUSTO DE VIDA do usuário (3 e 6 meses; 6 e 12 se a renda for
- * variável). Quem ganha R$ 15.000 e quem ganha R$ 1.800 veem metas diferentes.
- */
-function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMonths, showValues, formatMoney, onCreate, onAddFunds }: any) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [value, setValue] = useState("");
-  const [isBusy, setIsBusy] = useState(false);
-
-  // Respeita um alvo editado à mão na tela de Metas; senão usa o calculado.
-  const target = Number(goal?.target_amount) || ideal;
-  const percent = target > 0 ? Math.min(100, (current / target) * 100) : 0;
-  const minMarker = target > 0 ? Math.min(100, (minimum / target) * 100) : 0;
-  const atingiuMinimo = current >= minimum && minimum > 0;
-  const completa = target > 0 && current >= target;
-
-  const handleAdd = async () => {
-    const v = parseFloat(value);
-    if (!v || v <= 0) return;
-    setIsBusy(true);
-    await onAddFunds(v);
-    setIsBusy(false);
-    setValue("");
-    setIsAdding(false);
-  };
-
-  // Sem custo de vida apurado não há meta confiável para oferecer.
-  if (!goal && (!ideal || ideal <= 0)) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-white/5 border border-line-strong rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center items-center text-center gap-2">
-        <ShieldCheck className="w-6 h-6 text-ink-3" />
-        <h3 className="font-bold text-ink text-sm">Reserva de Emergência</h3>
-        <p className="text-xs text-ink-3 leading-relaxed max-w-xs">
-          Lance algumas despesas para o Nexa descobrir seu custo de vida e calcular a reserva certa para você.
-        </p>
-      </motion.div>
-    );
-  }
-
-  if (!goal) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-pos/5 border border-pos/20 rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center gap-4 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 bg-brand/[0.06]"></div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-pos/10 border border-pos/20 rounded-inner">
-              <ShieldCheck className="w-5 h-5 text-pos" />
-            </div>
-            <h3 className="font-bold text-ink text-lg">Reserva de Emergência</h3>
-          </div>
-          <p className="text-sm text-ink-2 leading-relaxed mb-4">
-            Com seu custo de vida de {showValues ? formatMoney(monthlyCost) : 'R$ •••••'} por mês, sua reserva ideal é de{' '}
-            <strong className="text-pos">{showValues ? formatMoney(ideal) : 'R$ •••••'}</strong>. É o colchão que te impede de voltar pro cartão quando algo dá errado.
-          </p>
-          <button
-            onClick={() => onCreate(ideal)}
-            className="w-full bg-pos hover:bg-pos/85 text-canvas font-bold py-3 rounded-field flex items-center justify-center gap-2 transition-all shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
-          >
-            <ShieldCheck className="w-4 h-4" /> Criar minha reserva
-          </button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-pos/5 border-pos/20' : 'bg-white/5 border-line-strong'}`}>
-      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-brand/[0.06]' : atingiuMinimo ? 'bg-brand/[0.06]' : 'bg-brand/[0.06]'}`}></div>
-
-      <div className="flex items-start justify-between gap-3 mb-5 relative z-10">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2.5 rounded-inner border shrink-0 ${completa ? 'bg-pos/10 border-pos/20 text-pos' : atingiuMinimo ? 'bg-white/10 border-white/20 text-ink-2' : 'bg-warn/10 border-warn/20 text-warn'}`}>
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-bold text-ink text-base leading-tight">Reserva de Emergência</h3>
-            <p className="text-xs text-ink-3 mt-0.5">
-              {reserveMonths > 0 ? `${reserveMonths.toFixed(1)} meses de custo cobertos` : 'Ainda sem aporte'}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setIsAdding(v => !v)}
-          className="p-2 bg-pos/10 hover:bg-pos/20 text-pos border border-pos/20 rounded-field transition-colors cursor-pointer shrink-0"
-          title="Adicionar à reserva"
-        >
-          <Plus className={`w-4 h-4 transition-transform ${isAdding ? 'rotate-45' : ''}`} />
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {isAdding && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden relative z-10">
-            <div className="flex gap-2 mb-5">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">R$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  autoFocus
-                  value={value}
-                  onChange={e => setValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
-                  placeholder="0,00"
-                  className="w-full bg-black/30 border border-line-strong rounded-field py-2.5 pl-9 pr-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
-                />
-              </div>
-              <button
-                onClick={handleAdd}
-                disabled={isBusy || !value}
-                className="px-4 bg-pos hover:bg-pos/85 text-canvas font-bold rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm"
-              >
-                {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Somar'}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-auto relative z-10">
-        <div className="flex justify-between items-end mb-2">
-          <span className={`text-2xl font-semibold tracking-tight ${completa ? 'text-pos' : 'text-ink'}`}>
-            {showValues ? formatMoney(current) : 'R$ •••••'}
-          </span>
-          <span className="text-xs text-ink-3 font-medium">
-            de {showValues ? formatMoney(target) : 'R$ •••••'}
-          </span>
-        </div>
-
-        {/* Barra com o marco do mínimo (3 meses de custo, ou 6 se renda variável) */}
-        <div className="relative w-full h-3 bg-black/40 rounded-full overflow-hidden border border-line">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className={`h-full rounded-full ${completa ? 'bg-gradient-to-r from-pos to-pos/60' : atingiuMinimo ? 'bg-gradient-to-r from-brand to-brand-strong' : 'bg-gradient-to-r from-warn to-warn/60'}`}
-          />
-          {minMarker > 0 && minMarker < 100 && (
-            <div className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10" style={{ left: `${minMarker}%` }} />
-          )}
-        </div>
-
-        <div className="flex justify-between mt-2 text-xs font-medium">
-          <span className={atingiuMinimo ? 'text-pos' : 'text-ink-3'}>
-            {atingiuMinimo && '✓ '}Mínimo {showValues ? formatMoney(minimum) : '•••'}
-          </span>
-          <span className={completa ? 'text-pos' : 'text-ink-3'}>
-            {completa && '✓ '}Ideal {showValues ? formatMoney(target) : '•••'}
-          </span>
-        </div>
-
-        <p className="text-xs text-ink-3 mt-3 leading-relaxed">
-          {completa
-            ? 'Reserva completa. A partir daqui, o excedente vai para investimento de longo prazo.'
-            : atingiuMinimo
-              ? 'Você já aguenta uma emergência. Siga até o ideal para ficar fora de perigo de vez.'
-              : `Faltam ${showValues ? formatMoney(Math.max(0, minimum - current)) : 'R$ •••••'} para o mínimo — o ponto em que uma emergência deixa de virar dívida.`}
-        </p>
-      </div>
-    </motion.div>
   );
 }
 

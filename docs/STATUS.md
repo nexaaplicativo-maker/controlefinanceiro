@@ -274,14 +274,32 @@
   "Próximo passo" também é uma proporção reserva ÷ alvo. Nenhum comportamento
   foi mudado; falta o dono escolher uma política.
 - **Rodada 4, DECISÃO DO DONO: o herói e o item "Livre na conta" podem não
-  fechar.** O herói é `capacidadePoupanca` (renda − fixos − gargalo) e o item é
-  `balance`; com despesa em categoria própria do usuário, ou com resgate, a
-  identidade `sobra = guardado + livre` quebra em silêncio, e a linha "Já
-  descontados R$ X que você guardou" saiu com o `PillarCard`. As saídas
-  possíveis mudam número exibido ou texto aprovado.
+  fechar.** O herói é `capacidadePoupanca` (renda − fixos − gargalo, `page.tsx`
+  L936) e o item é `balance` (toda entrada − toda saída, L895). O QA da rodada
+  isolou os casos:
+  - **Resgate de investimento NÃO quebra** a identidade `sobra = guardado +
+    livre`: o resgate entra em `guardado` (negativo) e em `livre`, e os dois
+    efeitos se cancelam.
+  - **Despesa em categoria própria do usuário QUEBRA, e a diferença é exatamente
+    o valor dela.** Com renda 5.000, fixos 1.800, cartões 900 e "Academia" 400:
+    o herói mostra 2.300, "Livre na conta" mostra 1.900, "Já guardado" 0 — faltam
+    400 sem explicação. Saída em "Outros" quebra igual (renda 1.000, despesa 250
+    → herói 1.000, livre 750).
+  - A linha "Já descontados R$ X que você guardou", que explicava a diferença,
+    saiu com o `PillarCard`.
+  - Saídas possíveis: redefinir o herói como `balance` (muda o número exibido) ou
+    voltar com uma linha de apoio amarrando os quatro itens ao herói (muda texto
+    aprovado). **As fórmulas estão inline em `app/page.tsx`; qualquer das duas
+    saídas deve movê-las para `lib/` com teste de verdade.**
 - **Rodada 4, A MEDIR EM NAVEGADOR: o herói a `text-[40px] font-extrabold`** sem
-  plano B. Com 6 dígitos ou sinal negativo pode passar dos 232px internos em
-  320px e causar rolagem horizontal.
+  plano B. O card tem **232px internos em 320px** e é `overflow-hidden`
+  (`components/ui/Surface.tsx:24`), então o risco **não é rolagem horizontal: é
+  o corte silencioso dos centavos** no lado direito — pior, porque é o valor
+  central da tela. Estimativa do QA a partir das métricas reais do Inter (peso
+  400, com fatores de alargamento supostos para o 800, já que o avanço do peso
+  variável não foi calculado): "R$ 11.954,00" mede 228px e cabe raspando só em
+  peso 400; "R$ 100.000,00" mede 252px e "-R$ 100.000,00" 269px, ambos acima do
+  limite em qualquer cenário. Medir com 6 dígitos e com valor negativo.
 - **Rodada 4: o título "% da renda" do alerta usa uma casa decimal** ("68,6%"),
   como o plano pediu; o selo antigo arredondava ("69%"). Se o dono preferir
   inteiro, é uma linha em `AlertaGargalo`.

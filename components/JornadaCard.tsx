@@ -186,11 +186,11 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
 
       {temBarra ? (
         <>
-          {/* Empilha abaixo de `xs`: "R$ 1.000,00 de R$ 3.985,00" mede ~195px e
-              em 320px o rótulo ficaria com ~25px, cortado pelo `overflow-hidden` do card. */}
-          {/* Empilhado ate sm, nao ate xs: em 360-430px o alvo de 5+ digitos
-              ("R$ 15.000,00 de R$ 24.000,00") nao deixa largura para o rotulo
-              do degrau, e o Card e overflow-hidden, entao o texto some. */}
+          {/* Empilhado ate `sm`, nao ate `xs`: o par "atual de alvo" mede ~195px
+              com 4 digitos e ~234px com alvo de 7, enquanto o card tem 232px
+              internos em 320px e 272px em 360px. Abaixo de `sm` o rotulo do
+              degrau ficaria sem largura e o `overflow-hidden` do card cortaria
+              o texto em vez de rolar. */}
           <div className="mt-2 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
             <span className="min-w-0 text-sm font-semibold text-ink">{passo.rotulo}</span>
             <span className="text-sm tnum text-ink-2 sm:shrink-0 sm:text-right">

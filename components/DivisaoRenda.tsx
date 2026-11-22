@@ -81,10 +81,14 @@ export function DivisaoRenda({ divisao, semBarra = false, valores, showValues, o
             <button
               type="button"
               onClick={() => onAbrir(id)}
-              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-inner bg-white/5 px-3 text-left transition-colors hover:bg-white/10"
+              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-inner bg-white/5 px-3 py-2 text-left transition-colors hover:bg-white/10"
             >
               <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${COR[id]}`} />
-              <span className="min-w-0 flex-1 truncate text-sm text-ink-2">{ROTULO_DO_SEGMENTO[id]}</span>
+              {/* Quebra em duas linhas em vez de truncar: no celular "Cartões e
+                  variáveis" nao cabe numa linha ao lado do valor, e truncar
+                  ("Cartões e va...") esconde qual pilar a linha abre. O valor
+                  continua alinhado pelo `items-center` da linha. */}
+              <span className="min-w-0 flex-1 text-sm text-ink-2">{ROTULO_DO_SEGMENTO[id]}</span>
               <span className={`shrink-0 text-sm font-bold tnum ${valores[id] < 0 ? 'text-neg' : 'text-ink'}`}>
                 {formatMoney(valores[id], showValues)}
               </span>

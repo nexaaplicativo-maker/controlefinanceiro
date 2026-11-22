@@ -291,8 +291,12 @@
     voltar com uma linha de apoio amarrando os quatro itens ao herói (muda texto
     aprovado). **As fórmulas estão inline em `app/page.tsx`; qualquer das duas
     saídas deve movê-las para `lib/` com teste de verdade.**
-- **Rodada 4, A MEDIR EM NAVEGADOR: o herói a `text-[40px] font-extrabold`** sem
-  plano B. O card tem **232px internos em 320px** e é `overflow-hidden`
+- **Rodada 4, PARCIALMENTE CONFERIDO: o herói a `text-[40px] font-extrabold`**
+  sem plano B. Conferido em Android real pela prévia da Vercel (21/11/2026): com
+  o valor da conta do dono **não há corte nos centavos**. Falta conferir os dois
+  casos que a estimativa aponta como acima do limite: **valor de 6 dígitos e
+  valor negativo** — nenhum dos dois existe na conta usada na conferência.
+  O card tem **232px internos em 320px** e é `overflow-hidden`
   (`components/ui/Surface.tsx:24`), então o risco **não é rolagem horizontal: é
   o corte silencioso dos centavos** no lado direito — pior, porque é o valor
   central da tela. Estimativa do QA a partir das métricas reais do Inter (peso
@@ -300,9 +304,6 @@
   variável não foi calculado): "R$ 11.954,00" mede 228px e cabe raspando só em
   peso 400; "R$ 100.000,00" mede 252px e "-R$ 100.000,00" 269px, ambos acima do
   limite em qualquer cenário. Medir com 6 dígitos e com valor negativo.
-- **Rodada 4: o título "% da renda" do alerta usa uma casa decimal** ("68,6%"),
-  como o plano pediu; o selo antigo arredondava ("69%"). Se o dono preferir
-  inteiro, é uma linha em `AlertaGargalo`.
 - **Coletar o nome do usuário — pré-requisito para a saudação mostrar nome.**
   Hoje o nome não existe em lugar nenhum: o `signUp` não manda `options.data`
   (`app/login/page.tsx`), o `handle_new_user` grava só `id` e `role`,

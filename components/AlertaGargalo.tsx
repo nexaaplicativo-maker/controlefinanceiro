@@ -1,4 +1,5 @@
 import { ArrowRight, CircleAlert } from "lucide-react";
+import { formatPercent } from "@/lib/format";
 
 export interface AlertaGargaloProps {
   /** O alerta não existe no tier saudável: quem renderiza decide isso. */
@@ -38,7 +39,6 @@ const TEMA = {
   },
 } as const;
 
-const UMA_CASA = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /**
  * Alerta do gargalo: consolida o selo de "% da renda" e a legenda que viviam no
@@ -50,7 +50,10 @@ const UMA_CASA = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maxi
 export function AlertaGargalo({ tier, percentual, showValues, onVerOndeCortar }: AlertaGargaloProps) {
   const tema = TEMA[tier];
   // Com valores ocultos a proporção também some, como o selo antigo já fazia.
-  const pct = showValues ? `${UMA_CASA.format(percentual)}%` : '••%';
+  // Arredonda para inteiro como o resto do app: o selo antigo mostrava "69%" e
+  // duas grandezas diferentes para o mesmo numero confundem mais do que a casa
+  // decimal informa. `formatPercent` ja devolve '••%' com os valores ocultos.
+  const pct = formatPercent(percentual, showValues);
 
   return (
     <div role="note" className={`mb-6 flex gap-3 rounded-card border p-4 ${tema.painel}`}>

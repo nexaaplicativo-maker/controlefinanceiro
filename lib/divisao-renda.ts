@@ -1,6 +1,7 @@
 /**
- * Como a renda do mês se divide: contas fixas, cartões e variáveis, o que foi
- * guardado e o que sobrou livre.
+ * Como a renda do mês se divide: contas fixas, cartões e variáveis, outros
+ * gastos, o que foi guardado e o que sobrou livre. Com `calcularSobraDoMes`
+ * (`lib/sobra-do-mes.ts`) as cinco parcelas fecham a renda inteira.
  *
  * Função pura. Quem chama passa os valores que a tela já calcula; nada aqui
  * conhece transação, mês ou perfil.
@@ -13,7 +14,7 @@
  * das SAÍDAS — a barra mostra de onde veio o buraco, não uma renda inexistente.
  */
 
-export type IdDoSegmento = 'fixos' | 'gargalo' | 'guardado' | 'livre';
+export type IdDoSegmento = 'fixos' | 'gargalo' | 'outros' | 'guardado' | 'livre';
 
 export interface SegmentoDaRenda {
   id: IdDoSegmento;
@@ -43,6 +44,8 @@ export interface EntradaDaDivisao {
   custosFixos: number;
   /** Cartões + variáveis. */
   gargalo: number;
+  /** Saídas fora de Contas Fixas, gargalo e Investimentos. Só vira fatia se > 0. */
+  outros: number;
   /** Líquido de aportes menos resgates; pode vir negativo. */
   guardado: number;
   /** Saldo do mês; negativo quando se gastou mais do que entrou. */
@@ -53,6 +56,7 @@ export interface EntradaDaDivisao {
 export const ROTULO_DO_SEGMENTO: Record<IdDoSegmento, string> = {
   fixos: 'Contas fixas',
   gargalo: 'Cartões e variáveis',
+  outros: 'Outros gastos',
   guardado: 'Já guardado',
   livre: 'Livre na conta',
 };
@@ -89,12 +93,22 @@ export function dividirRenda(entrada: EntradaDaDivisao): DivisaoDaRenda {
 
   const fixos = naoNegativo(entrada.custosFixos);
   const gargalo = naoNegativo(entrada.gargalo);
+  const outros = naoNegativo(entrada.outros);
+  // Guardado negativo (resgate maior que o aporte) não é saída: vira fatia
+  // zero, e o dinheiro do resgate aparece em `livre`, o que empurra a soma das
+  // fatias para cima da renda — o caso de base que cresce, mais abaixo.
   const guardado = naoNegativo(entrada.guardado);
-  const saidas = fixos + gargalo + guardado;
+  const saidas = fixos + gargalo + outros + guardado;
 
-  const estourou = saidas > renda || finito(entrada.livre) < 0;
+  // Em centavos: a renda gasta até o último centavo soma 1e-13 a mais em ponto
+  // flutuante, e isso não pode virar "você gastou mais do que ganhou".
+  const centavos = (n: number) => Math.round(n * 100);
+  const estourou = centavos(saidas) > centavos(renda) || centavos(finito(entrada.livre)) < 0;
 
-  const itens: Array<[IdDoSegmento, number]> = [['fixos', fixos], ['gargalo', gargalo], ['guardado', guardado]];
+  const itens: Array<[IdDoSegmento, number]> = [['fixos', fixos], ['gargalo', gargalo]];
+  // Sem gasto fora dos dois grupos a divisão não ganha uma fatia zerada.
+  if (outros > 0) itens.push(['outros', outros]);
+  itens.push(['guardado', guardado]);
   if (!estourou) itens.push(['livre', naoNegativo(entrada.livre)]);
 
   // Estouro sem nenhuma saída listada (o buraco veio de categoria própria do

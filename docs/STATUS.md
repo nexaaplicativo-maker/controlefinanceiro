@@ -49,6 +49,27 @@
   Commitada na branch, **sem push**. Falta: PR e deploy.
 
 ## Decisões
+- 21/11/2026 **Rodada 4, FECHADA: o número grande do "Quanto sobra" desconta
+  TODA saída, menos o aporte (opção A, escolhida pelo dono em 21/11/2026, com o
+  critério dele: "o valor precisa estar correto em qualquer frequência").** Antes,
+  `capacidadePoupanca = renda − fixos − gargalo` ignorava o gasto fora dos dois
+  grupos (categoria criada pelo usuário, "Outros") e mostrava mais dinheiro do
+  que existia — para público endividado, o erro sempre do lado perigoso. Agora
+  (`lib/sobra-do-mes.ts`, `calcularSobraDoMes`): `outros = totalExpense − fixos −
+  gargalo − aportes` e `sobra = renda − fixos − gargalo − outros`. **O guardado
+  não é descontado** porque continua sendo dinheiro do usuário. Valem, por
+  álgebra e agora **por teste da função real**: `sobra = guardado + livre` e
+  `fixos + gargalo + outros + guardado + livre = renda` (inclusive com saldo
+  negativo e com resgate maior que o aporte). A lista do card ganha o item
+  **"Outros gastos"** (cor âmbar), que **só existe quando `outros > 0`** e abre o
+  `PillarDetailModal` com a lista e o `total` exato. Consumidores do número:
+  o card, a "Dica do Nexa" ("Sobram R$ X este mês…") e a sugestão de orçamento
+  do `DebtsModal` (`monthlyBudgetHint`) — os três passam a ler a nova, que é a
+  correta; nenhum precisava da definição antiga. Efeito visível: meses com gasto
+  fora dos dois grupos mostram um número **menor** que antes (o mesmo que o
+  QA mediu, ex. 2.300 → 1.900). O teste antigo do QA
+  (`lib/identidade-sobra.test.ts`, que testava uma cópia da fórmula) foi
+  substituído por `lib/sobra-do-mes.test.ts`.
 - 21/11/2026 **Rodada 4, CORREÇÃO DO DESIGN pelo dono: o "Próximo passo" do
   estágio 2 é UM mês de custo, não a reserva mínima.** O mockup
   (`final-mes-com-dados`) mostrava "Reserva mínima R$ 0,00 de R$ 11.954,00" no
@@ -273,24 +294,6 @@
   plano aprovado, mas não podem coexistir como regra — o preenchimento do
   "Próximo passo" também é uma proporção reserva ÷ alvo. Nenhum comportamento
   foi mudado; falta o dono escolher uma política.
-- **Rodada 4, DECISÃO DO DONO: o herói e o item "Livre na conta" podem não
-  fechar.** O herói é `capacidadePoupanca` (renda − fixos − gargalo, `page.tsx`
-  L936) e o item é `balance` (toda entrada − toda saída, L895). O QA da rodada
-  isolou os casos:
-  - **Resgate de investimento NÃO quebra** a identidade `sobra = guardado +
-    livre`: o resgate entra em `guardado` (negativo) e em `livre`, e os dois
-    efeitos se cancelam.
-  - **Despesa em categoria própria do usuário QUEBRA, e a diferença é exatamente
-    o valor dela.** Com renda 5.000, fixos 1.800, cartões 900 e "Academia" 400:
-    o herói mostra 2.300, "Livre na conta" mostra 1.900, "Já guardado" 0 — faltam
-    400 sem explicação. Saída em "Outros" quebra igual (renda 1.000, despesa 250
-    → herói 1.000, livre 750).
-  - A linha "Já descontados R$ X que você guardou", que explicava a diferença,
-    saiu com o `PillarCard`.
-  - Saídas possíveis: redefinir o herói como `balance` (muda o número exibido) ou
-    voltar com uma linha de apoio amarrando os quatro itens ao herói (muda texto
-    aprovado). **As fórmulas estão inline em `app/page.tsx`; qualquer das duas
-    saídas deve movê-las para `lib/` com teste de verdade.**
 - **Rodada 4, PARCIALMENTE CONFERIDO: o herói a `text-[40px] font-extrabold`**
   sem plano B. Conferido em Android real pela prévia da Vercel (21/11/2026): com
   o valor da conta do dono **não há corte nos centavos**. Falta conferir os dois

@@ -51,7 +51,7 @@ export function CardQuantoSobra({
   // Mês sem renda mas com saídas: os valores não dependem da renda, e a lista é
   // a única porta para o detalhe de fixos e cartões (os `PillarCard` antigos
   // estavam lá com ou sem renda).
-  const temSaidas = valores.fixos > 0 || valores.gargalo > 0 || valores.guardado > 0;
+  const temSaidas = valores.fixos > 0 || valores.gargalo > 0 || valores.outros > 0 || valores.guardado > 0;
 
   return (
     <section aria-labelledby={tituloId} className="mb-6">

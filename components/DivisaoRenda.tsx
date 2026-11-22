@@ -14,18 +14,24 @@ export interface DivisaoRendaProps {
   onAbrir: (id: IdDoSegmento) => void;
 }
 
-const ORDEM: IdDoSegmento[] = ['fixos', 'gargalo', 'guardado', 'livre'];
+const ORDEM: IdDoSegmento[] = ['fixos', 'gargalo', 'outros', 'guardado', 'livre'];
 
 /** Cada fatia tem cor E posição na legenda: a cor nunca é a única pista. */
 const COR: Record<IdDoSegmento, string> = {
   fixos: 'bg-ink-3',
   gargalo: 'bg-neg',
+  // Âmbar (9,3:1 sobre o card): o único tom que não se parece com nenhum vizinho
+  // — cinza (fixos), vermelho, azul (guardado) e branco (livre). Entre vizinhos
+  // a diferença é baixa (1,50:1 contra o vermelho, 1,09:1 contra o azul), então
+  // quem separa é o `gap-1`, que deixa o fundo do card entre as fatias.
+  outros: 'bg-warn',
   guardado: 'bg-brand',
   livre: 'bg-ink',
 };
 
 /**
- * Barra única da divisão da renda mais a lista de 4 itens que abrem o detalhe.
+ * Barra única da divisão da renda mais a lista de itens (4, ou 5 quando há gasto
+ * fora de fixas e cartões) que abrem o detalhe.
  *
  * A lista é a porta para o `PillarDetailModal`: sem ela os quatro cards antigos
  * levavam os lançamentos de cada número, e a barra sozinha não leva a lugar
@@ -76,7 +82,7 @@ export function DivisaoRenda({ divisao, semBarra = false, valores, showValues, o
       )}
 
       <ul className={`flex flex-col gap-1.5 ${semBarra ? '' : 'mt-4'}`}>
-        {ORDEM.map(id => (
+        {ORDEM.filter(id => id !== 'outros' || valores.outros > 0).map(id => (
           <li key={id}>
             <button
               type="button"

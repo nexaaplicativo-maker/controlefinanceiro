@@ -59,7 +59,7 @@ Os cenários dependem dos dados da sua conta: procure entre os meses existentes 
 
 ## C. Card "Quanto sobra" (M-A)
 
-24. Título pequeno "Quanto sobra em novembro", valor grande com centavos menores. Confira que o valor é o mesmo do antigo "Capacidade de Poupança" (renda − fixos − cartões e variáveis).
+24. Título pequeno "Quanto sobra em novembro", valor grande com centavos menores. O valor agora desconta TODA saída menos o aporte: em um mês sem gasto fora de fixas e cartões ele é o mesmo do antigo "Capacidade de Poupança" (renda − fixos − cartões e variáveis); com gasto em categoria própria ele é **menor**. Confira que `sobra = Já guardado + Livre na conta`, ao centavo. Quando houver gasto fora dos dois grupos aparece o item "Outros gastos" (âmbar, 5º item e 5ª fatia), que abre os lançamentos dele; sem esse gasto o item **não** aparece.
 25. Em **360px** com um valor de 5 dígitos ("R$ 11.954,00" ou parecido): sem quebra e sem corte.
 26. Linha "de R$ X que entraram no mês": é um botão. Clique: abre a lista de receitas do mês, e dá para editar uma receita dali (abra e **feche** a edição sem salvar). A soma da lista bate com o X.
 27. Barra de 4 segmentos com espaço entre eles; o menor (guardado, ~2%) ainda é visível. Árvore de acessibilidade: `img` com "Divisão da renda: N% contas fixas, N% cartões e variáveis, N% já guardado, N% livre na conta". A soma não passa de 100.

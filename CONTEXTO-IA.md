@@ -109,7 +109,7 @@ está em `lib/`, com teste.
 | Cabeçalho (< md) | `app/page.tsx` | `h1` "Visão geral", saudação como apoio, olho + sino + feedback, **todos 44×44** |
 | Mês + "⋯" | `app/page.tsx` | Trilho `h-11` com setas 44×44 abaixo de `md`; de `md` em diante a pílula antiga |
 | Jornada | `JornadaCard` + `EscadaEstagios` | Estágio, escada de 5 degraus e "Próximo passo". Único herói (`card-hero`) da tela |
-| Quanto sobra | `CardQuantoSobra` + `DivisaoRenda` | `capacidadePoupanca`, a renda (botão que abre `IncomeListModal`), barra única e 4 itens que abrem o `PillarDetailModal` |
+| Quanto sobra | `CardQuantoSobra` + `DivisaoRenda` | `sobra` (de `calcularSobraDoMes`), a renda (botão que abre `IncomeListModal`), barra única e 4 itens (5 com gasto fora de fixas e cartões) que abrem o `PillarDetailModal` |
 | Alerta | `AlertaGargalo` | Só com tier ≠ saudável, gargalo > 0 e renda > 0. "Ver onde cortar" rola e move o foco |
 | Onde foi o dinheiro | `ResumoOndeFoi` | Ver abaixo |
 | Lançamentos | `app/page.tsx` + `TransactionRow` | `ul/li` agrupados por dia (`agruparPorDia`, `rotuloDoDia`) |
@@ -134,6 +134,14 @@ está em `lib/`, com teste.
   **nunca** aparece sem a meta: `handleAddToReserve` sai calado quando ela não
   existe e o botão seria morto. Com `needsOnboarding` o `OnboardingChecklist`
   some (o card já é o convite).
+- **O número grande é `sobra`** (`lib/sobra-do-mes.ts`): `renda − fixos − gargalo −
+  outros`, onde `outros` é toda saída fora de Contas Fixas, cartões/variáveis e
+  aportes em Investimentos. Desconta TODA saída **menos o aporte**, porque o
+  guardado continua sendo do usuário. Vale por álgebra e por teste:
+  `sobra = guardado + livre` e `fixos + gargalo + outros + guardado + livre =
+  renda`. A conta roda em centavos inteiros. O item **"Outros gastos"** (âmbar) só
+  aparece quando `outros > 0`. Esta `sobra` também alimenta a "Dica do Nexa" e o
+  `monthlyBudgetHint` do modal de Dívidas; não existe mais `capacidadePoupanca`.
 - **`dividirRenda`** (`lib/divisao-renda.ts`): se as saídas passam da renda ou o
   saldo é negativo, o segmento "livre" **não existe** e os percentuais são
   normalizados pelo total das saídas — nunca se desenha sobra que não há. A base

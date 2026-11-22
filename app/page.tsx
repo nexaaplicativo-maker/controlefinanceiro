@@ -74,6 +74,7 @@ import { JornadaCard } from "../components/JornadaCard";
 import { CardQuantoSobra } from "../components/CardQuantoSobra";
 import { AlertaGargalo } from "../components/AlertaGargalo";
 import { dividirRenda, type IdDoSegmento } from "../lib/divisao-renda";
+import { calcularSobraDoMes } from "../lib/sobra-do-mes";
 import { EVENTO_MODO_SELECAO } from "../components/BottomNav";
 import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
@@ -933,7 +934,31 @@ export default function Dashboard() {
   const rendaLiquida = somar(receitasList);
   const custosFixos = somar(custosFixosList);
   const gargalo = somar(gargaloList);
-  const capacidadePoupanca = rendaLiquida - custosFixos - gargalo;
+
+  // Despesas que não são Contas Fixas, gargalo nem aporte em Investimentos
+  // (categoria criada pelo usuário, "Outros"). Lista e total saem do mesmo
+  // filtro, como nos demais itens: o modal bate com a linha até o centavo.
+  const CATEGORIAS_FORA_DE_OUTROS = ['Contas Fixas', ...GARGALO_CATEGORIES, 'Investimentos'];
+  const outrosList = currentMonthTransactions
+    .filter(t => t.type === 'expense' && !CATEGORIAS_FORA_DE_OUTROS.includes(t.category));
+
+  // O número grande do card "Quanto sobra" e as parcelas que o explicam. A
+  // aritmética mora em `lib/sobra-do-mes.ts` (com teste): `sobra` desconta TODA
+  // saída, menos o aporte, e vale `sobra = guardado + livre`.
+  //
+  // Esta é a ÚNICA `sobra` da tela. Antes ela se chamava `capacidadePoupanca` e
+  // ignorava o gasto fora dos dois grupos; os três consumidores dela (card,
+  // "Dica do Nexa" e a sugestão de orçamento do modal de Dívidas) passam todos a
+  // ler esta, que é a correta — nenhum precisava da definição antiga.
+  const { outros, guardado, livre, sobra } = calcularSobraDoMes({
+    totalIncome,
+    totalExpense,
+    rendaLiquida,
+    custosFixos,
+    gargalo,
+    aportes: somar(investimentos.filter(t => t.type === 'expense')),
+    resgates: somar(investimentos.filter(t => t.type === 'income')),
+  });
 
   // % da renda comprometida com o gargalo (cartões + variáveis).
   // O valor bruto pode passar de 100%.
@@ -958,11 +983,14 @@ export default function Dashboard() {
   // histórico do usuário, e o painel re-renderiza a cada um dos ~30 interruptores
   // de modal. O React Compiler não está ligado no next.config.ts; quando for
   // ligado, reavaliar — aí vale tirar o `useMemo` e deixá-lo memorizar sozinho.
-  // (Até a rodada 4 havia aqui um `eslint-disable` de
-  // `react-hooks/preserve-manual-memoization`: a regra acusava `gargalo` e
-  // `custosFixos`, que saíam de `somar(lista)` com a mesma lista indo para os
-  // modais. Depois da troca dos cards ela deixou de reportar e a diretiva foi
-  // removida; se o aviso voltar, é a mesma causa.)
+  //
+  // A diretiva `eslint-disable` de `react-hooks/preserve-manual-memoization`
+  // abaixo existe porque o compilador não prova que `rendaLiquida`,
+  // `gargalo` e `custosFixos` não mudam depois: saem de `somar(lista)`, e as
+  // mesmas listas seguem para os modais de detalhe e para `calcularSobraDoMes`.
+  // Elas não são mutadas em lugar nenhum (o modal ordena uma cópia). A diretiva
+  // saiu na rodada 4 quando a regra parou de reportar, e voltou com o cálculo de
+  // `sobra`: o aviso depende de quem mais lê essas somas.
   const insights = useMemo(() => getProfileInsights({
     hoje,
     profile,
@@ -974,6 +1002,7 @@ export default function Dashboard() {
     reserveAmount: reservaAtual,
     positions,
     debts,
+    /* eslint-disable-next-line react-hooks/preserve-manual-memoization -- Ver a nota acima do useMemo. */
   }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, custosFixos, reservaAtual, positions, debts]);
 
   const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);
@@ -997,12 +1026,15 @@ export default function Dashboard() {
   //
   // `total` só existe onde a soma bruta da lista NÃO é o número do item: o
   // "já guardado" é líquido de resgates e o "livre" mistura entradas e saídas.
-  // Nos dois o modal usa o valor exato da página em vez de recalcular.
+  // "Outros gastos" também o passa: o número da linha vem arredondado em
+  // centavos de `calcularSobraDoMes`. Nos três o modal usa o valor exato da
+  // página em vez de recalcular.
   const PILARES: Record<IdDoSegmento, { title: string; subtitle: string; list: any[]; accent: string; total?: number }> = {
     fixos:    { title: 'Custos Fixos',        subtitle: 'o que você paga todo mês',            list: custosFixosList,          accent: 'blue' },
     gargalo:  { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',              list: gargaloList,              accent: accentDoGargalo },
-    guardado: { title: 'Já guardado',         subtitle: 'aportes menos resgates do mês',       list: investimentos,            accent: 'padrao', total: sumCategory(investimentos) },
-    livre:    { title: 'Livre na conta',      subtitle: 'tudo que entrou menos tudo que saiu', list: currentMonthTransactions, accent: 'padrao', total: balance },
+    outros:   { title: 'Outros gastos',       subtitle: 'fora de fixas, cartões e variáveis',  list: outrosList,               accent: 'padrao', total: outros },
+    guardado: { title: 'Já guardado',         subtitle: 'aportes menos resgates do mês',       list: investimentos,            accent: 'padrao', total: guardado },
+    livre:    { title: 'Livre na conta',      subtitle: 'tudo que entrou menos tudo que saiu', list: currentMonthTransactions, accent: 'padrao', total: livre },
   };
   const pilarAtivo = pilarAberto ? PILARES[pilarAberto] : null;
 
@@ -1077,8 +1109,8 @@ export default function Dashboard() {
     if (variaveisPercent > insights.gargaloWarn) {
       return `Seus gastos variáveis já consomem ${variaveisPercent.toFixed(0)}% da renda. É o ponto mais fácil de cortar este mês.`;
     }
-    if (capacidadePoupanca > 0 && insights.shouldSuggestContribution && reservaAtual < insights.reserveMinimum) {
-      return `Sobram ${formatMoney(capacidadePoupanca)} este mês. Guardar parte agora encurta o caminho até sua reserva.`;
+    if (sobra > 0 && insights.shouldSuggestContribution && reservaAtual < insights.reserveMinimum) {
+      return `Sobram ${formatMoney(sobra)} este mês. Guardar parte agora encurta o caminho até sua reserva.`;
     }
     if (balance < 0) return 'Você gastou mais do que ganhou neste mês. Vale revisar os lançamentos pendentes.';
     return null;
@@ -1128,15 +1160,17 @@ export default function Dashboard() {
   const valoresDaRenda: Record<IdDoSegmento, number> = {
     fixos: custosFixos,
     gargalo,
-    guardado: sumCategory(investimentos),
-    livre: balance,
+    outros,
+    guardado,
+    livre,
   };
   const divisaoDaRenda = dividirRenda({
     rendaLiquida,
     custosFixos,
     gargalo,
-    guardado: valoresDaRenda.guardado,
-    livre: balance,
+    outros,
+    guardado,
+    livre,
   });
 
   const pedeCadastroDeDivida = insights.stage.id === 'emergencia' && !dividaCaraNoEstagio1
@@ -1511,7 +1545,7 @@ export default function Dashboard() {
         {pronto && (
           <CardQuantoSobra
             mes={MONTHS[activeMonth].toLowerCase()}
-            sobra={capacidadePoupanca}
+            sobra={sobra}
             rendaLiquida={rendaLiquida}
             divisao={divisaoDaRenda}
             valores={valoresDaRenda}
@@ -1815,7 +1849,7 @@ export default function Dashboard() {
         onClose={() => setIsDebtsOpen(false)}
         userId={userId}
         showValues={showValues}
-        monthlyBudgetHint={Math.max(0, capacidadePoupanca)}
+        monthlyBudgetHint={Math.max(0, sobra)}
         onSave={refreshDebts}
       />
       <InvestmentsModal

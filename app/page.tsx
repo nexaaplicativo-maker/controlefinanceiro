@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useId } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
 import { 
-  Wallet, TrendingUp, TrendingDown,
-  Bell, User, Plus, Home as HomeIcon, CreditCard, 
+  Wallet, TrendingDown,
+  Bell, User, Plus, CreditCard, 
   ChevronLeft, ChevronRight, Sparkles, LineChart, Target,
-  PieChart as PieChartIcon, Search, Trash2, Heart, Clock, Edit2, Calendar, FileText, Eye, EyeOff,
-  PiggyBank, ShieldCheck, Loader2, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
-  WifiOff, RefreshCw, X, ArrowUpRight, MessageSquare
+  PieChart as PieChartIcon, Search, Trash2, Heart, Clock, Calendar, FileText, Eye, EyeOff,
+  PiggyBank, MoreHorizontal, Bot, SlidersHorizontal, CalendarClock,
+  WifiOff, RefreshCw, X, MessageSquare
 } from "lucide-react";
 
-import { Money } from "../components/ui/Money";
 import { TransactionRow } from "../components/TransactionRow";
-import { EmptyState, Skeleton } from "../components/ui/Surface";
+import { EmptyState, SkeletonRow } from "../components/ui/Surface";
+import { EsqueletoVisaoGeral } from "../components/EsqueletoVisaoGeral";
 
 
 /**
@@ -57,7 +57,7 @@ const InvestmentsModal = dynamic(() => import("../components/InvestmentsModal").
 import { supabase } from "../lib/supabase";
 import { toast, toastWithUndo } from "../components/Toast";
 import { confirmDialog } from "../components/ConfirmDialog";
-import { getProfileInsights, type FinancialProfile } from "../lib/profile";
+import { getProfileInsights, getStageLadder, getProximoPasso, type FinancialProfile } from "../lib/profile";
 import { AI_ENABLED } from "../lib/features";
 import { formatMoney } from "../lib/format";
 import { normalizarSubcategoria, NAO_CLASSIFICADO } from "../lib/subcategorias";
@@ -65,10 +65,16 @@ import { getUserId } from "../lib/session";
 import { summarizeDebts } from "../lib/debt";
 import { linhasDaMesmaFatura } from "../lib/fatura";
 import { moverNaMeta } from "../lib/aporte-meta";
-import { hojeEmSaoPaulo } from "../lib/data";
+import { hojeEmSaoPaulo, rotuloDoDia } from "../lib/data";
+import { agruparPorDia } from "../lib/lancamentos";
 import { primeiroNome, saudacao } from "../lib/saudacao";
 import { abrirFeedback, ROTULO_FEEDBACK } from "../components/FeedbackWidget";
 import { ResumoOndeFoi } from "../components/ResumoOndeFoi";
+import { JornadaCard } from "../components/JornadaCard";
+import { CardQuantoSobra } from "../components/CardQuantoSobra";
+import { AlertaGargalo } from "../components/AlertaGargalo";
+import { dividirRenda, type IdDoSegmento } from "../lib/divisao-renda";
+import { calcularSobraDoMes } from "../lib/sobra-do-mes";
 import { EVENTO_MODO_SELECAO } from "../components/BottomNav";
 import { buscarTudo, PAGINA } from "../lib/consultas";
 import { BetaGate } from "../components/BetaGate";
@@ -147,13 +153,16 @@ function buscarTransacoesDaJanela(userId: string) {
 export default function Dashboard() {
   // Meses ja buscados fora da janela, para nao repetir consulta ao voltar.
   const mesesExtras = useRef(new Set<string>());
+  const idBusca = useId();
+  // Contêiner do card "Onde foi o dinheiro": destino do "Ver onde cortar".
+  const ondeFoiRef = useRef<HTMLDivElement>(null);
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth());
   const [activeYear, setActiveYear] = useState(new Date().getFullYear());
   const [showValues, setShowValues] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
-  // Qual card do topo teve os lançamentos abertos.
-  const [pilarAberto, setPilarAberto] = useState<null | 'renda' | 'fixos' | 'gargalo'>(null);
+  // Qual item da divisão da renda teve os lançamentos abertos.
+  const [pilarAberto, setPilarAberto] = useState<null | IdDoSegmento>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false); 
   const [isPlannerOpen, setIsPlannerOpen] = useState(false); 
   const [isTrackerOpen, setIsTrackerOpen] = useState(false); 
@@ -541,11 +550,11 @@ export default function Dashboard() {
    * novo saldo dela. O `goal_id` é o que impede o patrimônio de contar esse
    * dinheiro duas vezes.
    */
-  async function handleAddToReserve(value: number) {
-    if (!reservaGoal) return;
+  async function handleAddToReserve(value: number): Promise<boolean> {
+    if (!reservaGoal) return false;
 
     const uid = await getUserId();
-    if (!uid) return;
+    if (!uid) return false;
 
     const r = moverNaMeta({
       userId: uid,
@@ -557,25 +566,26 @@ export default function Dashboard() {
       data: hojeEmSaoPaulo(),
     });
 
-    if (!r.ok) { toast(r.erro, "warning"); return; }
+    if (!r.ok) { toast(r.erro, "warning"); return false; }
 
     const { data: nova, error } = await supabase
       .from('transactions')
       .insert([r.movimento.transacao])
       .select(COLUNAS_TX);
 
-    if (error) { toast("Erro ao registrar o aporte: " + error.message, "error"); return; }
+    if (error) { toast("Erro ao registrar o aporte: " + error.message, "error"); return false; }
 
     const { error: erroMeta } = await supabase
       .from('goals')
       .update({ current_amount: r.movimento.novoSaldoDaMeta })
       .eq('id', reservaGoal.id);
 
-    if (erroMeta) { toast("Erro ao atualizar a reserva: " + erroMeta.message, "error"); return; }
+    if (erroMeta) { toast("Erro ao atualizar a reserva: " + erroMeta.message, "error"); return false; }
 
     if (nova?.length) setAllTransactions(prev => [...nova, ...prev]);
     setGoals(prev => prev.map(g => g.id === reservaGoal.id ? { ...g, current_amount: r.movimento.novoSaldoDaMeta } : g));
     toast(`+${formatMoney(value)} na sua reserva. 🛡️`, "success");
+    return true;
   }
 
   // Recarrega só as posições — usado quando o modal de Patrimônio salva, para
@@ -910,7 +920,6 @@ export default function Dashboard() {
     .filter(t => t.type === 'expense' && categories.includes(t.category));
 
   const somar = (list: any[]) => list.reduce((acc, t) => acc + t.amount, 0);
-  const sumExpenseIn = (categories: string[]) => somar(expensesIn(categories));
 
   const custosFixosList = expensesIn(['Contas Fixas']);
   const gargaloList = expensesIn(GARGALO_CATEGORIES);
@@ -924,16 +933,37 @@ export default function Dashboard() {
   // terceira cópia do mesmo predicado.
   const rendaLiquida = somar(receitasList);
   const custosFixos = somar(custosFixosList);
-  const gastoCartoes = sumExpenseIn(['Cartões', 'Cartões de Crédito']);
-  const gastoVariaveis = sumExpenseIn(['Variáveis']);
   const gargalo = somar(gargaloList);
-  const capacidadePoupanca = rendaLiquida - custosFixos - gargalo;
+
+  // Despesas que não são Contas Fixas, gargalo nem aporte em Investimentos
+  // (categoria criada pelo usuário, "Outros"). Lista e total saem do mesmo
+  // filtro, como nos demais itens: o modal bate com a linha até o centavo.
+  const CATEGORIAS_FORA_DE_OUTROS = ['Contas Fixas', ...GARGALO_CATEGORIES, 'Investimentos'];
+  const outrosList = currentMonthTransactions
+    .filter(t => t.type === 'expense' && !CATEGORIAS_FORA_DE_OUTROS.includes(t.category));
+
+  // O número grande do card "Quanto sobra" e as parcelas que o explicam. A
+  // aritmética mora em `lib/sobra-do-mes.ts` (com teste): `sobra` desconta TODA
+  // saída, menos o aporte, e vale `sobra = guardado + livre`.
+  //
+  // Esta é a ÚNICA `sobra` da tela. Antes ela se chamava `capacidadePoupanca` e
+  // ignorava o gasto fora dos dois grupos; os três consumidores dela (card,
+  // "Dica do Nexa" e a sugestão de orçamento do modal de Dívidas) passam todos a
+  // ler esta, que é a correta — nenhum precisava da definição antiga.
+  const { outros, guardado, livre, sobra } = calcularSobraDoMes({
+    totalIncome,
+    totalExpense,
+    rendaLiquida,
+    custosFixos,
+    gargalo,
+    aportes: somar(investimentos.filter(t => t.type === 'expense')),
+    resgates: somar(investimentos.filter(t => t.type === 'income')),
+  });
 
   // % da renda comprometida com o gargalo (cartões + variáveis).
-  // O valor bruto pode passar de 100%; o anel é limitado a 100 só no visual.
+  // O valor bruto pode passar de 100%.
   const percentOf = (val: number) => rendaLiquida > 0 ? (val / rendaLiquida) * 100 : 0;
   const comprometimentoRaw = percentOf(gargalo);
-  const comprometimentoPercent = Math.min(100, comprometimentoRaw);
 
   // Reserva de emergência atual (meta homônima na tabela goals).
   const reservaGoal = goals.find(g => g.title === 'Reserva de Emergência');
@@ -949,6 +979,18 @@ export default function Dashboard() {
   // cada render, mas vira de dia junto com o usuário.
   const hoje = hojeEmSaoPaulo();
 
+  // O `useMemo` fica por desempenho: `getProfileInsights` varre TODO o
+  // histórico do usuário, e o painel re-renderiza a cada um dos ~30 interruptores
+  // de modal. O React Compiler não está ligado no next.config.ts; quando for
+  // ligado, reavaliar — aí vale tirar o `useMemo` e deixá-lo memorizar sozinho.
+  //
+  // A diretiva `eslint-disable` de `react-hooks/preserve-manual-memoization`
+  // abaixo existe porque o compilador não prova que `rendaLiquida`,
+  // `gargalo` e `custosFixos` não mudam depois: saem de `somar(lista)`, e as
+  // mesmas listas seguem para os modais de detalhe e para `calcularSobraDoMes`.
+  // Elas não são mutadas em lugar nenhum (o modal ordena uma cópia). A diretiva
+  // saiu na rodada 4 quando a regra parou de reportar, e voltou com o cálculo de
+  // `sobra`: o aviso depende de quem mais lê essas somas.
   const insights = useMemo(() => getProfileInsights({
     hoje,
     profile,
@@ -960,21 +1002,7 @@ export default function Dashboard() {
     reserveAmount: reservaAtual,
     positions,
     debts,
-    /* eslint-disable-next-line react-hooks/preserve-manual-memoization -- O
-       compilador não consegue provar que `gargalo` e `custosFixos` não mudam
-       depois: eles saem de `somar(lista)`, e as mesmas listas são passadas
-       adiante para os modais de detalhe. Elas não são mutadas em lugar nenhum
-       (o modal ordena uma cópia), mas isso a análise não enxerga.
-
-       A saída seria remover este useMemo e deixar o compilador memorizar
-       sozinho. Não dá hoje: o React Compiler não está ligado no
-       next.config.ts, então o aviso é consultivo e tirar o useMemo faria
-       `getProfileInsights` — que varre TODO o histórico do usuário — rodar a
-       cada render do painel, e o painel re-renderiza a cada um dos ~30
-       interruptores de modal. Trocar perda de desempenho real por um aviso
-       sobre otimização que não está ativa seria o negócio errado.
-
-       Quando o compilador for ligado, reavaliar: aí vale tirar o useMemo. */
+    /* eslint-disable-next-line react-hooks/preserve-manual-memoization -- Ver a nota acima do useMemo. */
   }), [hoje, profile, allTransactions, rendaLiquida, totalExpense, gargalo, custosFixos, reservaAtual, positions, debts]);
 
   const debtSummary = useMemo(() => summarizeDebts(debts as any), [debts]);
@@ -987,21 +1015,26 @@ export default function Dashboard() {
     : comprometimentoRaw > insights.gargaloWarn
       ? 'atencao'
       : 'saudavel';
-  const isGargaloCritico = gargaloTier === 'critico';
 
-  const GARGALO_THEME = {
-    saudavel: { hex: '#5fd39b', accent: 'padrao',  text: 'text-ink-2', glow: 'bg-pos',   panel: 'bg-white/5 border-line' },
-    atencao:  { hex: '#e8b75d', accent: 'amber',   text: 'text-warn',  glow: 'bg-warn',  panel: 'bg-warn/5 border-warn/20' },
-    critico:  { hex: '#f0776e', accent: 'rose',    text: 'text-neg',   glow: 'bg-neg',   panel: 'bg-neg/5 border-neg/20' },
-  }[gargaloTier];
+  // Cor do modal de detalhe do gargalo. As cores do ALERTA moram em
+  // `AlertaGargalo`, que é quem as desenha.
+  const accentDoGargalo = { saudavel: 'padrao', atencao: 'amber', critico: 'rose' }[gargaloTier];
 
-  // Título, lista e cor de cada card clicável num lugar só. A cor do gargalo
-  // acompanha o tier para o modal abrir na mesma cor do card que foi tocado —
-  // abrir em cor diferente faz duvidar se é o mesmo número.
-  const PILARES = {
-    renda:   { title: 'Renda Líquida',       subtitle: 'tudo que entrou no mês',   list: receitasList,    accent: 'emerald' },
-    fixos:   { title: 'Custos Fixos',        subtitle: 'o que você paga todo mês', list: custosFixosList, accent: 'blue' },
-    gargalo: { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',   list: gargaloList,     accent: GARGALO_THEME.accent },
+  // Título, lista e cor de cada item clicável da divisão da renda num lugar só.
+  // A cor do gargalo acompanha o tier para o modal abrir na mesma cor do item
+  // que foi tocado — abrir em cor diferente faz duvidar se é o mesmo número.
+  //
+  // `total` só existe onde a soma bruta da lista NÃO é o número do item: o
+  // "já guardado" é líquido de resgates e o "livre" mistura entradas e saídas.
+  // "Outros gastos" também o passa: o número da linha vem arredondado em
+  // centavos de `calcularSobraDoMes`. Nos três o modal usa o valor exato da
+  // página em vez de recalcular.
+  const PILARES: Record<IdDoSegmento, { title: string; subtitle: string; list: any[]; accent: string; total?: number }> = {
+    fixos:    { title: 'Custos Fixos',        subtitle: 'o que você paga todo mês',            list: custosFixosList,          accent: 'blue' },
+    gargalo:  { title: 'Cartões & Variáveis', subtitle: 'onde o dinheiro escapa',              list: gargaloList,              accent: accentDoGargalo },
+    outros:   { title: 'Outros gastos',       subtitle: 'fora de fixas, cartões e variáveis',  list: outrosList,               accent: 'padrao', total: outros },
+    guardado: { title: 'Já guardado',         subtitle: 'aportes menos resgates do mês',       list: investimentos,            accent: 'padrao', total: guardado },
+    livre:    { title: 'Livre na conta',      subtitle: 'tudo que entrou menos tudo que saiu', list: currentMonthTransactions, accent: 'padrao', total: livre },
   };
   const pilarAtivo = pilarAberto ? PILARES[pilarAberto] : null;
 
@@ -1036,6 +1069,22 @@ export default function Dashboard() {
   const recentTransactions = mostrarTodos ? listaFiltrada : listaFiltrada.slice(0, LIMITE_LISTA);
   const ocultos = listaFiltrada.length - recentTransactions.length;
 
+  /**
+   * "Ver onde cortar": rola até "Onde foi o dinheiro" e LEVA O FOCO junto.
+   * Rolar sem mover o foco deixa quem usa teclado ou leitor de tela parado no
+   * alerta, a uma tela de distância do conteúdo que acabou de pedir. O `h2` do
+   * card tem `tabIndex={-1}`: é alvo de foco programático, não entra no Tab.
+   */
+  function irParaOndeFoi() {
+    const destino = ondeFoiRef.current;
+    if (!destino) return;
+    const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    destino.scrollIntoView({ block: 'start', behavior: reduzMovimento ? 'auto' : 'smooth' });
+    // `preventScroll`: a rolagem acima já é a que vale, e o foco não pode
+    // cancelá-la nem duplicá-la.
+    destino.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+  }
+
   function abrirGrupo(rotulo: string) {
     const mesmo = subcategoriaFiltro === rotulo;
     setSubcategoriaFiltro(mesmo ? null : rotulo);
@@ -1060,8 +1109,8 @@ export default function Dashboard() {
     if (variaveisPercent > insights.gargaloWarn) {
       return `Seus gastos variáveis já consomem ${variaveisPercent.toFixed(0)}% da renda. É o ponto mais fácil de cortar este mês.`;
     }
-    if (capacidadePoupanca > 0 && insights.shouldSuggestContribution && reservaAtual < insights.reserveMinimum) {
-      return `Sobram ${formatMoney(capacidadePoupanca)} este mês. Guardar parte agora encurta o caminho até sua reserva.`;
+    if (sobra > 0 && insights.shouldSuggestContribution && reservaAtual < insights.reserveMinimum) {
+      return `Sobram ${formatMoney(sobra)} este mês. Guardar parte agora encurta o caminho até sua reserva.`;
     }
     if (balance < 0) return 'Você gastou mais do que ganhou neste mês. Vale revisar os lançamentos pendentes.';
     return null;
@@ -1101,6 +1150,31 @@ export default function Dashboard() {
    */
   const hasUnread = dueBills.length > 0 && dispensadoCom !== dueBills.length;
   const dispensarAvisos = () => setDispensadoCom(dueBills.length);
+
+  // No Estágio 1 a prioridade do card Jornada vira número (dívida cara e juros
+  // por mês) ou um pedido de cadastro — os dois ramos que o card de estágio
+  // antigo já tinha, agora calculados aqui e só desenhados lá.
+  const dividaCaraNoEstagio1 = insights.stage.id === 'emergencia' && debtSummary.expensiveTotal > 0
+    ? { total: debtSummary.expensiveTotal, jurosPorMes: debtSummary.expensiveMonthlyInterest }
+    : undefined;
+  const valoresDaRenda: Record<IdDoSegmento, number> = {
+    fixos: custosFixos,
+    gargalo,
+    outros,
+    guardado,
+    livre,
+  };
+  const divisaoDaRenda = dividirRenda({
+    rendaLiquida,
+    custosFixos,
+    gargalo,
+    outros,
+    guardado,
+    livre,
+  });
+
+  const pedeCadastroDeDivida = insights.stage.id === 'emergencia' && !dividaCaraNoEstagio1
+    && !hasRegisteredDebts && !!profile?.has_debt;
 
   return (
     <BetaGate>
@@ -1150,57 +1224,44 @@ export default function Dashboard() {
           exatamente o que acontecia com "Saldo em conta". */}
       <main className="mx-auto max-w-md px-6 pt-safe py-8 md:max-w-[1120px] md:py-12">
         
-        {/* No celular este é o ÚNICO cabeçalho.
-            Antes vinha ele e, logo abaixo, "Visão Geral / Acompanhe e gerencie
-            seu patrimônio" — duas apresentações seguidas, dizendo a mesma
-            coisa, ocupando quase uma tela antes do primeiro número. O título
-            de página sobrou só no desktop, onde há altura sobrando. */}
-        <header className="flex md:hidden justify-between items-center gap-3 mb-6">
-          {/* `min-w-0` + `truncate`: texto longo (antes era o e-mail inteiro)
-              empurrava o sino para fora da tela, porque texto não encolhe
-              sozinho em flex. Vale igual para um primeiro nome comprido. */}
-          <div className="flex min-w-0 items-center gap-2 xs:gap-3">
-            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/5 xs:h-11 xs:w-11">
-              <Image src="/icon-192.png" alt="" width={44} height={44} priority className="h-full w-full object-cover" />
-            </div>
-            {/* Sem nome, a saudação é a linha principal e não sobra vírgula
-                pendurada. Com nome, ela vira a linha de apoio do `h1`. Em
-                qualquer um dos dois casos existe UM `h1` nesta largura — no
-                desktop o `h1` é "Visão Geral", e este cabeçalho não aparece. */}
-            <div className="min-w-0">
-              {nomeParaSaudacao && (
-                <p className="truncate text-xs text-ink-2">{saudacao()},</p>
-              )}
-              <h1 className="truncate text-xl font-semibold tracking-tight text-ink">
-                {nomeParaSaudacao || saudacao()}
-              </h1>
-            </div>
+        {/* No celular este é o ÚNICO cabeçalho: a saudação é a linha de apoio e
+            o título da tela é "Visão geral", o `h1`. No desktop o `h1` é o da
+            faixa abaixo, e este cabeçalho não aparece — sempre UM `h1`.
+            O avatar decorativo saiu: não era botão, não dizia nada, e tomava
+            ~40px de uma linha que precisa do espaço para os três alvos de 44px. */}
+        <header className="mb-4 flex items-center justify-between gap-2 md:hidden">
+          {/* `min-w-0`: texto não encolhe sozinho em flex. Sem `truncate` no
+              título de propósito — se um dia faltar largura, ele quebra em duas
+              linhas em vez de perder letras. */}
+          <div className="min-w-0">
+            <p className="truncate text-xs text-ink-2">
+              {nomeParaSaudacao ? `${saudacao()}, ${nomeParaSaudacao}` : saudacao()}
+            </p>
+            {/* 20px abaixo de 360px: "Visão geral" a 22px/700 mede ~120px e em
+                320px sobram ~116px ao lado dos três alvos de 44px. A 20px
+                (com o `tracking-tight`) são ~103px. Estimativa por métrica
+                média da Inter, não medida em navegador. */}
+            <h1 className="text-xl font-bold tracking-tight text-ink xs:text-[22px]">Visão geral</h1>
           </div>
 
           {/* Assinaturas e Conselheiro saíram daqui: ambos vivem no menu "Mais",
-              e os ícones (lupa, alvo) não diziam o que abriam. */}
-          {/* 44x44 nos três a partir de 360px: é o piso de alvo de toque do
-              sistema de design, o mesmo que o botão "Mais ferramentas" segue.
-              Estavam em 40px (`p-2.5` + ícone de 20).
-
-              ABAIXO de 360px eles caem para 36px e o vão para 4px. Com três
-              alvos de 44 e vão de 8 sobravam ~56px para a saudação, e "Boa
-              noite" pede ~95px: aparecia "Boa ...". Encolher aqui devolve 40px
-              e mantém os três ícones na tela, que foi a decisão do dono —
-              a alternativa era esconder um deles no menu. Abaixo de 360px,
-              portanto, o alvo fica sob o piso de propósito. */}
-          <div className="flex shrink-0 gap-1 xs:gap-2">
+              e os ícones (lupa, alvo) não diziam o que abriam.
+              44x44 nos três em TODA largura. Com o avatar fora, 3×44 + 2×8 =
+              148px deixam 124px dos 272px internos de 320px — a regra de 36px
+              abaixo de 360px, que existia por causa da saudação, não é mais
+              necessária. */}
+          <div className="flex shrink-0 gap-2">
             <button
               onClick={() => setShowValues(!showValues)}
               aria-label={showValues ? "Ocultar valores" : "Mostrar valores"}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink"
             >
-              {showValues ? <Eye className="h-4 w-4 xs:h-5 xs:w-5" /> : <EyeOff className="h-4 w-4 xs:h-5 xs:w-5" />}
+              {showValues ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
             </button>
-            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11">
-                <Bell className="h-4 w-4 xs:h-5 xs:w-5"/>
-                {hasUnread && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-neg rounded-full xs:top-2.5 xs:right-2.5"></span>}
-             </button>
+            <button onClick={() => { setIsActivityOpen(true); dispensarAvisos(); }} aria-label="Avisos" className="relative grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink">
+              <Bell className="h-5 w-5" />
+              {hasUnread && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-neg"></span>}
+            </button>
             {/* Entrada do feedback abaixo de 1368px.
                 O botão flutuante cobria o conteúdo nessas larguras (ver
                 `FeedbackWidget`), então aqui ele deixa de pairar e passa a
@@ -1210,9 +1271,9 @@ export default function Dashboard() {
             <button
               onClick={abrirFeedback}
               aria-label={ROTULO_FEEDBACK}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink xs:h-11 xs:w-11"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white/5 text-ink-2 transition-colors hover:text-ink"
             >
-              <MessageSquare className="h-4 w-4 xs:h-5 xs:w-5" />
+              <MessageSquare className="h-5 w-5" />
             </button>
           </div>
         </header>
@@ -1223,7 +1284,7 @@ export default function Dashboard() {
             card, e entre 768 e 1279px "Lançar"/"Ler Fatura" caíam numa linha
             própria esticados a meia largura cada. Agora o grupo da esquerda
             encolhe (`min-w-0 flex-1`) e o da direita acompanha o título. */}
-        <div className="flex items-center justify-between gap-3 md:gap-6 mb-8 relative z-10 min-w-0">
+        <div className="relative z-10 mb-6 flex min-w-0 items-center justify-between gap-3 md:mb-8 md:gap-6">
           {/* No celular isto era uma linha só, sem poder encolher: título +
               olho + seletor de mês passavam da largura da tela e empurravam a
               página inteira para o lado. O `flex-wrap` deixa o seletor descer
@@ -1262,10 +1323,13 @@ export default function Dashboard() {
                 da página — o usuário trocava os quatro cards do topo sem
                 perceber de onde vinha a mudança. Aqui ele fica junto do título,
                 deixando claro que escopa tudo. */}
-            <div className="flex w-full items-center justify-between gap-1 bg-white/5 p-1 rounded-full border border-line-strong sm:w-fit sm:justify-start">
-              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-              <div className="flex-1 text-center font-medium text-xs text-ink tracking-wider uppercase sm:w-32 sm:flex-none">{MONTHS[activeMonth]} <span className="text-ink-3">{activeYear}</span></div>
-              <button onClick={handleNextMonth} aria-label="Próximo mês" className="shrink-0 p-1.5 rounded-full text-ink-2 hover:text-ink transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+            {/* Abaixo de `md` é um trilho de 44px com setas de 44×44 (eram 28×28)
+                e o rótulo em corpo de leitura; de `md` em diante continua a
+                pílula compacta em caixa alta. O "⋯" ao lado já é `h-11 w-11`. */}
+            <div className="flex h-11 w-full items-center justify-between rounded-field border border-line-strong bg-white/5 md:h-auto md:w-fit md:justify-start md:gap-1 md:rounded-full md:p-1">
+              <button onClick={handlePrevMonth} aria-label="Mês anterior" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-field text-ink-2 transition-colors hover:text-ink md:h-auto md:w-auto md:rounded-full md:p-1.5"><ChevronLeft className="h-5 w-5 md:h-4 md:w-4" /></button>
+              <div className="flex-1 text-center text-sm font-semibold text-ink md:w-32 md:flex-none md:text-xs md:font-medium md:uppercase md:tracking-wider">{MONTHS[activeMonth]} <span className="font-normal text-ink-3 md:font-medium">{activeYear}</span></div>
+              <button onClick={handleNextMonth} aria-label="Próximo mês" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-field text-ink-2 transition-colors hover:text-ink md:h-auto md:w-auto md:rounded-full md:p-1.5"><ChevronRight className="h-5 w-5 md:h-4 md:w-4" /></button>
             </div>
           </div>
           
@@ -1399,7 +1463,9 @@ export default function Dashboard() {
 
         </div>
 
-        {pronto && (
+        {/* Com o onboarding pendente o card Jornada já é o convite; o checklist
+            voltaria a pedir a mesma coisa duas vezes na mesma tela. */}
+        {pronto && !insights.needsOnboarding && (
           <OnboardingChecklist
             transactions={allTransactions}
             hasDebtsRegistered={hasRegisteredDebts}
@@ -1409,13 +1475,7 @@ export default function Dashboard() {
           />
         )}
         {isLoading ? (
-          /* Mesmo grid do estado carregado, senão o esqueleto desenha duas
-             colunas em 320px e o conteúdo chega em uma. */
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            {[1,2,3,4].map(i => (
-              <Skeleton key={i} className={`h-36 rounded-card ${i === 1 ? "xs:col-span-2 md:col-span-3 h-44" : ""}`} />
-            ))}
-          </div>
+          <EsqueletoVisaoGeral />
         ) : erroCarregamento ? (
           <div className="pb-6 md:pb-8">
             <div className="bg-warn/5 border border-warn/25 rounded-card p-6 md:p-8 text-center">
@@ -1443,107 +1503,27 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-        ) : (
-          /* Uma coluna abaixo de 360px: ver `--breakpoint-xs` no globals.css.
-             Em 320px o par lado a lado deixava 26px para o título do card
-             "Renda Líquida", e nem a primeira palavra caberia. */
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-6 md:pb-8">
-            <div className="xs:col-span-2 md:col-span-3">
-              <PillarCard
-                title="Capacidade de Poupança"
-                value={capacidadePoupanca}
-                visible={showValues}
-                caption={capacidadePoupanca >= 0 ? 'Disponível para construir patrimônio' : 'Você gastou mais do que ganhou'}
-                icon={<PiggyBank className={`h-[18px] w-[18px] ${capacidadePoupanca >= 0 ? 'text-brand' : 'text-neg'}`} />}
-                accent={capacidadePoupanca >= 0 ? 'padrao' : 'rose'}
-                hero
-                delay={0.16}
-                secondary={{
-                  label: 'Saldo em conta',
-                  value: balance,
-                  positive: balance >= 0,
-                  hint: sumCategory(investimentos) > 0
-                    ? `Já descontados ${showValues ? formatMoney(sumCategory(investimentos)) : 'R$ •••••'} que você guardou`
-                    : undefined,
-                }}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Renda Líquida"
-                value={rendaLiquida}
-                visible={showValues}
-                caption="Tudo que entrou no mês"
-                icon={<TrendingUp className="h-[18px] w-[18px] text-pos" />}
-                delay={0.04}
-                onEditClick={() => setIsIncomeModalOpen(true)}
-                onClick={() => setPilarAberto('renda')}
-              />
-            </div>
-            <div>
-              <PillarCard
-                title="Custos Fixos"
-                value={custosFixos}
-                visible={showValues}
-                caption="O que você paga todo mês"
-                icon={<HomeIcon className="h-[18px] w-[18px] text-ink-2" />}
-                delay={0.08}
-                onClick={() => setPilarAberto('fixos')}
-              />
-            </div>
-            <div className="xs:col-span-2 md:col-span-1">
-              <PillarCard
-                title="Cartões & Variáveis"
-                value={gargalo}
-                visible={showValues}
-                caption={gargaloTier === 'critico' ? 'Bem acima do seu teto — corte aqui primeiro' : gargaloTier === 'atencao' ? 'Acima do seu teto de consumo' : 'Onde o dinheiro escapa'}
-                icon={<CreditCard className={`h-[18px] w-[18px] ${GARGALO_THEME.text}`} />}
-                accent={GARGALO_THEME.accent}
-                /* A badge mostra o dado, não um rótulo: "38% da renda" responde
-                   "isso está bom ou ruim?" — "Gargalo" exigia decorar o jargão.
-                   Some quando não há gasto ou quando não há renda para comparar. */
-                badge={gargalo > 0 && rendaLiquida > 0
-                  ? (showValues ? `${comprometimentoRaw.toFixed(0)}% da renda` : '••% da renda')
-                  : undefined}
-                delay={0.12}
-                onClick={() => setPilarAberto('gargalo')}
-              />
-            </div>
-          </div>
-        )}
+        ) : null}
 
-        {/* Estágio financeiro: define o que o app prioriza para ESTE usuário */}
+        {/* Jornada: o estágio, a escada e o próximo passo. Substituiu o card de
+            estágio e a `ReserveWidget` — o "próximo passo" é o alvo do degrau
+            atual, e o ideal segue visível no mapa do caminho e em Metas. */}
         {pronto && (
-          <motion.button
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            onClick={() => setIsRoadmapOpen(true)}
-            // Virou cartão de leitura, no formato da referência: um rótulo
-            // discreto em cima e a frase embaixo. Antes era uma faixa colorida
-            // de ponta a ponta, com etiqueta em caixa alta — gritava mais que
-            // o saldo, logo acima.
-            className="card mb-6 block w-full cursor-pointer p-5 text-left transition-colors hover:border-white/15"
-          >
-            <div className="mb-2 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 shrink-0 text-brand" />
-              <span className="text-[13px] font-medium text-ink">{insights.stage.label}</span>
-              <span className="text-xs text-ink-3">· Estágio {insights.stage.level}/5</span>
-              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-ink-3" />
-            </div>
-            <p className="text-[13px] leading-relaxed text-ink-2">
-              {insights.needsOnboarding
-                ? 'Responda 4 perguntas rápidas no seu perfil para o Nexa calibrar os limites ao seu caso.'
-                : insights.stage.id === 'emergencia' && debtSummary.expensiveTotal > 0
-                  // No Estágio 1 a prioridade vira número: dívida cara restante
-                  // e o que ela cobra por mês. "Quite a dívida" sem valor é
-                  // conselho; com valor é meta.
-                  ? <>Dívida cara restante: <strong className="text-neg">{showValues ? formatMoney(debtSummary.expensiveTotal) : 'R$ •••••'}</strong>, custando <strong className="text-neg">{showValues ? formatMoney(debtSummary.expensiveMonthlyInterest) : 'R$ •••••'}</strong> por mês só de juros.</>
-                  : insights.stage.id === 'emergencia' && !hasRegisteredDebts && profile?.has_debt
-                    ? 'Você indicou ter dívida. Cadastre-a para o Nexa calcular quanto custa e quando acaba.'
-                    : insights.stage.priority}
-            </p>
-          </motion.button>
+          <JornadaCard
+            stage={insights.stage}
+            degraus={getStageLadder(insights)}
+            proximoPasso={getProximoPasso(insights)}
+            needsOnboarding={insights.needsOnboarding}
+            temMeta={!!reservaGoal}
+            showValues={showValues}
+            reserveMonths={insights.reserveMonths}
+            dividaCara={dividaCaraNoEstagio1}
+            pedeCadastroDeDivida={pedeCadastroDeDivida}
+            onVerCaminho={() => setIsRoadmapOpen(true)}
+            onResponderPerguntas={() => setIsProfileSettingsOpen(true)}
+            onGuardar={handleAddToReserve}
+            onCriarReserva={insights.reserveIdeal > 0 ? () => handleCreateReserveGoal(insights.reserveIdeal) : undefined}
+          />
         )}
 
           {/* A "Dica do Nexa" vivia num card próprio, na coluna da direita.
@@ -1562,41 +1542,59 @@ export default function Dashboard() {
             </motion.p>
           )}
 
-
-        {/* Termômetro removido: o anel repetia o % que o card de Cartões &
-            Variáveis já mostra no badge, ocupando uma faixa inteira. */}
         {pronto && (
-          <div className="mb-8">
-          <ReserveWidget
-            goal={reservaGoal}
-            current={reservaAtual}
-            minimum={insights.reserveMinimum}
-            ideal={insights.reserveIdeal}
-            monthlyCost={insights.monthlyCost}
-            reserveMonths={insights.reserveMonths}
+          <CardQuantoSobra
+            mes={MONTHS[activeMonth].toLowerCase()}
+            sobra={sobra}
+            rendaLiquida={rendaLiquida}
+            divisao={divisaoDaRenda}
+            valores={valoresDaRenda}
             showValues={showValues}
-            formatMoney={formatMoney}
-            onCreate={handleCreateReserveGoal}
-            onAddFunds={handleAddToReserve}
+            onAbrirRenda={() => setIsIncomeModalOpen(true)}
+            onAbrirSegmento={setPilarAberto}
+            onLancarRenda={handleOpenModal}
+            onLerFatura={() => setIsAiModalOpen(true)}
           />
-          </div>
         )}
+
+        {/* Só com algo a dizer: teto passado, gasto real e renda para comparar.
+            Sem renda o percentual não existe, e "saudável" não é alerta. */}
+        {pronto && gargaloTier !== 'saudavel' && gargalo > 0 && rendaLiquida > 0 && (
+          <AlertaGargalo
+            tier={gargaloTier}
+            percentual={comprometimentoRaw}
+            showValues={showValues}
+            onVerOndeCortar={irParaOndeFoi}
+          />
+        )}
+
 
         {/* Organização saiu da home: os 4 cards listavam cada lançamento e
             ocupavam meia tela repetindo o que o "Raio-x dos gastos" já faz
             melhor, comparando cada categoria com a própria mediana. */}
         <div className="flex flex-col gap-8">
 
-          {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
+          {/* `empty:hidden`: o card devolve `null` num mês sem despesa, e um
+              contêiner vazio ainda gastaria um `gap-8` do flex. `md:scroll-mt-24`
+              desconta a barra superior (h-20) que é `sticky` no desktop. */}
+          <div ref={ondeFoiRef} id="onde-foi-o-dinheiro" className="scroll-mt-4 empty:hidden md:scroll-mt-24">
+            {pronto && <ResumoOndeFoi transactions={currentMonthTransactions} showValues={showValues} onImportar={() => setIsAiModalOpen(true)} onSelecionar={abrirGrupo} filtroAtivo={subcategoriaFiltro} />}
+          </div>
 
+          {/* Com erro de carga a lista não existe: um "Nenhum lançamento" aqui
+              diria "você não tem nada" justamente quando não se conseguiu ler. */}
+          {!erroCarregamento && (
           <div className="w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="card h-full p-5">
               <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center gap-3">
+                {/* "Ver tudo", "A vencer" e "Selecionar" ficam todos aqui, e o
+                    `flex-wrap` deixa o grupo descer para uma segunda linha em
+                    320px em vez de espremer o título. */}
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                   <h2 className="text-base font-semibold tracking-tight text-ink">
                     {buscaForaDoMes ? 'Resultados' : `Lançamentos de ${MONTHS[activeMonth]}`}
                   </h2>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     {buscaForaDoMes && !modoSelecao && (
                       <span className="text-xs text-ink-3">de todos os meses</span>
                     )}
@@ -1606,15 +1604,23 @@ export default function Dashboard() {
                     {ocultos > 0 && !modoSelecao && (
                       <button
                         onClick={() => setMostrarTodos(true)}
-                        className="shrink-0 cursor-pointer rounded-full px-2 py-1 text-xs font-medium text-ink-2 transition-colors hover:text-ink"
+                        className="inline-flex min-h-9 shrink-0 cursor-pointer items-center rounded-field px-2 text-xs font-medium text-ink-2 transition-colors hover:text-ink"
                       >
                         Ver tudo
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setFilterPending(!filterPending)}
+                      aria-pressed={filterPending}
+                      className={`min-h-9 cursor-pointer whitespace-nowrap rounded-field border px-3 text-xs font-medium transition-colors ${filterPending ? 'bg-warn/15 text-warn border-warn/30' : 'border-line bg-white/5 text-ink-2 hover:text-ink'}`}
+                    >
+                      A vencer
+                    </button>
                     {recentTransactions.length > 0 && (
                       <button
                         onClick={() => { if (modoSelecao) { sairDaSelecao(); } else { setAcoesAbertas(null); setModoSelecao(true); } }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
+                        className={`min-h-9 cursor-pointer whitespace-nowrap rounded-field border px-3 text-xs font-medium transition-colors ${modoSelecao ? 'bg-brand/15 text-brand border-brand/30' : 'border-line bg-white/5 text-ink-2 hover:text-ink'}`}
                       >
                         {modoSelecao ? 'Cancelar' : 'Selecionar'}
                       </button>
@@ -1664,21 +1670,18 @@ export default function Dashboard() {
                     </span>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
-                    <input type="text" placeholder="Buscar gastos..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-line rounded-field py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand/60 transition-colors" />
-                  </div>
-                  <button 
-                    onClick={() => setFilterPending(!filterPending)}
-                    className={`px-3 py-2 rounded-field text-xs font-medium transition-colors border whitespace-nowrap ${filterPending ? 'bg-warn/15 text-warn border-warn/30' : 'bg-white/5 text-ink-2 border-line hover:text-ink'}`}
-                  >
-                    A Vencer
-                  </button>
+                <div className="relative">
+                  <label htmlFor={idBusca} className="sr-only">Buscar lançamentos</label>
+                  <Search aria-hidden className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+                  <input id={idBusca} type="text" placeholder="Buscar lançamentos" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-line rounded-field py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand/60 transition-colors" />
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
-                {recentTransactions.length === 0 ? (
+                {isLoading ? (
+                  <div aria-hidden>
+                    {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+                  </div>
+                ) : recentTransactions.length === 0 ? (
                   <EmptyState
                     icon={<FileText className="h-6 w-6" />}
                     title={subcategoriaFiltro
@@ -1694,8 +1697,23 @@ export default function Dashboard() {
                       : { label: "Lançar", onClick: handleOpenModal }}
                   />
                 ) : (
-                  recentTransactions.map((tx) => (
-                    <TransactionRow key={tx.id} title={tx.title} category={tx.category} date={new Date(tx.date).toLocaleDateString('pt-BR', buscaForaDoMes ? { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: '2-digit' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit' })} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={!!acoesAbertas && acoesAbertas.id === tx.id && acoesAbertas.recorte === recorteAtual} onAlternarAcoes={() => setAcoesAbertas(atual => atual?.id === tx.id ? null : { id: tx.id, recorte: recorteAtual })} />
+                  /* Um grupo por dia, cada um com o próprio `h3` e uma lista de
+                     verdade: o leitor de tela anuncia "lista, 4 itens" e o dia
+                     vem do cabeçalho, não de cada linha. O ano só aparece
+                     quando a busca atravessa meses. Sem `sticky` nesta rodada. */
+                  agruparPorDia(recentTransactions).map((grupo) => (
+                    <div key={grupo.dia || 'sem-data'} className="mt-3 first:mt-0">
+                      <h3 className="px-2 pb-1 text-xs font-bold uppercase tracking-[0.06em] text-ink-2">
+                        {rotuloDoDia(grupo.dia, { comAno: buscaForaDoMes })}
+                      </h3>
+                      <ul className="flex flex-col gap-0.5">
+                        {grupo.itens.map((tx) => (
+                          <li key={tx.id}>
+                            <TransactionRow title={tx.title} category={tx.category} amount={tx.amount} visible={showValues} type={tx.type} isPaid={tx.is_paid} onTogglePaid={() => handleTogglePaid(tx.id, tx.is_paid)} onDelete={() => { setAcoesAbertas(null); handleDeleteTransaction(tx.id); }} onEdit={() => { setAcoesAbertas(null); handleEditTransaction(tx); }} receiptUrl={tx.receipt_url} subcategoria={tx.subcategoria} modoSelecao={modoSelecao} selecionado={selecionados.includes(tx.id)} onToggleSelecao={() => alternarSelecionado(tx.id)} acoesVisiveis={!!acoesAbertas && acoesAbertas.id === tx.id && acoesAbertas.recorte === recorteAtual} onAlternarAcoes={() => setAcoesAbertas(atual => atual?.id === tx.id ? null : { id: tx.id, recorte: recorteAtual })} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))
                 )}
                 {/* Mesma medida do `pb-bottom-nav` (globals.css): a BottomNav é `fixed`
@@ -1748,6 +1766,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
           </div>
+          )}
 
         </div>
       </main>
@@ -1763,6 +1782,7 @@ export default function Dashboard() {
           subtitle={pilarAtivo.subtitle}
           transactions={pilarAtivo.list}
           accent={pilarAtivo.accent}
+          total={pilarAtivo.total}
           showValues={showValues}
           /* A lista fica aberta atrás da edição: ao salvar, o valor corrigido
              aparece aqui mesmo e o total do topo se recalcula, sem precisar
@@ -1829,7 +1849,7 @@ export default function Dashboard() {
         onClose={() => setIsDebtsOpen(false)}
         userId={userId}
         showValues={showValues}
-        monthlyBudgetHint={Math.max(0, capacidadePoupanca)}
+        monthlyBudgetHint={Math.max(0, sobra)}
         onSave={refreshDebts}
       />
       <InvestmentsModal
@@ -1873,282 +1893,5 @@ export default function Dashboard() {
       />
     </div>
     </BetaGate>
-  );
-}
-
-/**
- * Reserva de Emergência — a barra que mede o app inteiro.
- *
- * Os marcos NÃO são fixos: `minimum` e `ideal` vêm do lib/profile.ts, calculados
- * sobre o CUSTO DE VIDA do usuário (3 e 6 meses; 6 e 12 se a renda for
- * variável). Quem ganha R$ 15.000 e quem ganha R$ 1.800 veem metas diferentes.
- */
-function ReserveWidget({ goal, current, minimum, ideal, monthlyCost, reserveMonths, showValues, formatMoney, onCreate, onAddFunds }: any) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [value, setValue] = useState("");
-  const [isBusy, setIsBusy] = useState(false);
-
-  // Respeita um alvo editado à mão na tela de Metas; senão usa o calculado.
-  const target = Number(goal?.target_amount) || ideal;
-  const percent = target > 0 ? Math.min(100, (current / target) * 100) : 0;
-  const minMarker = target > 0 ? Math.min(100, (minimum / target) * 100) : 0;
-  const atingiuMinimo = current >= minimum && minimum > 0;
-  const completa = target > 0 && current >= target;
-
-  const handleAdd = async () => {
-    const v = parseFloat(value);
-    if (!v || v <= 0) return;
-    setIsBusy(true);
-    await onAddFunds(v);
-    setIsBusy(false);
-    setValue("");
-    setIsAdding(false);
-  };
-
-  // Sem custo de vida apurado não há meta confiável para oferecer.
-  if (!goal && (!ideal || ideal <= 0)) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-white/5 border border-line-strong rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center items-center text-center gap-2">
-        <ShieldCheck className="w-6 h-6 text-ink-3" />
-        <h3 className="font-bold text-ink text-sm">Reserva de Emergência</h3>
-        <p className="text-xs text-ink-3 leading-relaxed max-w-xs">
-          Lance algumas despesas para o Nexa descobrir seu custo de vida e calcular a reserva certa para você.
-        </p>
-      </motion.div>
-    );
-  }
-
-  if (!goal) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="h-full bg-pos/5 border border-pos/20 rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col justify-center gap-4 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 bg-brand/[0.06]"></div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-pos/10 border border-pos/20 rounded-inner">
-              <ShieldCheck className="w-5 h-5 text-pos" />
-            </div>
-            <h3 className="font-bold text-ink text-lg">Reserva de Emergência</h3>
-          </div>
-          <p className="text-sm text-ink-2 leading-relaxed mb-4">
-            Com seu custo de vida de {showValues ? formatMoney(monthlyCost) : 'R$ •••••'} por mês, sua reserva ideal é de{' '}
-            <strong className="text-pos">{showValues ? formatMoney(ideal) : 'R$ •••••'}</strong>. É o colchão que te impede de voltar pro cartão quando algo dá errado.
-          </p>
-          <button
-            onClick={() => onCreate(ideal)}
-            className="w-full bg-pos hover:bg-pos/85 text-canvas font-bold py-3 rounded-field flex items-center justify-center gap-2 transition-all shadow-lg shadow-pos/25 active:scale-95 cursor-pointer"
-          >
-            <ShieldCheck className="w-4 h-4" /> Criar minha reserva
-          </button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className={`h-full border rounded-card p-5 md:p-6 backdrop-blur-xl flex flex-col relative overflow-hidden ${completa ? 'bg-pos/5 border-pos/20' : 'bg-white/5 border-line-strong'}`}>
-      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${completa ? 'bg-brand/[0.06]' : atingiuMinimo ? 'bg-brand/[0.06]' : 'bg-brand/[0.06]'}`}></div>
-
-      <div className="flex items-start justify-between gap-3 mb-5 relative z-10">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2.5 rounded-inner border shrink-0 ${completa ? 'bg-pos/10 border-pos/20 text-pos' : atingiuMinimo ? 'bg-white/10 border-white/20 text-ink-2' : 'bg-warn/10 border-warn/20 text-warn'}`}>
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-bold text-ink text-base leading-tight">Reserva de Emergência</h3>
-            <p className="text-xs text-ink-3 mt-0.5">
-              {reserveMonths > 0 ? `${reserveMonths.toFixed(1)} meses de custo cobertos` : 'Ainda sem aporte'}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setIsAdding(v => !v)}
-          className="p-2 bg-pos/10 hover:bg-pos/20 text-pos border border-pos/20 rounded-field transition-colors cursor-pointer shrink-0"
-          title="Adicionar à reserva"
-        >
-          <Plus className={`w-4 h-4 transition-transform ${isAdding ? 'rotate-45' : ''}`} />
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {isAdding && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden relative z-10">
-            <div className="flex gap-2 mb-5">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">R$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  autoFocus
-                  value={value}
-                  onChange={e => setValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
-                  placeholder="0,00"
-                  className="w-full bg-black/30 border border-line-strong rounded-field py-2.5 pl-9 pr-3 text-ink text-sm font-semibold placeholder:text-ink-3 focus:outline-none focus:border-pos transition-colors"
-                />
-              </div>
-              <button
-                onClick={handleAdd}
-                disabled={isBusy || !value}
-                className="px-4 bg-pos hover:bg-pos/85 text-canvas font-bold rounded-field transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-sm"
-              >
-                {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Somar'}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-auto relative z-10">
-        <div className="flex justify-between items-end mb-2">
-          <span className={`text-2xl font-semibold tracking-tight ${completa ? 'text-pos' : 'text-ink'}`}>
-            {showValues ? formatMoney(current) : 'R$ •••••'}
-          </span>
-          <span className="text-xs text-ink-3 font-medium">
-            de {showValues ? formatMoney(target) : 'R$ •••••'}
-          </span>
-        </div>
-
-        {/* Barra com o marco do mínimo (3 meses de custo, ou 6 se renda variável) */}
-        <div className="relative w-full h-3 bg-black/40 rounded-full overflow-hidden border border-line">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className={`h-full rounded-full ${completa ? 'bg-gradient-to-r from-pos to-pos/60' : atingiuMinimo ? 'bg-gradient-to-r from-brand to-brand-strong' : 'bg-gradient-to-r from-warn to-warn/60'}`}
-          />
-          {minMarker > 0 && minMarker < 100 && (
-            <div className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10" style={{ left: `${minMarker}%` }} />
-          )}
-        </div>
-
-        <div className="flex justify-between mt-2 text-xs font-medium">
-          <span className={atingiuMinimo ? 'text-pos' : 'text-ink-3'}>
-            {atingiuMinimo && '✓ '}Mínimo {showValues ? formatMoney(minimum) : '•••'}
-          </span>
-          <span className={completa ? 'text-pos' : 'text-ink-3'}>
-            {completa && '✓ '}Ideal {showValues ? formatMoney(target) : '•••'}
-          </span>
-        </div>
-
-        <p className="text-xs text-ink-3 mt-3 leading-relaxed">
-          {completa
-            ? 'Reserva completa. A partir daqui, o excedente vai para investimento de longo prazo.'
-            : atingiuMinimo
-              ? 'Você já aguenta uma emergência. Siga até o ideal para ficar fora de perigo de vez.'
-              : `Faltam ${showValues ? formatMoney(Math.max(0, minimum - current)) : 'R$ •••••'} para o mínimo — o ponto em que uma emergência deixa de virar dívida.`}
-        </p>
-      </div>
-    </motion.div>
-  );
-}
-
-/**
- * Etiqueta do card. Das seis cores anteriores sobraram três, e cada uma passou
- * a significar um estado — não a identidade do card.
- */
-const PILLAR_BADGE: Record<string, string> = {
-  rose:   'text-neg bg-neg/10',
-  amber:  'text-warn bg-warn/10',
-  padrao: 'text-ink-2 bg-white/5',
-};
-
-function PillarCard({ title, value, visible = true, caption, icon, accent, badge, hero, delay, onEditClick, secondary, onClick }: any) {
-  const badgeTom = PILLAR_BADGE[accent] ?? PILLAR_BADGE.padrao;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.26, delay, ease: [0.22, 1, 0.36, 1] }}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      // Card inteiro como alvo: no celular, um botãozinho "ver detalhes" seria
-      // alvo pequeno justo onde o dedo erra mais.
-      onKeyDown={onClick ? (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
-      } : undefined}
-      className={`${hero ? 'card-hero' : 'card'} relative flex h-full flex-col overflow-hidden p-5 transition-colors ${onClick ? 'cursor-pointer hover:border-white/15' : ''}`}
-    >
-      {hero && <span aria-hidden className="hero-mist" />}
-
-      {/* Em 360px a coluna do card deixa 108px internos. Descontando o ícone
-          (18 + 10 de vão) e o grupo da direita, o título ficava com 22px no
-          card "Renda Líquida" — o único que tem lápis E seta (26 + 8 + 16 =
-          50px) — e chegava cortado. Encolher a fonte não é saída: 12px já é o
-          piso do sistema e este é um app de dinheiro lido no celular.
-
-          Então: duas linhas para o título, e a seta sai no celular. Ela é
-          redundante ali, porque o card inteiro já é um botão; no desktop
-          continua, como pista visual de que dá para abrir. Isso devolve 24px e
-          leva o título a 46px em 360px.
-
-          O `xs:min-h-10` reserva as duas linhas quando os cards ficam lado a
-          lado, mesmo com título de uma linha ("Custos Fixos"), senão o valor de
-          um card da dupla nasceria ~18px acima do outro entre 414 e 767px. Vai
-          no wrapper, e não no `<p>`: o `<p>` é `line-clamp-2`, ou seja
-          `display:-webkit-box`, e o texto se cola no topo da caixa de 40px —
-          no wrapper, o `items-center` centra ícone e texto juntos. Abaixo de
-          360px o grid é de uma coluna e não há par para alinhar; no desktop o
-          título sempre cabe em uma linha. Nos dois casos o mínimo sai. */}
-      <div className="relative mb-4 flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5 text-ink-2 xs:min-h-10 md:min-h-0">
-          <span className="shrink-0">{icon}</span>
-          <p className="line-clamp-2 text-[13px] font-medium leading-snug">{title}</p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {onEditClick && (
-            <button
-              /* Sem o stopPropagation, o clique no lápis subiria para o card e
-                 abriria o modal de lançamentos junto com o de edição. */
-              onClick={(e) => { e.stopPropagation(); onEditClick(); }}
-              className="cursor-pointer rounded-full bg-white/5 p-1.5 text-ink-2 transition-colors hover:text-ink"
-              title="Editar receitas"
-              aria-label="Editar receitas"
-            >
-              <Edit2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {badge && (
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badgeTom}`}>{badge}</span>
-          )}
-          {onClick && <ArrowUpRight className="hidden h-4 w-4 text-ink-3 md:block" />}
-        </div>
-      </div>
-
-      <Money
-        value={value}
-        visible={visible}
-        tom={value === 0 ? 'muted' : 'ink'}
-        className={hero ? 'text-[40px] font-semibold tracking-[-0.03em]' : 'text-[28px] font-semibold tracking-[-0.02em]'}
-      />
-
-      {caption && <p className="relative mt-1.5 text-xs leading-snug text-ink-3">{caption}</p>}
-
-      {/* Linha secundária: um segundo número que pertence ao mesmo assunto,
-          em vez de virar um bloco separado na página. */}
-      {secondary && (
-        <div className="relative mt-auto pt-4">
-          {/* Rótulo e valor LADO A LADO, não nas duas pontas.
-              Com `justify-between`, no card herói — que ocupa a largura toda —
-              "Saldo em conta" ficava na borda esquerda e o número na direita,
-              a quase mil pixels de distância no desktop. São uma informação
-              só e precisam ser lidos como uma frase. No celular a diferença
-              quase não aparecia; era no monitor que os dois se desgarravam. */}
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-xs text-ink-3">{secondary.label}</span>
-            <Money
-              value={secondary.value}
-              visible={visible}
-              tom={secondary.positive === false ? 'neg' : secondary.positive === true ? 'pos' : 'ink'}
-              className="text-[15px] font-semibold tracking-tight"
-            />
-          </div>
-          {secondary.hint && <p className="mt-1 text-xs leading-snug text-ink-3">{secondary.hint}</p>}
-        </div>
-      )}
-    </motion.div>
   );
 }

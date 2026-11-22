@@ -23,6 +23,31 @@
   --color-line: rgba(255, 255, 255, 0.06);
   --color-line-strong: rgba(255, 255, 255, 0.1);
 
+  /* Borda de COMPONENTE GRÁFICO — o que precisa de 3:1 (WCAG 1.4.11).
+
+     `line` e `line-strong` separam superfícies e não carregam informação, então
+     ficam fora dessa regra. Mas `line-strong` mede 1,34:1 sobre o gradiente do
+     `card`, e uma trilha de progresso ou um contorno de estágio desenhados com
+     ele somem — justamente em 0%, o estado mais comum do público do app.
+
+     TRÊS USOS, e só estes (um quarto pede decisão, não cópia):
+       1. contorno e conector dos estágios futuros da escada (`EscadaEstagios`);
+       2. trilha da barra de progresso do "Próximo passo" (`JornadaCard`);
+       3. contorno tracejado do "mês sem renda" (`CardQuantoSobra`).
+
+     MEDIDO (fórmula WCAG 2.1, branco a 42% composto sobre o fundo, contra o
+     próprio fundo):
+
+       canvas   #080b0f            4,06:1
+       surface  #121820            4,08:1
+       card     #151c23 -> #0f141a 4,05:1 -> 4,09:1
+       hero     #24323c -> #121a21 3,65:1 -> 4,06:1   (pior ponto: a abertura
+                                                       clara do `card-hero`)
+
+     Com 35% o pior ponto do herói caía para 3,00:1 — sem folga —; 42% fecha
+     todos acima de 3,6:1 sem virar uma linha branca que compete com o texto. */
+  --color-line-contrast: rgba(255, 255, 255, 0.42);
+
   /* A ÚNICA cor de ação do app. Substitui o par indigo/roxo, que era o que
      mais datava a interface. Qualquer outra cor precisa significar estado. */
   --color-brand: #8fbdd3;

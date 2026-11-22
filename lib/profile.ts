@@ -668,6 +668,12 @@ export function computeStage(params: {
   return STAGES.reserva;
 }
 
+/** O que a escada lê dos insights — o resto não a afeta. */
+export type InsightsDaEscada = Pick<
+  ProfileInsights,
+  'stage' | 'monthlyCost' | 'reserveAmount' | 'reserveIdeal' | 'investedTotal' | 'gargaloCritical'
+>;
+
 export interface StageStep {
   stage: Stage;
   status: 'done' | 'current' | 'locked';
@@ -675,6 +681,8 @@ export interface StageStep {
   goal: string;
   /** Alvo em R$, quando o critério for financeiro. */
   target: number | null;
+  /** Quanto o usuário já tem em direção ao alvo (reserva, ou patrimônio no degrau 4). */
+  current: number;
   /** Quanto falta em R$ para bater o alvo. */
   remaining: number | null;
 }
@@ -687,7 +695,7 @@ export interface StageStep {
  * eram os outros quatro nem quanto faltava para o próximo — uma barra de
  * progresso sem régua.
  */
-export function getStageLadder(insights: ProfileInsights): StageStep[] {
+export function getStageLadder(insights: InsightsDaEscada): StageStep[] {
   const { stage, monthlyCost, reserveAmount, reserveIdeal, investedTotal, gargaloCritical } = insights;
 
   const patrimonio = reserveAmount + investedTotal;
@@ -736,9 +744,71 @@ export function getStageLadder(insights: ProfileInsights): StageStep[] {
       status,
       goal: def.goal,
       target: def.target,
+      current: def.current,
       remaining: def.target !== null ? Math.max(0, def.target - def.current) : null,
     };
   });
+}
+
+/** O alvo do degrau atual, pronto para a tela desenhar. */
+export interface ProximoPasso {
+  /** Nome curto do que se persegue: "Primeiro mês de reserva". */
+  rotulo: string;
+  /** O critério do degrau, em frase (`StageStep.goal`). */
+  frase: string;
+  /** null nos degraus sem alvo financeiro (1 e 5) e quando falta o custo de vida. */
+  alvo: number | null;
+  atual: number;
+  restante: number;
+  concluido: boolean;
+  /** Não há valor a perseguir: a tela mostra só a frase, sem barra. */
+  semAlvo: boolean;
+  /** O degrau TEM alvo financeiro, mas ele não existe ainda por falta de custo de vida apurado. */
+  semCusto: boolean;
+  /** O alvo do degrau é a própria reserva (degraus 2 e 3). A tela usa isto para
+   *  não prometer, no botão de aporte, um alvo que o aporte não persegue. */
+  alvoEhReserva: boolean;
+}
+
+const ROTULO_DO_PASSO: Record<StageId, string> = {
+  emergencia: 'Sair do modo emergência',
+  estabilidade: 'Primeiro mês de reserva',
+  reserva: 'Reserva de emergência ideal',
+  acumulacao: 'Patrimônio para a independência',
+  independencia: 'Preservar e diversificar',
+};
+
+/** Degraus cujo critério é um valor em R$ — os outros dois nunca têm alvo. */
+const ESTAGIOS_COM_ALVO: StageId[] = ['estabilidade', 'reserva', 'acumulacao'];
+
+/**
+ * O "próximo passo" é SEMPRE o alvo do degrau atual de `getStageLadder`, sem
+ * exceção por estágio. O mockup do design mostrava a reserva MÍNIMA no estágio
+ * 2, mas a frase do estágio fala em "primeiro mês de reserva": o alvo ali é um
+ * mês de custo (decisão do dono, D2). Derivar da escada também garante que o
+ * card e o `StageRoadmapModal` nunca contem números diferentes.
+ */
+export function getProximoPasso(insights: InsightsDaEscada): ProximoPasso {
+  const degrau = getStageLadder(insights).find(d => d.status === 'current');
+  // O estágio vem de STAGES e a escada cobre os cinco: o `find` não falha. O
+  // retorno abaixo existe só para o tipo, e é o mesmo "sem alvo" do degrau 5.
+  if (!degrau) {
+    return { rotulo: ROTULO_DO_PASSO.independencia, frase: '', alvo: null, atual: 0, restante: 0, concluido: false, semAlvo: true, semCusto: false, alvoEhReserva: false };
+  }
+
+  const alvo = degrau.target;
+  const id = degrau.stage.id;
+  return {
+    rotulo: ROTULO_DO_PASSO[id],
+    frase: degrau.goal,
+    alvo,
+    atual: degrau.current,
+    restante: degrau.remaining ?? 0,
+    concluido: alvo !== null && degrau.current >= alvo,
+    semAlvo: alvo === null,
+    semCusto: alvo === null && ESTAGIOS_COM_ALVO.includes(id),
+    alvoEhReserva: id === 'estabilidade' || id === 'reserva',
+  };
 }
 
 /**

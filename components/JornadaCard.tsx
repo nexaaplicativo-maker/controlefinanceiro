@@ -188,9 +188,12 @@ function ProximoPassoBloco({ passo, temMeta, showValues, reserveMonths, onGuarda
         <>
           {/* Empilha abaixo de `xs`: "R$ 1.000,00 de R$ 3.985,00" mede ~195px e
               em 320px o rótulo ficaria com ~25px, cortado pelo `overflow-hidden` do card. */}
-          <div className="mt-2 flex flex-col gap-0.5 xs:flex-row xs:items-baseline xs:justify-between xs:gap-3">
+          {/* Empilhado ate sm, nao ate xs: em 360-430px o alvo de 5+ digitos
+              ("R$ 15.000,00 de R$ 24.000,00") nao deixa largura para o rotulo
+              do degrau, e o Card e overflow-hidden, entao o texto some. */}
+          <div className="mt-2 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
             <span className="min-w-0 text-sm font-semibold text-ink">{passo.rotulo}</span>
-            <span className="text-sm tnum text-ink-2 xs:shrink-0 xs:text-right">
+            <span className="text-sm tnum text-ink-2 sm:shrink-0 sm:text-right">
               <span className="font-bold text-ink">{dinheiro(passo.atual, showValues)}</span>{" "}
               de {dinheiro(alvo, showValues)}
             </span>

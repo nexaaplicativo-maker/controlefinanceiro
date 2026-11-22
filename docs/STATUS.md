@@ -282,10 +282,6 @@
 - **Rodada 4, A MEDIR EM NAVEGADOR: o herói a `text-[40px] font-extrabold`** sem
   plano B. Com 6 dígitos ou sinal negativo pode passar dos 232px internos em
   320px e causar rolagem horizontal.
-- **Rodada 4: mês sem renda esconde os 4 itens do "Quanto sobra"** — e com eles a
-  porta para o detalhe de fixos e cartões. É o que o design pede ("frase +
-  Lançar renda"); os lançamentos seguem na lista. Reavaliar se atrapalhar quem
-  lança despesa antes da renda.
 - **Rodada 4: o título "% da renda" do alerta usa uma casa decimal** ("68,6%"),
   como o plano pediu; o selo antigo arredondava ("69%"). Se o dono preferir
   inteiro, é uma linha em `AlertaGargalo`.

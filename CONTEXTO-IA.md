@@ -126,18 +126,27 @@ está em `lib/`, com teste.
   só a frase, sem barra. Sem custo de vida apurado também não há barra
   (`aria-valuemax="0"` seria inválido).
 - **Três CTAs no card Jornada**: `needsOnboarding` → "Responder as 4 perguntas";
-  sem meta de reserva → "Criar minha reserva"; com meta → "Guardar agora".
-  "Guardar agora" **nunca** aparece sem a meta: `handleAddToReserve` sai calado
-  quando ela não existe e o botão seria morto. Com `needsOnboarding` o
-  `OnboardingChecklist` some (o card já é o convite).
+  sem meta de reserva → "Criar minha reserva"; com meta → "Guardar agora" nos
+  estágios 2 e 3, **"Guardar na reserva" nos estágios 1, 4 e 5** (`alvoEhReserva`
+  em `getProximoPasso`). Nos estágios em que o alvo do degrau não é a própria
+  reserva, "Guardar agora" sugeriria que o dinheiro vai para aquele alvo — e o
+  aporte sempre vai para a meta "Reserva de Emergência". O botão de aporte
+  **nunca** aparece sem a meta: `handleAddToReserve` sai calado quando ela não
+  existe e o botão seria morto. Com `needsOnboarding` o `OnboardingChecklist`
+  some (o card já é o convite).
 - **`dividirRenda`** (`lib/divisao-renda.ts`): se as saídas passam da renda ou o
   saldo é negativo, o segmento "livre" **não existe** e os percentuais são
-  normalizados pelo total das saídas — nunca se desenha sobra que não há. Com
-  `showValues` desligado a barra é um bloco cinza único, sem percentual em texto
-  nem em `aria-*`.
+  normalizados pelo total das saídas — nunca se desenha sobra que não há. A base
+  do percentual tem **três** casos: a renda; o total das saídas, no estouro; e a
+  soma das fatias, quando ela passa da renda (acontece com resgate de
+  investimento lançado como receita, que infla o `balance`). A barra desenha
+  `valor ÷ base` e deixa a trilha vazia no resto, então desenho e texto usam
+  sempre a mesma base e a soma nunca passa de 100. Com `showValues` desligado a
+  barra é um bloco cinza único, sem percentual em texto nem em `aria-*`.
 - **Mês sem renda**: o "Quanto sobra" vira convite ("Lançar renda" / "Ler uma
-  fatura", este só com `AI_ENABLED`) e **os 4 itens que abrem o detalhe somem**
-  junto. Os lançamentos continuam acessíveis pela lista.
+  fatura", este só com `AI_ENABLED`). Os 4 itens que abrem o detalhe **continuam
+  abaixo do convite quando há saídas lançadas** (sem a barra): fixos e cartões
+  existem nesse mês e ficariam sem nenhuma porta para o `PillarDetailModal`.
 - O `PillarDetailModal` aceita `total?: number`: "Já guardado" e "Livre na conta"
   passam o valor exato da página (líquido de resgates / entradas menos saídas) e o
   modal suprime o "% do total" por item.
